@@ -70,14 +70,19 @@ const scheduleEventSchema = z.object({
 
 
 // Reusable Form Components for list items
-function HighlightItemForm({ item, onSave, onDelete }: { item: T.ConferenceHighlight; onSave: (id: string, data: T.ConferenceHighlight) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
+function HighlightItemForm({ item, onSave, onDelete }: { item: T.ConferenceHighlight; onSave: (id: string, data: z.infer<typeof highlightItemSchema>) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
   const form = useForm<z.infer<typeof highlightItemSchema>>({
     resolver: zodResolver(highlightItemSchema),
     defaultValues: { icon: item.icon, title: item.title, description: item.description },
   });
+
+  React.useEffect(() => {
+    form.reset({ icon: item.icon, title: item.title, description: item.description });
+  }, [item, form]);
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => onSave(item.id, {...item, ...data}))} className="flex flex-wrap md:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
+      <form onSubmit={form.handleSubmit((data) => onSave(item.id, data))} className="flex flex-wrap md:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
         <FormField control={form.control} name="icon" render={({ field }) => <FormItem><FormLabel>Icon</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
         <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
         <FormField control={form.control} name="description" render={({ field }) => <FormItem className="flex-grow w-full md:w-auto"><FormLabel>Description</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
@@ -87,14 +92,18 @@ function HighlightItemForm({ item, onSave, onDelete }: { item: T.ConferenceHighl
   );
 }
 
-function CodeOfConductItemForm({ item, onSave, onDelete }: { item: T.CodeOfConductItem; onSave: (id: string, data: T.CodeOfConductItem) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
+function CodeOfConductItemForm({ item, onSave, onDelete }: { item: T.CodeOfConductItem; onSave: (id: string, data: z.infer<typeof codeOfConductItemSchema>) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
     const form = useForm<z.infer<typeof codeOfConductItemSchema>>({
         resolver: zodResolver(codeOfConductItemSchema),
         defaultValues: { title: item.title, content: item.content },
     });
+     React.useEffect(() => {
+        form.reset({ title: item.title, content: item.content });
+    }, [item, form]);
+
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => onSave(item.id, {...item, ...data}))} className="flex flex-wrap md:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
+            <form onSubmit={form.handleSubmit((data) => onSave(item.id, data))} className="flex flex-wrap md:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
                 <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="content" render={({ field }) => <FormItem className="flex-grow w-full md:w-auto"><FormLabel>Content</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl><FormMessage /></FormItem>} />
                 <div className="flex gap-1 pt-6"><Button type="submit" size="sm">Save</Button><Button size="sm" variant="destructive" type="button" onClick={() => onDelete(item.id)}>Delete</Button></div>
@@ -108,6 +117,10 @@ function SecretariatMemberForm({ member, onSave, onDelete }: { member: T.Secreta
         resolver: zodResolver(secretariatMemberSchema),
         defaultValues: { name: member.name, role: member.role, imageUrl: member.imageUrl, bio: member.bio },
     });
+    React.useEffect(() => {
+        form.reset({ name: member.name, role: member.role, imageUrl: member.imageUrl, bio: member.bio });
+    }, [member, form]);
+
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit((data) => onSave(member.id, data))} className="flex flex-wrap lg:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
@@ -121,14 +134,18 @@ function SecretariatMemberForm({ member, onSave, onDelete }: { member: T.Secreta
     );
 }
 
-function ScheduleEventForm({ event, onSave, onDelete }: { event: T.ScheduleEvent; onSave: (id: string, data: T.ScheduleEvent) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
+function ScheduleEventForm({ event, onSave, onDelete }: { event: T.ScheduleEvent; onSave: (id: string, data: z.infer<typeof scheduleEventSchema>) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
     const form = useForm<z.infer<typeof scheduleEventSchema>>({
         resolver: zodResolver(scheduleEventSchema),
         defaultValues: { time: event.time, title: event.title, location: event.location, description: event.description },
     });
+    React.useEffect(() => {
+        form.reset({ time: event.time, title: event.title, location: event.location, description: event.description });
+    }, [event, form]);
+
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => onSave(event.id, {...event, ...data}))} className="flex flex-wrap md:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
+            <form onSubmit={form.handleSubmit((data) => onSave(event.id, data))} className="flex flex-wrap md:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
                 <FormField control={form.control} name="time" render={({ field }) => <FormItem><FormLabel>Time</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="title" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="location" render={({ field }) => <FormItem><FormLabel>Location</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
@@ -285,7 +302,7 @@ export default function AdminPage() {
                 chairName: c.chair.name,
                 chairBio: c.chair.bio,
                 chairImageUrl: c.chair.imageUrl,
-                topics: c.topics.join('\n'), // Join topics with newline for CSV
+                topics: c.topics.join('\\n'), // Join topics with newline for CSV
                 backgroundGuideUrl: c.backgroundGuideUrl,
             }));
             break;
@@ -479,7 +496,7 @@ export default function AdminPage() {
                                 await firebaseService.addCommittee({
                                     name: values.name,
                                     chair: { name: values.chairName, bio: values.chairBio || "" },
-                                    topics: (values.topics || "").split('\n').filter(Boolean), 
+                                    topics: (values.topics || "").split('\\n').filter(Boolean), 
                                     backgroundGuideUrl: values.backgroundGuideUrl || "",
                                 });
                                 toast({ title: "Committee Added!" });
@@ -547,7 +564,7 @@ export default function AdminPage() {
                              <ScheduleEventForm
                                 key={event.id}
                                 event={event}
-                                onSave={async (id, data) => { await firebaseService.updateScheduleEvent(id, data); fetchAllData(); }}
+                                onSave={async (id, data) => { await firebaseService.updateScheduleEvent(id, { ...event, ...data }); fetchAllData(); }}
                                 onDelete={async (id) => { if(confirm('Are you sure you want to delete this event?')) { await firebaseService.deleteScheduleEvent(id); fetchAllData(); } }}
                              />
                            ))}
