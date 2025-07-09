@@ -70,7 +70,7 @@ export default async function Home() {
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-3 gap-8 text-center">
             {highlights.map((highlight, index) => (
-               <Card key={highlight.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
+               <Card key={highlight.id} className="animate-fade-in-up transition-all duration-300 hover:border-primary hover:-translate-y-1" style={{ animationDelay: `${index * 150}ms` }}>
                 <CardHeader>
                   <div className="mx-auto bg-primary text-primary-foreground rounded-full w-16 h-16 flex items-center justify-center mb-4">
                     <Icon name={highlight.icon} className="w-8 h-8" />
@@ -82,7 +82,7 @@ export default async function Home() {
                 </CardContent>
               </Card>
             ))}
-             <Card className="animate-fade-in-up" style={{ animationDelay: `${highlights.length * 150}ms` }}>
+             <Card className="animate-fade-in-up transition-all duration-300 hover:border-primary hover:-translate-y-1" style={{ animationDelay: `${highlights.length * 150}ms` }}>
               <CardHeader>
                 <div className="mx-auto bg-primary text-primary-foreground rounded-full w-16 h-16 flex items-center justify-center mb-4">
                   <MapPin className="w-8 h-8" />

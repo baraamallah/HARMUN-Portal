@@ -1,6 +1,6 @@
 import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc, writeBatch, documentId, runTransaction } from 'firebase/firestore';
 import { db } from './firebase';
-import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, SecretariatMember, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, CodeOfConductItem, ConferenceHighlight } from './types';
+import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, SecretariatMember, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, CodeOfConductItem, ConferenceHighlight, GalleryPageContent, GalleryImage } from './types';
 import { format } from 'date-fns';
 import { convertGoogleDriveLink } from './utils';
 
@@ -15,12 +15,14 @@ const SCHEDULE_DAYS_COLLECTION = 'scheduleDays';
 const SCHEDULE_EVENTS_COLLECTION = 'scheduleEvents';
 const HIGHLIGHTS_COLLECTION = 'highlights';
 const CODE_OF_CONDUCT_COLLECTION = 'codeOfConduct';
+const GALLERY_COLLECTION = 'galleryImages';
 
 const HOME_PAGE_CONTENT_DOC_ID = 'homePage';
 const ABOUT_PAGE_CONTENT_DOC_ID = 'aboutPage';
 const SITE_CONFIG_DOC_ID = 'siteConfig';
 const REGISTRATION_PAGE_CONTENT_DOC_ID = 'registrationPage';
 const DOCUMENTS_PAGE_CONTENT_DOC_ID = 'documentsPage';
+const GALLERY_PAGE_CONTENT_DOC_ID = 'galleryPage';
 
 
 // --- Default Data ---
@@ -49,7 +51,7 @@ export async function initializeDefaultData() {
                 socialLinks: { twitter: "#", instagram: "#", facebook: "#" },
                 footerText: "This is a fictional event created for demonstration purposes.",
                 mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2925.733553224765!2d-71.1194179234839!3d42.37361573426569!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89e377427d73825b%3A0x5e567c1d7756919a!2sHarvard%20University!5e0!3m2!1sen!2sus!4v1709876543210!5m2!1sen!2sus",
-                navVisibility: { '/about': true, '/committees': true, '/news': true, '/sg-notes': true, '/registration': true, '/schedule': true, '/secretariat': true, '/documents': true },
+                navVisibility: { '/about': true, '/committees': true, '/news': true, '/sg-notes': true, '/registration': true, '/schedule': true, '/secretariat': true, '/documents': true, '/gallery': true },
             },
             [REGISTRATION_PAGE_CONTENT_DOC_ID]: {
                 title: "Delegate Registration",
@@ -63,6 +65,10 @@ export async function initializeDefaultData() {
                 uploadDescription: "Please upload your position papers in PDF or DOCX format. The deadline for submission is January 15, 2025.",
                 codeOfConductTitle: "Code of Conduct",
                 codeOfConductDescription: "All delegates are expected to adhere to the code of conduct throughout the conference.",
+            },
+            [GALLERY_PAGE_CONTENT_DOC_ID]: {
+                title: "Conference Gallery",
+                subtitle: "A collection of memorable moments from past and present HARMUN conferences.",
             },
         },
         [SECRETARIAT_COLLECTION]: [
@@ -82,6 +88,10 @@ export async function initializeDefaultData() {
         ],
         [SCHEDULE_EVENTS_COLLECTION]: [
             { dayId: 'day1', time: '2:00 PM - 5:00 PM', title: 'Delegate Registration', description: 'Pick up your credentials and welcome packet.', location: 'Main Hall', order: 1 },
+        ],
+        [GALLERY_COLLECTION]: [
+            { title: 'Opening Ceremony', imageUrl: 'https://placehold.co/600x400.png', order: 1 },
+            { title: 'Debate in Session', imageUrl: 'https://placehold.co/400x600.png', order: 2 },
         ],
     };
 
@@ -157,6 +167,9 @@ export const updateRegistrationPageContent = (content: Partial<RegistrationPageC
 export const getDocumentsPageContent = () => getConfigDoc<DocumentsPageContent>(DOCUMENTS_PAGE_CONTENT_DOC_ID, {} as DocumentsPageContent);
 export const updateDocumentsPageContent = (content: Partial<DocumentsPageContent>) => updateConfigDoc(DOCUMENTS_PAGE_CONTENT_DOC_ID, content);
 
+export const getGalleryPageContent = () => getConfigDoc<GalleryPageContent>(GALLERY_PAGE_CONTENT_DOC_ID, {} as GalleryPageContent);
+export const updateGalleryPageContent = (content: Partial<GalleryPageContent>) => updateConfigDoc(GALLERY_PAGE_CONTENT_DOC_ID, content);
+
 export const getSiteConfig = () => getConfigDoc<SiteConfig>(SITE_CONFIG_DOC_ID, {} as SiteConfig);
 export const updateSiteConfig = (config: Partial<SiteConfig>) => updateConfigDoc(SITE_CONFIG_DOC_ID, config);
 
@@ -218,6 +231,23 @@ export const getCodeOfConduct = () => getCollection<CodeOfConductItem>(CODE_OF_C
 export const addCodeOfConductItem = (item: Omit<CodeOfConductItem, 'id'>) => addCollectionDoc<CodeOfConductItem>(CODE_OF_CONDUCT_COLLECTION, item);
 export const updateCodeOfConductItem = (id: string, item: Partial<CodeOfConductItem>) => updateCollectionDoc<CodeOfConductItem>(CODE_OF_CONDUCT_COLLECTION, id, item);
 export const deleteCodeOfConductItem = (id: string) => deleteCollectionDoc(CODE_OF_CONDUCT_COLLECTION, id);
+
+export const getGalleryImages = () => getCollection<GalleryImage>(GALLERY_COLLECTION);
+export const addGalleryImage = (image: Omit<GalleryImage, 'id' | 'order'>) => {
+    const processedImage = {
+        ...image,
+        imageUrl: convertGoogleDriveLink(image.imageUrl),
+    };
+    return addCollectionDoc<GalleryImage>(GALLERY_COLLECTION, processedImage);
+};
+export const updateGalleryImage = (id: string, image: Partial<Omit<GalleryImage, 'id' | 'order'>>) => {
+     const processedImage = {
+        ...image,
+        imageUrl: image.imageUrl ? convertGoogleDriveLink(image.imageUrl) : undefined,
+    };
+    return updateCollectionDoc<GalleryImage>(GALLERY_COLLECTION, id, processedImage);
+};
+export const deleteGalleryImage = (id: string) => deleteCollectionDoc(GALLERY_COLLECTION, id);
 
 // --- Schedule (Special Handling) ---
 export async function getSchedule(): Promise<ScheduleDay[]> {
@@ -340,9 +370,16 @@ const countryTransformer = (row: any): Omit<Country, 'id'> => ({
     status: (row.status === 'Assigned' ? 'Assigned' : 'Available') as 'Available' | 'Assigned',
 });
 
+const galleryTransformer = (row: any): Omit<GalleryImage, 'id'> => ({
+    title: row.title || '',
+    imageUrl: convertGoogleDriveLink(row.imageUrl || 'https://placehold.co/600x400.png'),
+    order: parseInt(row.order, 10) || 0,
+});
+
 export const importCommittees = (data: any[]) => importData<Committee>(COMMITTEES_COLLECTION, data, committeeTransformer);
 export const importCountries = (data: any[]) => importData<Country>(COUNTRIES_COLLECTION, data, countryTransformer);
 export const importSecretariat = (data: any[]) => importData<SecretariatMember>(SECRETARIAT_COLLECTION, data, secretariatTransformer);
+export const importGallery = (data: any[]) => importData<GalleryImage>(GALLERY_COLLECTION, data, galleryTransformer);
 
 async function clearCollection(collectionPath: string) {
     const collectionRef = collection(db, collectionPath);

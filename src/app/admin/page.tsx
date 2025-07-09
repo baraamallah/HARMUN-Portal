@@ -25,7 +25,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import * as icons from "lucide-react";
-import { PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, CalendarDays, Settings, Home, FileBadge, UserSquare, Shield, HelpCircle, type LucideIcon, Upload, Download, KeyRound } from "lucide-react";
+import { PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, CalendarDays, Settings, Home, FileBadge, UserSquare, Shield, HelpCircle, type LucideIcon, Upload, Download, KeyRound, GalleryHorizontal } from "lucide-react";
 import * as firebaseService from "@/lib/firebase-service";
 import * as authService from "@/lib/auth-service";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -68,17 +68,20 @@ const scheduleEventSchema = z.object({
     description: z.string().optional(),
 });
 
+const galleryImageSchema = z.object({
+    title: z.string().min(2, "Title is required."),
+    imageUrl: z.string().url("Must be a valid URL.").min(1, "Image URL is required."),
+});
+
 
 // Reusable Form Components for list items
-function HighlightItemForm({ item, onSave, onDelete }: { item: T.ConferenceHighlight; onSave: (id: string, data: z.infer<typeof highlightItemSchema>) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
+function HighlightItemForm({ item, onSave, onDelete }: { item: T.ConferenceHighlight; onSave: (id: string, data: z.infer<typeof highlightItemSchema>) => void; onDelete: (id: string) => void }) {
   const form = useForm<z.infer<typeof highlightItemSchema>>({
     resolver: zodResolver(highlightItemSchema),
     defaultValues: item,
   });
 
-  React.useEffect(() => {
-    form.reset(item);
-  }, [item, form]);
+  React.useEffect(() => { form.reset(item); }, [item, form]);
 
   return (
     <Form {...form}>
@@ -92,14 +95,12 @@ function HighlightItemForm({ item, onSave, onDelete }: { item: T.ConferenceHighl
   );
 }
 
-function CodeOfConductItemForm({ item, onSave, onDelete }: { item: T.CodeOfConductItem; onSave: (id: string, data: z.infer<typeof codeOfConductItemSchema>) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
+function CodeOfConductItemForm({ item, onSave, onDelete }: { item: T.CodeOfConductItem; onSave: (id: string, data: z.infer<typeof codeOfConductItemSchema>) => void; onDelete: (id: string) => void }) {
     const form = useForm<z.infer<typeof codeOfConductItemSchema>>({
         resolver: zodResolver(codeOfConductItemSchema),
         defaultValues: item,
     });
-     React.useEffect(() => {
-        form.reset(item);
-    }, [item, form]);
+     React.useEffect(() => { form.reset(item); }, [item, form]);
 
     return (
         <Form {...form}>
@@ -112,14 +113,12 @@ function CodeOfConductItemForm({ item, onSave, onDelete }: { item: T.CodeOfCondu
     );
 }
 
-function SecretariatMemberForm({ member, onSave, onDelete }: { member: T.SecretariatMember; onSave: (id: string, data: Omit<T.SecretariatMember, 'id' | 'order'>) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
+function SecretariatMemberForm({ member, onSave, onDelete }: { member: T.SecretariatMember; onSave: (id: string, data: Omit<T.SecretariatMember, 'id' | 'order'>) => void; onDelete: (id: string) => void }) {
     const form = useForm<z.infer<typeof secretariatMemberSchema>>({
         resolver: zodResolver(secretariatMemberSchema),
         defaultValues: member,
     });
-    React.useEffect(() => {
-        form.reset(member);
-    }, [member, form]);
+    React.useEffect(() => { form.reset(member); }, [member, form]);
 
     return (
         <Form {...form}>
@@ -134,14 +133,12 @@ function SecretariatMemberForm({ member, onSave, onDelete }: { member: T.Secreta
     );
 }
 
-function ScheduleEventForm({ event, onSave, onDelete }: { event: T.ScheduleEvent; onSave: (id: string, data: z.infer<typeof scheduleEventSchema>) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
+function ScheduleEventForm({ event, onSave, onDelete }: { event: T.ScheduleEvent; onSave: (id: string, data: z.infer<typeof scheduleEventSchema>) => void; onDelete: (id: string) => void }) {
     const form = useForm<z.infer<typeof scheduleEventSchema>>({
         resolver: zodResolver(scheduleEventSchema),
         defaultValues: event,
     });
-    React.useEffect(() => {
-        form.reset(event);
-    }, [event, form]);
+    React.useEffect(() => { form.reset(event); }, [event, form]);
 
     return (
         <Form {...form}>
@@ -150,6 +147,24 @@ function ScheduleEventForm({ event, onSave, onDelete }: { event: T.ScheduleEvent
                 <FormField control={form.control} name="title" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="location" render={({ field }) => <FormItem><FormLabel>Location</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <div className="flex gap-1 pt-6"><Button type="submit" size="sm">Save</Button><Button size="sm" variant="destructive" type="button" onClick={() => onDelete(event.id)}>Delete</Button></div>
+            </form>
+        </Form>
+    );
+}
+
+function GalleryImageForm({ image, onSave, onDelete }: { image: T.GalleryImage; onSave: (id: string, data: z.infer<typeof galleryImageSchema>) => void; onDelete: (id: string) => void }) {
+    const form = useForm<z.infer<typeof galleryImageSchema>>({
+        resolver: zodResolver(galleryImageSchema),
+        defaultValues: image,
+    });
+    React.useEffect(() => { form.reset(image); }, [image, form]);
+
+    return (
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit((data) => onSave(image.id, data))} className="flex flex-wrap md:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
+                <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem className="flex-grow w-full md:w-auto"><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                <div className="flex gap-1 pt-6"><Button type="submit" size="sm">Save</Button><Button size="sm" variant="destructive" type="button" onClick={() => onDelete(image.id)}>Delete</Button></div>
             </form>
         </Form>
     );
@@ -172,11 +187,12 @@ const documentsPageContentSchema = z.object({
     uploadTitle: z.string().min(5), uploadDescription: z.string().min(10),
     codeOfConductTitle: z.string().min(5), codeOfConductDescription: z.string().min(10),
 });
+const galleryPageContentSchema = z.object({ title: z.string().min(5), subtitle: z.string().min(10) });
 
 const navLinksForAdmin = [
   { href: '/about', label: 'About' }, { href: '/committees', label: 'Committees' }, { href: '/news', label: 'News' },
   { href: '/sg-notes', label: 'SG Notes' }, { href: '/registration', label: 'Registration' }, { href: '/schedule', label: 'Schedule' },
-  { href: '/secretariat', label: 'Secretariat' }, { href: '/documents', label: 'Documents' },
+  { href: '/secretariat', label: 'Secretariat' }, { href: '/documents', label: 'Documents' }, { href: '/gallery', label: 'Gallery'}
 ];
 const siteConfigSchema = z.object({
   conferenceDate: z.string().min(1), mapEmbedUrl: z.string().url(),
@@ -272,6 +288,15 @@ function CreatePostForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
         <Button type="submit" className="w-full"><PlusCircle className="mr-2"/>Publish Post</Button>
     </form></Form>;
 }
+function AddGalleryImageForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
+    const form = useForm({ resolver: zodResolver(galleryImageSchema), defaultValues: { title: '', imageUrl: '' } });
+    return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd(d); form.reset(); })} className="flex flex-wrap md:flex-nowrap gap-2 items-end p-2 border-t mt-4">
+        <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+        <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Use a standard image URL or a Google Drive "share" link.</FormDescription><FormMessage /></FormItem>} />
+        <Button type="submit" size="sm">Add Image</Button>
+    </form></Form>;
+}
+
 
 export default function AdminPage() {
   const { toast } = useToast();
@@ -279,14 +304,15 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [activeAccordion, setActiveAccordion] = useState<string | undefined>();
   const [data, setData] = useState<any>({
-    homeContent: {}, aboutContent: {}, registrationContent: {}, documentsContent: {}, siteConfig: {},
-    posts: [], countries: [], committees: [], secretariat: [], schedule: [], highlights: [], codeOfConduct: []
+    homeContent: {}, aboutContent: {}, registrationContent: {}, documentsContent: {}, galleryContent: {}, siteConfig: {},
+    posts: [], countries: [], committees: [], secretariat: [], schedule: [], highlights: [], codeOfConduct: [], galleryImages: []
   });
 
   const homeForm = useForm<z.infer<typeof homePageContentSchema>>({ resolver: zodResolver(homePageContentSchema) });
   const aboutForm = useForm<z.infer<typeof aboutPageContentSchema>>({ resolver: zodResolver(aboutPageContentSchema) });
   const registrationForm = useForm<z.infer<typeof registrationPageContentSchema>>({ resolver: zodResolver(registrationPageContentSchema) });
   const documentsForm = useForm<z.infer<typeof documentsPageContentSchema>>({ resolver: zodResolver(documentsPageContentSchema) });
+  const galleryForm = useForm<z.infer<typeof galleryPageContentSchema>>({ resolver: zodResolver(galleryPageContentSchema) });
   const siteConfigForm = useForm<z.infer<typeof siteConfigSchema>>({ resolver: zodResolver(siteConfigSchema) });
   const changePasswordForm = useForm<z.infer<typeof changePasswordSchema>>({ resolver: zodResolver(changePasswordSchema), defaultValues: {currentPassword: "", newPassword: "", confirmPassword: ""}});
 
@@ -295,24 +321,26 @@ export default function AdminPage() {
     try {
         setLoading(true);
         const [
-            homeContent, aboutContent, registrationContent, documentsContent, siteConfig,
-            posts, countries, committees, secretariat, schedule, highlights, codeOfConduct
+            homeContent, aboutContent, registrationContent, documentsContent, galleryContent, siteConfig,
+            posts, countries, committees, secretariat, schedule, highlights, codeOfConduct, galleryImages
         ] = await Promise.all([
             firebaseService.getHomePageContent(), firebaseService.getAboutPageContent(),
             firebaseService.getRegistrationPageContent(), firebaseService.getDocumentsPageContent(),
-            firebaseService.getSiteConfig(), firebaseService.getAllPosts(),
-            firebaseService.getCountries(), firebaseService.getCommittees(),
-            firebaseService.getSecretariat(), firebaseService.getSchedule(),
-            firebaseService.getHighlights(), firebaseService.getCodeOfConduct()
+            firebaseService.getGalleryPageContent(), firebaseService.getSiteConfig(), 
+            firebaseService.getAllPosts(), firebaseService.getCountries(), 
+            firebaseService.getCommittees(), firebaseService.getSecretariat(), 
+            firebaseService.getSchedule(), firebaseService.getHighlights(), 
+            firebaseService.getCodeOfConduct(), firebaseService.getGalleryImages()
         ]);
         
-        const allData = { homeContent, aboutContent, registrationContent, documentsContent, siteConfig, posts, countries, committees, secretariat, schedule, highlights, codeOfConduct };
+        const allData = { homeContent, aboutContent, registrationContent, documentsContent, galleryContent, siteConfig, posts, countries, committees, secretariat, schedule, highlights, codeOfConduct, galleryImages };
         setData(allData);
 
         homeForm.reset(allData.homeContent);
         aboutForm.reset(allData.aboutContent);
         registrationForm.reset(allData.registrationContent);
         documentsForm.reset(allData.documentsContent);
+        galleryForm.reset(allData.galleryContent);
         siteConfigForm.reset({
             ...allData.siteConfig, ...allData.siteConfig.socialLinks, footerText: allData.siteConfig.footerText,
             navVisibility: allData.siteConfig.navVisibility || {},
@@ -324,7 +352,7 @@ export default function AdminPage() {
     } finally {
         setLoading(false);
     }
-  }, [toast, homeForm, aboutForm, registrationForm, documentsForm, siteConfigForm]);
+  }, [toast, homeForm, aboutForm, registrationForm, documentsForm, galleryForm, siteConfigForm]);
 
   useEffect(() => { fetchAllData(); }, [fetchAllData]);
 
@@ -349,6 +377,7 @@ export default function AdminPage() {
   const [committeeImportFile, setCommitteeImportFile] = useState<File | null>(null);
   const [countryImportFile, setCountryImportFile] = useState<File | null>(null);
   const [secretariatImportFile, setSecretariatImportFile] = useState<File | null>(null);
+  const [galleryImportFile, setGalleryImportFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
 
   const handleImport = async (file: File | null, importFunction: (data: any[]) => Promise<void>, type: string) => {
@@ -371,7 +400,7 @@ export default function AdminPage() {
                 toast({ title: "Import Failed", description: error instanceof Error ? error.message : "An unknown error occurred.", variant: "destructive" });
             } finally {
                 setIsImporting(false);
-                setCommitteeImportFile(null); setCountryImportFile(null); setSecretariatImportFile(null);
+                setCommitteeImportFile(null); setCountryImportFile(null); setSecretariatImportFile(null); setGalleryImportFile(null);
                 const fileInput = document.getElementById(`${type}ImportFile`) as HTMLInputElement;
                 if (fileInput) fileInput.value = '';
             }
@@ -397,11 +426,14 @@ export default function AdminPage() {
             }));
             break;
         case 'secretariat.csv':
-            flattenedData = data.map(({id, order, ...rest}: T.SecretariatMember) => rest);
+            flattenedData = data.map(({id, order, ...rest}: T.SecretariatMember) => ({...rest, order}));
             break;
         case 'countries.csv':
             flattenedData = data.map(({id, ...rest}: T.Country) => rest);
             break;
+        case 'gallery.csv':
+             flattenedData = data.map(({id, order, ...rest}: T.GalleryImage) => ({...rest, order}));
+             break;
         default:
             flattenedData = data;
     }
@@ -455,6 +487,26 @@ export default function AdminPage() {
         }
     };
 
+    const handleAddItem = async <T extends {id: string}>(
+        addFunction: (data: any) => Promise<string>,
+        getFunction: (id: string) => Promise<any>,
+        addData: any,
+        stateKey: keyof typeof data,
+        message: string
+    ) => {
+        try {
+            const newId = await addFunction(addData);
+            const newItem = await getFunction(newId);
+            setData(prev => ({
+                ...prev,
+                [stateKey]: [...prev[stateKey], newItem],
+            }));
+            toast({ title: "Success!", description: message });
+        } catch (error) {
+            toast({ title: "Error", description: `Could not add item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
+        }
+    }
+
     const handleChangePassword = async (values: z.infer<typeof changePasswordSchema>) => {
         if (!user || !user.email) {
             toast({ title: "Error", description: "No user is logged in.", variant: "destructive" });
@@ -481,11 +533,12 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="pages" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6">
+            <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7">
                 <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
                 <TabsTrigger value="pages">Pages</TabsTrigger>
                 <TabsTrigger value="conference">Conference</TabsTrigger>
                 <TabsTrigger value="team">Team</TabsTrigger>
+                <TabsTrigger value="gallery">Gallery</TabsTrigger>
                 <TabsTrigger value="settings">Settings</TabsTrigger>
                 <TabsTrigger value="security">Security</TabsTrigger>
             </TabsList>
@@ -500,12 +553,7 @@ export default function AdminPage() {
                 <Card className="mt-6">
                     <CardHeader><CardTitle className="flex items-center gap-2"><Newspaper /> Create & Manage Posts</CardTitle></CardHeader>
                     <CardContent>
-                        <CreatePostForm onAdd={async (postData) => {
-                             const newPostId = await firebaseService.addPost(postData);
-                             const newPost = await firebaseService.getDocById('posts', newPostId);
-                             setData(p => ({...p, posts: [newPost, ...p.posts]}));
-                             toast({title: "Post Created!"});
-                        }} />
+                        <CreatePostForm onAdd={(postData) => handleAddItem(firebaseService.addPost, (id) => firebaseService.getDocById('posts', id), postData, "posts", "Post created!")} />
                          <h3 className="text-lg font-semibold mb-4">Published Posts</h3>
                         <div className="border rounded-md max-h-96 overflow-y-auto">
                             <Table>
@@ -550,12 +598,7 @@ export default function AdminPage() {
                                         onDelete={(id) => handleDeleteItem(firebaseService.deleteHighlight, id, "highlights", "Highlight deleted.")}
                                     />
                                 ))}
-                                <AddHighlightForm onAdd={async (addData) => {
-                                    const newId = await firebaseService.addHighlight(addData);
-                                    const newItem = await firebaseService.getDocById('highlights', newId);
-                                    setData(p => ({...p, highlights: [...p.highlights, newItem]}));
-                                    toast({title: "Highlight Added"});
-                                }} />
+                                <AddHighlightForm onAdd={(addData) => handleAddItem(firebaseService.addHighlight, (id) => firebaseService.getDocById('highlights', id), addData, "highlights", "Highlight added!")} />
                             </CardContent></Card>
                         </AccordionContent>
                     </AccordionItem>
@@ -611,12 +654,7 @@ export default function AdminPage() {
                                         onDelete={(id) => handleDeleteItem(firebaseService.deleteCodeOfConductItem, id, "codeOfConduct", "Rule deleted.")}
                                     />
                                 ))}
-                                <AddCodeOfConductForm onAdd={async (addData) => {
-                                    const newId = await firebaseService.addCodeOfConductItem(addData);
-                                    const newItem = await firebaseService.getDocById('codeOfConduct', newId);
-                                    setData(p => ({...p, codeOfConduct: [...p.codeOfConduct, newItem]}));
-                                    toast({title: "Rule Added"});
-                                }} />
+                                <AddCodeOfConductForm onAdd={(addData) => handleAddItem(firebaseService.addCodeOfConductItem, (id) => firebaseService.getDocById('codeOfConduct', id), addData, "codeOfConduct", "Rule added!")} />
                             </CardContent></Card>
                         </AccordionContent>
                     </AccordionItem>
@@ -630,15 +668,18 @@ export default function AdminPage() {
                         <Card><CardHeader><CardTitle>Add New Committee</CardTitle></CardHeader>
                         <CardContent>
                             <AddCommitteeForm onAdd={async(values) => {
-                                const newId = await firebaseService.addCommittee({
-                                    name: values.name,
-                                    chair: { name: values.chairName, bio: values.chairBio || "", imageUrl: values.chairImageUrl || "" },
-                                    topics: (values.topics || "").split('\n').filter(Boolean), 
-                                    backgroundGuideUrl: values.backgroundGuideUrl || "",
-                                });
-                                const newCommittee = await firebaseService.getDocById('committees', newId);
-                                setData(p => ({...p, committees: [...p.committees, newCommittee]}));
-                                toast({ title: "Committee Added!" });
+                                await handleAddItem(
+                                    (data) => firebaseService.addCommittee(data),
+                                    (id) => firebaseService.getDocById('committees', id),
+                                    {
+                                        name: values.name,
+                                        chair: { name: values.chairName, bio: values.chairBio || "", imageUrl: values.chairImageUrl || "" },
+                                        topics: (values.topics || "").split('\n').filter(Boolean), 
+                                        backgroundGuideUrl: values.backgroundGuideUrl || "",
+                                    },
+                                    "committees",
+                                    "Committee Added!"
+                                );
                             }}/>
                         </CardContent></Card>
                         <Card><CardHeader><CardTitle>Existing Committees</CardTitle></CardHeader>
@@ -662,11 +703,7 @@ export default function AdminPage() {
                     </AccordionContent></AccordionItem>
                     <AccordionItem value="countries"><AccordionTrigger><div className="flex items-center gap-2 text-lg"><Globe /> Country Matrix</div></AccordionTrigger>
                     <AccordionContent className="p-1"><Card><CardContent className="pt-6">
-                        <AddCountryForm committees={data.committees} onAdd={async(values) => {
-                             const newId = await firebaseService.addCountry(values as any);
-                             const newCountry = await firebaseService.getDocById('countries', newId);
-                             setData(p => ({...p, countries: [...p.countries, newCountry]}));
-                        }} />
+                        <AddCountryForm committees={data.committees} onAdd={(values) => handleAddItem(firebaseService.addCountry, (id) => firebaseService.getDocById('countries', id), values, "countries", "Country Added!")} />
                          <div className="border rounded-md max-h-96 overflow-y-auto">
                             <Table><TableHeader><TableRow><TableHead>Country</TableHead><TableHead>Committee</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
                             <TableBody>
@@ -740,15 +777,44 @@ export default function AdminPage() {
                                 onDelete={(id) => handleDeleteItem(firebaseService.deleteSecretariatMember, id, "secretariat", "Member deleted.")}
                             />
                         ))}
-                        <AddSecretariatMemberForm onAdd={async(addData) => {
-                            const newId = await firebaseService.addSecretariatMember(addData);
-                            const newItem = await firebaseService.getDocById('secretariat', newId);
-                            setData(p => ({...p, secretariat: [...p.secretariat, newItem]}));
-                            toast({title: "Member Added"});
-                        }} />
+                        <AddSecretariatMemberForm onAdd={(addData) => handleAddItem(firebaseService.addSecretariatMember, (id) => firebaseService.getDocById('secretariat', id), addData, "secretariat", "Member added!")} />
                     </CardContent>
                 </Card>
             </TabsContent>
+            
+            <TabsContent value="gallery" className="mt-6">
+                <Accordion type="single" collapsible value={activeAccordion} onValueChange={setActiveAccordion}>
+                    <AccordionItem value="gallery-content">
+                        <AccordionTrigger><div className="flex items-center gap-2 text-lg"><FileText /> Gallery Page Content</div></AccordionTrigger>
+                        <AccordionContent className="p-1 space-y-6">
+                             <Card><CardContent className="pt-6">
+                                <Form {...galleryForm}><form onSubmit={galleryForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateGalleryPageContent, "Gallery page content updated.", d, galleryForm))} className="space-y-4">
+                                    <FormField control={galleryForm.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                                    <FormField control={galleryForm.control} name="subtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
+                                    <Button type="submit">Save Content</Button>
+                                </form></Form>
+                            </CardContent></Card>
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="gallery-images">
+                        <AccordionTrigger><div className="flex items-center gap-2 text-lg"><GalleryHorizontal /> Gallery Images</div></AccordionTrigger>
+                        <AccordionContent className="p-1 space-y-6">
+                            <Card><CardContent className="pt-6">
+                                {data.galleryImages?.map((image: T.GalleryImage) => (
+                                    <GalleryImageForm
+                                        key={image.id}
+                                        image={image}
+                                        onSave={(id, saveData) => handleUpdateItem(firebaseService.updateGalleryImage, id, saveData, "galleryImages", "Image updated.")}
+                                        onDelete={(id) => handleDeleteItem(firebaseService.deleteGalleryImage, id, "galleryImages", "Image deleted.")}
+                                    />
+                                ))}
+                                <AddGalleryImageForm onAdd={(addData) => handleAddItem(firebaseService.addGalleryImage, (id) => firebaseService.getDocById('galleryImages', id), addData, "galleryImages", "Image added!")} />
+                            </CardContent></Card>
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            </TabsContent>
+
 
             <TabsContent value="settings" className="mt-6">
                 <Accordion type="single" collapsible value={activeAccordion} onValueChange={setActiveAccordion}>
@@ -790,7 +856,7 @@ export default function AdminPage() {
                         </CardContent></Card>
                     </AccordionContent></AccordionItem>
                     <AccordionItem value="import-export"><AccordionTrigger><div className="flex items-center gap-2 text-lg"><Download /> Import / Export</div></AccordionTrigger>
-                    <AccordionContent className="p-1"><Card><CardContent className="pt-6 grid md:grid-cols-3 gap-6">
+                    <AccordionContent className="p-1"><Card><CardContent className="pt-6 grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div className="space-y-2 p-4 border rounded-lg">
                             <h3 className="font-semibold flex items-center gap-2"><Library/> Committees</h3>
                             <Button onClick={() => handleExport(data.committees, 'committees.csv')} className="w-full">Export to CSV</Button>
@@ -813,6 +879,14 @@ export default function AdminPage() {
                             <div className="border-t pt-2 mt-2"><h4 className="font-semibold mb-2">Import</h4>
                                 <div className="flex gap-2"><Input id="secretariatImportFile" type="file" accept=".csv" onChange={handleFileChange(setSecretariatImportFile)}/>
                                 <Button onClick={() => handleImport(secretariatImportFile, firebaseService.importSecretariat, 'secretariat')} disabled={!secretariatImportFile || isImporting}><Upload/></Button></div>
+                            </div>
+                        </div>
+                        <div className="space-y-2 p-4 border rounded-lg">
+                            <h3 className="font-semibold flex items-center gap-2"><GalleryHorizontal/> Gallery</h3>
+                            <Button onClick={() => handleExport(data.galleryImages, 'gallery.csv')} className="w-full">Export to CSV</Button>
+                            <div className="border-t pt-2 mt-2"><h4 className="font-semibold mb-2">Import</h4>
+                                <div className="flex gap-2"><Input id="galleryImportFile" type="file" accept=".csv" onChange={handleFileChange(setGalleryImportFile)}/>
+                                <Button onClick={() => handleImport(galleryImportFile, firebaseService.importGallery, 'gallery')} disabled={!galleryImportFile || isImporting}><Upload/></Button></div>
                             </div>
                         </div>
                     </CardContent></Card></AccordionContent></AccordionItem>

@@ -108,6 +108,18 @@ export type CodeOfConductItem = {
     order: number;
 }
 
+export type GalleryPageContent = {
+    title: string;
+    subtitle: string;
+};
+
+export type GalleryImage = {
+    id: string;
+    title: string;
+    imageUrl: string;
+    order: number;
+};
+
 export type Post = {
   id: string;
   title: string;

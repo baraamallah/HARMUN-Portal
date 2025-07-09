@@ -20,7 +20,7 @@ export default async function SecretariatPage() {
         {secretariatMembers.length > 0 ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {secretariatMembers.map((member, index) => (
-              <Card key={member.id} className="text-center animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
+              <Card key={member.id} className="text-center animate-fade-in-up transition-all duration-300 hover:border-primary hover:-translate-y-1" style={{ animationDelay: `${index * 150}ms` }}>
                 <CardHeader className="items-center">
                   <Avatar className="w-32 h-32 mb-4 border-4 border-primary/20">
                     <AvatarImage src={member.imageUrl} alt={`Photo of ${member.name}`} data-ai-hint="person portrait" />

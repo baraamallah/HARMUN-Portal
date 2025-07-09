@@ -27,7 +27,7 @@ export default async function SchedulePage() {
                     day.events.map((event) => (
                     <div key={event.id} className="relative">
                       <div className="absolute -left-[39px] top-1 h-4 w-4 rounded-full bg-primary border-4 border-background" />
-                      <Card className="animate-fade-in-up">
+                      <Card className="animate-fade-in-up transition-all duration-300 hover:border-primary hover:-translate-y-1">
                         <CardHeader>
                           <CardTitle>{event.title}</CardTitle>
                         </CardHeader>

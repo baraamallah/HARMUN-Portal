@@ -21,7 +21,7 @@ export default async function SGNotesPage() {
       {sgNotes.length > 0 ? (
         <div className="space-y-8 max-w-4xl mx-auto">
           {sgNotes.map((post, index) => (
-            <Card key={post.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
+            <Card key={post.id} className="animate-fade-in-up transition-all duration-300 hover:border-primary hover:-translate-y-1" style={{ animationDelay: `${index * 150}ms` }}>
               <CardHeader>
                  <div className="flex items-center gap-4 mb-4">
                     <Avatar className="w-16 h-16 border">

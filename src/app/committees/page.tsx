@@ -22,7 +22,7 @@ export default async function CommitteesPage() {
       {committees.length > 0 ? (
         <div className="grid md:grid-cols-2 gap-8">
           {committees.map((committee, index) => (
-            <Card key={committee.id} className="flex flex-col animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
+            <Card key={committee.id} className="flex flex-col animate-fade-in-up transition-all duration-300 hover:border-primary hover:-translate-y-1" style={{ animationDelay: `${index * 150}ms` }}>
               <CardHeader>
                 <CardTitle className="text-2xl font-headline text-foreground">{committee.name}</CardTitle>
               </CardHeader>

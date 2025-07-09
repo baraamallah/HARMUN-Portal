@@ -19,6 +19,7 @@ const navLinks = [
   { href: '/schedule', label: 'Schedule' },
   { href: '/secretariat', label: 'Secretariat' },
   { href: '/documents', label: 'Documents' },
+  { href: '/gallery', label: 'Gallery' },
 ];
 
 export function AppHeader({ siteConfig }: { siteConfig: SiteConfig }) {

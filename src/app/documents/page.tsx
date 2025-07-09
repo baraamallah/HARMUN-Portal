@@ -34,7 +34,7 @@ function PaperUploadForm({ title, description }: { title?: string; description?:
     }
 
     return (
-        <Card>
+        <Card className="transition-all duration-300 hover:border-primary hover:-translate-y-1">
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Upload className="w-6 h-6 text-primary"/> {title}</CardTitle>
             <CardDescription>{description}</CardDescription>
@@ -101,7 +101,7 @@ export default function DocumentsPage() {
       <div className="grid lg:grid-cols-2 gap-12 items-start animate-fade-in-up" style={{ animationDelay: '200ms' }}>
         <PaperUploadForm title={content?.uploadTitle} description={content?.uploadDescription} />
         
-        <Card>
+        <Card className="transition-all duration-300 hover:border-primary hover:-translate-y-1">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><FileText className="w-6 h-6 text-primary" /> {content?.codeOfConductTitle}</CardTitle>
                 <CardDescription>{content?.codeOfConductDescription}</CardDescription>
