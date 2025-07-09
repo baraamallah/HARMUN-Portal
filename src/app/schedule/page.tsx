@@ -2,6 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, MapPin } from 'lucide-react';
 import { getSchedule } from '@/lib/firebase-service';
 
+export const dynamic = 'force-dynamic';
+
 export default async function SchedulePage() {
   const scheduleData = await getSchedule();
 

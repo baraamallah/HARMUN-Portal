@@ -3,6 +3,8 @@ import { BookOpen, Landmark } from 'lucide-react';
 import Image from 'next/image';
 import { getAboutPageContent } from '@/lib/firebase-service';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AboutPage() {
   const content = await getAboutPageContent();
 

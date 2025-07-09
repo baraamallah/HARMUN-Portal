@@ -76,7 +76,7 @@ function HighlightItemForm({ item, onSave, onDelete }: { item: T.ConferenceHighl
 
   React.useEffect(() => {
     form.reset(item);
-  }, [item, form]);
+  }, [item]);
 
   return (
     <Form {...form}>
@@ -97,7 +97,7 @@ function CodeOfConductItemForm({ item, onSave, onDelete }: { item: T.CodeOfCondu
     });
      React.useEffect(() => {
         form.reset(item);
-    }, [item, form]);
+    }, [item]);
 
     return (
         <Form {...form}>
@@ -117,7 +117,7 @@ function SecretariatMemberForm({ member, onSave, onDelete }: { member: T.Secreta
     });
     React.useEffect(() => {
         form.reset(member);
-    }, [member, form]);
+    }, [member]);
 
     return (
         <Form {...form}>
@@ -139,7 +139,7 @@ function ScheduleEventForm({ event, onSave, onDelete }: { event: T.ScheduleEvent
     });
     React.useEffect(() => {
         form.reset(event);
-    }, [event, form]);
+    }, [event]);
 
     return (
         <Form {...form}>
@@ -405,27 +405,11 @@ export default function AdminPage() {
   };
   
     // --- GENERIC CRUD HANDLERS ---
-    const handleAddItem = async <T,>(
-        addFunction: (item: Omit<T, 'id'>) => Promise<string>,
-        data: Omit<T, 'id'>,
-        collectionName: keyof typeof firebaseService,
-        stateKey: keyof typeof this.data
-    ) => {
-        try {
-            const newId = await addFunction(data as any);
-            const newItem = await firebaseService.getDocById(collectionName, newId);
-            setData(prev => ({ ...prev, [stateKey]: [...prev[stateKey], newItem] }));
-            toast({ title: "Success!", description: "Item added." });
-        } catch (error) {
-            toast({ title: "Error", description: `Could not add item.`, variant: "destructive" });
-        }
-    };
-    
     const handleUpdateItem = async <T extends {id: string}>(
         updateFunction: (id: string, data: Partial<T>) => Promise<void>,
         id: string,
         itemData: Partial<T>,
-        stateKey: keyof typeof this.data,
+        stateKey: keyof typeof data,
         message: string
     ) => {
         try {
@@ -443,7 +427,7 @@ export default function AdminPage() {
     const handleDeleteItem = async (
         deleteFunction: (id: string) => Promise<void>,
         id: string,
-        stateKey: keyof typeof this.data,
+        stateKey: keyof typeof data,
         message: string
     ) => {
         if (!confirm('Are you sure you want to delete this item?')) return;

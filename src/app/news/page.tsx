@@ -3,6 +3,8 @@ import type { Post } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function NewsPage() {
   const newsPosts = await getPosts('news');
 

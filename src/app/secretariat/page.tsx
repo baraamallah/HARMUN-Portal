@@ -2,6 +2,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getSecretariat } from '@/lib/firebase-service';
 
+export const dynamic = 'force-dynamic';
+
 export default async function SecretariatPage() {
   const secretariatMembers = await getSecretariat();
 

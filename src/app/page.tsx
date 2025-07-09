@@ -8,6 +8,8 @@ import Image from 'next/image';
 import { getHomePageContent, getSiteConfig, getHighlights } from '@/lib/firebase-service';
 import type { ConferenceHighlight } from '@/lib/types';
 
+export const dynamic = 'force-dynamic';
+
 const Icon = ({ name, ...props }: { name: string } & LucideProps) => {
   const LucideIcon = (icons as unknown as Record<string, LucideIcon>)[name];
   if (!LucideIcon) {

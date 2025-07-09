@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Calendar } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function SGNotesPage() {
   const sgNotes = await getPosts('sg-note');
 

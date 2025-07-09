@@ -6,6 +6,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { getSiteConfig } from '@/lib/firebase-service';
 import type { SiteConfig } from '@/lib/types';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'HARMUN 2025 Portal',
   description: 'The official portal for the Harvard Model United Nations 2025 conference.',

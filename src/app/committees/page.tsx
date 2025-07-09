@@ -5,6 +5,8 @@ import { getCommittees } from '@/lib/firebase-service';
 import type { Committee } from '@/lib/types';
 import { FileText, User } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function CommitteesPage() {
   const committees = await getCommittees();
 
