@@ -60,7 +60,7 @@ const postFormSchema = z.object({
 
 const countryMatrixFormSchema = z.object({
     name: z.string().min(2, "Country name is required."),
-    committee: z.string({ required_error: "Please select a committee." }),
+    committee: z.string({ required_error: "Please select a committee." }).min(1, "Please select a committee."),
 });
 
 const committeeFormSchema = z.object({
@@ -251,7 +251,7 @@ export default function AdminPage() {
     try {
         await addCountry({ ...values, status: 'Available' });
         toast({ title: "Country Added", description: `${values.name} has been added to the matrix.` });
-        countryMatrixForm.reset();
+        countryMatrixForm.reset({ name: ""});
         await fetchAdminData();
     } catch (error) {
         toast({ title: "Error", description: "Could not add country.", variant: "destructive" });
@@ -539,7 +539,7 @@ export default function AdminPage() {
                                 <FormMessage />
                             </FormItem>
                         )} />
-                        <Button type="submit" className="w-full sm:w-auto"><PlusCircle className="mr-2 h-4 w-4" /> Add Country</Button>
+                        <Button type="submit" className="w-full sm:w-auto" disabled={countryMatrixForm.formState.isSubmitting}><PlusCircle className="mr-2 h-4 w-4" /> Add Country</Button>
                     </form>
                 </Form>
                 <div className="border rounded-md max-h-96 overflow-y-auto">
