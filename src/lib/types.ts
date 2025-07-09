@@ -40,6 +40,7 @@ export type Theme = {
 export type HomePageContent = {
   heroTitle: string;
   heroSubtitle: string;
+  heroImageUrl: string;
 };
 
 export type Post = {

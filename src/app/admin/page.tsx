@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Paintbrush, Type, PlusCircle, Newspaper, Users, FileText, Library } from "lucide-react";
+import { Paintbrush, Type, PlusCircle, Newspaper, Users, FileText, Library, Image as ImageIcon } from "lucide-react";
 import { getTheme, updateTheme, getHomePageContent, updateHomePageContent, addPost, getAllPosts, formatTimestamp } from "@/lib/firebase-service";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Post } from "@/lib/types";
@@ -35,6 +35,7 @@ const themeFormSchema = z.object({
 const contentFormSchema = z.object({
     heroTitle: z.string().min(5, "Title must be at least 5 characters."),
     heroSubtitle: z.string().min(10, "Subtitle must be at least 10 characters."),
+    heroImageUrl: z.string().url({ message: "Please enter a valid URL." }),
 });
 
 const postFormSchema = z.object({
@@ -206,12 +207,13 @@ export default function AdminPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Type className="w-6 h-6" /> Home Page Content</CardTitle>
-                    <CardDescription>Edit the main text on your home page hero section.</CardDescription>
+                    <CardDescription>Edit the main text and hero image on your home page.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...contentForm}><form onSubmit={contentForm.handleSubmit(onContentSubmit)} className="space-y-6">
                         <FormField control={contentForm.control} name="heroTitle" render={({ field }) => (<FormItem><FormLabel>Hero Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={contentForm.control} name="heroSubtitle" render={({ field }) => (<FormItem><FormLabel>Hero Subtitle</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={contentForm.control} name="heroImageUrl" render={({ field }) => (<FormItem><FormLabel>Hero Image URL</FormLabel><FormControl><Input placeholder="https://example.com/image.png" {...field} /></FormControl><FormDescription>URL for the main hero banner image.</FormDescription><FormMessage /></FormItem>)} />
                         <Button type="submit" className="w-full">Save Content</Button>
                     </form></Form>
                 </CardContent>

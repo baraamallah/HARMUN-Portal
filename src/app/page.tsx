@@ -16,12 +16,13 @@ export default async function Home() {
       <section className="relative h-[60vh] md:h-[80vh] w-full flex items-center justify-center text-center text-white overflow-hidden">
         <div className="absolute inset-0 bg-primary/80 z-10" />
         <Image
-          src="https://placehold.co/1920x1080.png"
+          src={content.heroImageUrl}
           alt="Conference hall"
           layout="fill"
           objectFit="cover"
           className="z-0"
           data-ai-hint="conference hall"
+          priority
         />
         <div className="relative z-20 container mx-auto px-4">
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-headline font-bold mb-4 drop-shadow-lg animate-fade-in-down">

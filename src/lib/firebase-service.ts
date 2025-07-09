@@ -18,6 +18,7 @@ const defaultTheme: Theme = {
 const defaultHomePageContent: HomePageContent = {
   heroTitle: "HARMUN 2025 Portal",
   heroSubtitle: "Engage in diplomacy, foster international cooperation, and shape the future. Welcome, delegates!",
+  heroImageUrl: "https://placehold.co/1920x1080.png",
 };
 
 // --- Theme Management ---
