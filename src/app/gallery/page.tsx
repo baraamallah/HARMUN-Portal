@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState } from 'react';
@@ -5,7 +6,7 @@ import Image from 'next/image';
 import { getGalleryPageContent, getGalleryImages } from '@/lib/firebase-service';
 import type { GalleryPageContent, GalleryImage } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,6 +78,8 @@ export default function GalleryPage() {
                                 </div>
                             </DialogTrigger>
                             <DialogContent className="max-w-4xl p-2 bg-transparent border-0 shadow-none">
+                                <DialogTitle className="sr-only">{image.title}</DialogTitle>
+                                <DialogDescription className="sr-only">Enlarged view of the gallery image: {image.title}</DialogDescription>
                                 <Image
                                      src={image.imageUrl}
                                      alt={image.title}
