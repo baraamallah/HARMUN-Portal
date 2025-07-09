@@ -24,10 +24,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import * as icons from "lucide-react";
-import {
-    PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, BookOpenText, Upload, Download, FileSpreadsheet, CalendarDays,
-    Settings, Home, FileBadge, UserSquare, Shield, HelpCircle, type LucideIcon
-} from "lucide-react";
+import { PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, CalendarDays, Settings, Home, FileBadge, UserSquare, Shield, HelpCircle, type LucideIcon, Upload, Download } from "lucide-react";
 import * as firebaseService from "@/lib/firebase-service";
 import { Skeleton } from "@/components/ui/skeleton";
 import type * as T from "@/lib/types";
@@ -187,6 +184,83 @@ const siteConfigSchema = z.object({
   navVisibility: z.object(Object.fromEntries(navLinksForAdmin.map(link => [link.href, z.boolean()]))),
 });
 
+// "Add New" Item Forms - each with its own useForm hook
+function AddHighlightForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
+    const form = useForm({ defaultValues: { icon: '', title: '', description: '' } });
+    return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd(d); form.reset(); })} className="flex flex-wrap md:flex-nowrap gap-2 items-end p-2 border-t mt-4">
+        <FormField control={form.control} name="icon" render={({ field }) => <FormItem><FormLabel>Icon</FormLabel><FormControl><Input {...field} placeholder="e.g. Calendar" /></FormControl></FormItem>} />
+        <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+        <FormField control={form.control} name="description" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Description</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+        <Button type="submit" size="sm">Add Highlight</Button>
+    </form></Form>;
+}
+function AddCodeOfConductForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
+    const form = useForm({ defaultValues: { title: '', content: '' } });
+    return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd(d); form.reset(); })} className="flex flex-wrap md:flex-nowrap gap-2 items-end p-2 border-t mt-4">
+        <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+        <FormField control={form.control} name="content" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Content</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl></FormItem>} />
+        <Button type="submit" size="sm">Add Rule</Button>
+    </form></Form>;
+}
+function AddSecretariatMemberForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
+    const form = useForm({ defaultValues: { name: '', role: '', imageUrl: '', bio: '' } });
+    return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd(d); form.reset(); })} className="flex flex-wrap lg:flex-nowrap gap-2 items-end p-2 border-t mt-4">
+        <FormField control={form.control} name="name" render={({ field }) => <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+        <FormField control={form.control} name="role" render={({ field }) => <FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+        <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Use a standard image URL or a Google Drive "share" link.</FormDescription></FormItem>} />
+        <FormField control={form.control} name="bio" render={({ field }) => <FormItem className="flex-grow w-full lg:w-auto"><FormLabel>Bio</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl></FormItem>} />
+        <Button type="submit" size="sm">Add Member</Button>
+    </form></Form>;
+}
+function AddScheduleDayForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
+    const form = useForm({ defaultValues: { title: '', date: '' } });
+    return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd(d); form.reset(); })} className="flex gap-2 items-end">
+        <FormField control={form.control} name="title" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Day Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+        <FormField control={form.control} name="date" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Date</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+        <Button type="submit" size="sm">Add Day</Button>
+    </form></Form>;
+}
+function AddScheduleEventForm({ dayId, onAdd }: { dayId: string; onAdd: (data: any) => Promise<void> }) {
+    const form = useForm({ defaultValues: { time: '', title: '', location: '' } });
+    return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd({ ...d, dayId }); form.reset(); })} className="flex flex-wrap md:flex-nowrap gap-2 items-end p-2 border-t mt-4">
+        <FormField control={form.control} name="time" render={({ field }) => <FormItem><FormLabel>Time</FormLabel><FormControl><Input placeholder="e.g. 9:00 AM" {...field} /></FormControl></FormItem>} />
+        <FormField control={form.control} name="title" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+        <FormField control={form.control} name="location" render={({ field }) => <FormItem><FormLabel>Location</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+        <Button type="submit" size="sm">Add Event</Button>
+    </form></Form>;
+}
+function AddCountryForm({ committees, onAdd }: { committees: T.Committee[]; onAdd: (data: any) => Promise<void> }) {
+    const form = useForm({ defaultValues: { name: '', committee: '' } });
+    return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd({ ...d, status: 'Available' }); form.reset(); })} className="flex items-end gap-2 mb-4">
+        <FormField control={form.control} name="name" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Country Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+        <FormField control={form.control} name="committee" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Committee</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger></FormControl><SelectContent>{committees?.map((c: T.Committee) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select></FormItem>} />
+        <Button type="submit"><PlusCircle className="mr-2 h-4 w-4" /> Add</Button>
+    </form></Form>;
+}
+function AddCommitteeForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
+    const form = useForm({ defaultValues: { name: '', chairName: '', chairBio: '', chairImageUrl: '', topics: '', backgroundGuideUrl: '' } });
+    return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd(d); form.reset(); })} className="space-y-4">
+        <div className="grid md:grid-cols-2 gap-4">
+            <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Committee Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+            <FormField control={form.control} name="chairName" render={({ field }) => ( <FormItem><FormLabel>Chair Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+        </div>
+         <FormField control={form.control} name="chairImageUrl" render={({ field }) => ( <FormItem><FormLabel>Chair Image URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+        <FormField control={form.control} name="chairBio" render={({ field }) => ( <FormItem><FormLabel>Chair Bio</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl></FormItem> )} />
+        <FormField control={form.control} name="topics" render={({ field }) => ( <FormItem><FormLabel>Topics (one per line)</FormLabel><FormControl><Textarea {...field} rows={3}/></FormControl></FormItem> )} />
+        <FormField control={form.control} name="backgroundGuideUrl" render={({ field }) => ( <FormItem><FormLabel>Background Guide URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+        <Button type="submit"><PlusCircle className="mr-2" />Add Committee</Button>
+    </form></Form>;
+}
+function CreatePostForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
+    const form = useForm({ defaultValues: { title: '', content: '', type: undefined } });
+    return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd(d); form.reset(); })} className="space-y-4 mb-6">
+        <FormField control={form.control} name="title" rules={{required: true}} render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+        <FormField control={form.control} name="type" rules={{required: true}} render={({ field }) => ( <FormItem><FormLabel>Type</FormLabel><Select onValueChange={field.onChange}><FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl><SelectContent><SelectItem value="news">News</SelectItem><SelectItem value="sg-note">SG Note</SelectItem></SelectContent></Select></FormItem> )} />
+        <FormField control={form.control} name="content" rules={{required: true}} render={({ field }) => (<FormItem><FormLabel>Content</FormLabel><FormControl><Textarea {...field} rows={5} /></FormControl></FormItem>)} />
+        <Button type="submit" className="w-full"><PlusCircle className="mr-2"/>Publish Post</Button>
+    </form></Form>;
+}
+
 export default function AdminPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -198,7 +272,6 @@ export default function AdminPage() {
   const registrationForm = useForm<z.infer<typeof registrationPageContentSchema>>({ resolver: zodResolver(registrationPageContentSchema) });
   const documentsForm = useForm<z.infer<typeof documentsPageContentSchema>>({ resolver: zodResolver(documentsPageContentSchema) });
   const siteConfigForm = useForm<z.infer<typeof siteConfigSchema>>({ resolver: zodResolver(siteConfigSchema) });
-  const genericForm = useForm(); // For one-off 'add new' forms
 
   const fetchAllData = React.useCallback(async () => {
     try {
@@ -357,19 +430,11 @@ export default function AdminPage() {
                 <Card className="mt-6">
                     <CardHeader><CardTitle className="flex items-center gap-2"><Newspaper /> Create & Manage Posts</CardTitle></CardHeader>
                     <CardContent>
-                        <Form {...genericForm}>
-                            <form onSubmit={genericForm.handleSubmit(async (values) => {
-                                await firebaseService.addPost(values as any);
-                                toast({ title: "Post Created!" });
-                                genericForm.reset({ title: "", content: "", type: undefined });
-                                fetchAllData();
-                            })} className="space-y-4 mb-6">
-                                <FormField control={genericForm.control} name="title" rules={{required: true}} render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
-                                <FormField control={genericForm.control} name="type" rules={{required: true}} render={({ field }) => ( <FormItem><FormLabel>Type</FormLabel><Select onValueChange={field.onChange}><FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl><SelectContent><SelectItem value="news">News</SelectItem><SelectItem value="sg-note">SG Note</SelectItem></SelectContent></Select></FormItem> )} />
-                                <FormField control={genericForm.control} name="content" rules={{required: true}} render={({ field }) => (<FormItem><FormLabel>Content</FormLabel><FormControl><Textarea {...field} rows={5} /></FormControl></FormItem>)} />
-                                <Button type="submit" className="w-full"><PlusCircle className="mr-2"/>Publish Post</Button>
-                            </form>
-                        </Form>
+                        <CreatePostForm onAdd={async (values) => {
+                            await firebaseService.addPost(values as any);
+                            toast({ title: "Post Created!" });
+                            fetchAllData();
+                        }} />
                          <h3 className="text-lg font-semibold mb-4">Published Posts</h3>
                         <div className="border rounded-md max-h-96 overflow-y-auto">
                             <Table>
@@ -414,12 +479,7 @@ export default function AdminPage() {
                                         onDelete={async (id) => { if(confirm('Are you sure you want to delete this highlight?')) { await firebaseService.deleteHighlight(id); fetchAllData(); } }}
                                     />
                                 ))}
-                                <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addHighlight(d.newHighlight); fetchAllData(); genericForm.reset({newHighlight: {icon: '', title: '', description: ''}});})} className="flex flex-wrap md:flex-nowrap gap-2 items-end p-2 border-t mt-4">
-                                    <FormField control={genericForm.control} name="newHighlight.icon" render={({ field }) => <FormItem><FormLabel>Icon</FormLabel><FormControl><Input {...field} placeholder="e.g. Calendar" /></FormControl></FormItem>} />
-                                    <FormField control={genericForm.control} name="newHighlight.title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                                    <FormField control={genericForm.control} name="newHighlight.description" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Description</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                                    <Button type="submit" size="sm">Add Highlight</Button>
-                                </form></Form>
+                                <AddHighlightForm onAdd={async (d) => { await firebaseService.addHighlight(d); fetchAllData(); }} />
                             </CardContent></Card>
                         </AccordionContent>
                     </AccordionItem>
@@ -475,11 +535,7 @@ export default function AdminPage() {
                                         onDelete={async (id) => { if(confirm('Are you sure you want to delete this rule?')) { await firebaseService.deleteCodeOfConductItem(id); fetchAllData(); } }}
                                     />
                                 ))}
-                                <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addCodeOfConductItem(d.newCoc); fetchAllData(); genericForm.reset({newCoc: {title: '', content: ''}});})} className="flex flex-wrap md:flex-nowrap gap-2 items-end p-2 border-t mt-4">
-                                    <FormField control={genericForm.control} name="newCoc.title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                                    <FormField control={genericForm.control} name="newCoc.content" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Content</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl></FormItem>} />
-                                    <Button type="submit" size="sm">Add Rule</Button>
-                                </form></Form>
+                                <AddCodeOfConductForm onAdd={async (d) => { await firebaseService.addCodeOfConductItem(d); fetchAllData(); }} />
                             </CardContent></Card>
                         </AccordionContent>
                     </AccordionItem>
@@ -492,26 +548,16 @@ export default function AdminPage() {
                     <AccordionContent className="p-1 space-y-6">
                         <Card><CardHeader><CardTitle>Add New Committee</CardTitle></CardHeader>
                         <CardContent>
-                             <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (values: any) => {
+                            <AddCommitteeForm onAdd={async(values) => {
                                 await firebaseService.addCommittee({
                                     name: values.name,
-                                    chair: { name: values.chairName, bio: values.chairBio || "" },
-                                    topics: (values.topics || "").split('\\n').filter(Boolean), 
+                                    chair: { name: values.chairName, bio: values.chairBio || "", imageUrl: values.chairImageUrl || "" },
+                                    topics: (values.topics || "").split('\n').filter(Boolean), 
                                     backgroundGuideUrl: values.backgroundGuideUrl || "",
                                 });
                                 toast({ title: "Committee Added!" });
-                                genericForm.reset({name: "", chairName: "", chairBio: "", topics: "", backgroundGuideUrl: ""});
                                 fetchAllData();
-                            })} className="space-y-4">
-                                <div className="grid md:grid-cols-2 gap-4">
-                                    <FormField control={genericForm.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Committee Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
-                                    <FormField control={genericForm.control} name="chairName" render={({ field }) => ( <FormItem><FormLabel>Chair Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
-                                </div>
-                                <FormField control={genericForm.control} name="chairBio" render={({ field }) => ( <FormItem><FormLabel>Chair Bio</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl></FormItem> )} />
-                                <FormField control={genericForm.control} name="topics" render={({ field }) => ( <FormItem><FormLabel>Topics (one per line)</FormLabel><FormControl><Textarea {...field} rows={3}/></FormControl></FormItem> )} />
-                                <FormField control={genericForm.control} name="backgroundGuideUrl" render={({ field }) => ( <FormItem><FormLabel>Background Guide URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
-                                <Button type="submit"><PlusCircle className="mr-2" />Add Committee</Button>
-                            </form></Form>
+                            }}/>
                         </CardContent></Card>
                         <Card><CardHeader><CardTitle>Existing Committees</CardTitle></CardHeader>
                         <CardContent>
@@ -534,11 +580,10 @@ export default function AdminPage() {
                     </AccordionContent></AccordionItem>
                     <AccordionItem value="countries"><AccordionTrigger><div className="flex items-center gap-2 text-lg"><Globe /> Country Matrix</div></AccordionTrigger>
                     <AccordionContent className="p-1"><Card><CardContent className="pt-6">
-                        <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (values) => { await firebaseService.addCountry({ ...values.newCountry, status: 'Available' } as any); fetchAllData(); genericForm.reset({newCountry: {name: '', committee: ''}}); })} className="flex items-end gap-2 mb-4">
-                            <FormField control={genericForm.control} name="newCountry.name" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Country Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                            <FormField control={genericForm.control} name="newCountry.committee" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Committee</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger></FormControl><SelectContent>{data.committees?.map((c:T.Committee) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select></FormItem>} />
-                            <Button type="submit"><PlusCircle className="mr-2 h-4 w-4" /> Add</Button>
-                        </form></Form>
+                        <AddCountryForm committees={data.committees} onAdd={async(values) => {
+                             await firebaseService.addCountry(values as any);
+                             fetchAllData();
+                        }} />
                          <div className="border rounded-md max-h-96 overflow-y-auto">
                             <Table><TableHeader><TableRow><TableHead>Country</TableHead><TableHead>Committee</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
                             <TableBody>
@@ -568,21 +613,12 @@ export default function AdminPage() {
                                 onDelete={async (id) => { if(confirm('Are you sure you want to delete this event?')) { await firebaseService.deleteScheduleEvent(id); fetchAllData(); } }}
                              />
                            ))}
-                            <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addScheduleEvent({...(d.newEvents[day.id] as any), dayId: day.id}); fetchAllData(); genericForm.reset({ newEvents: { ...genericForm.getValues().newEvents, [day.id]: {} } });})} className="flex flex-wrap md:flex-nowrap gap-2 items-end p-2 border-t mt-4">
-                                <FormField control={genericForm.control} name={`newEvents[${day.id}].time`} render={({ field }) => <FormItem><FormLabel>Time</FormLabel><FormControl><Input placeholder="e.g. 9:00 AM" {...field} /></FormControl></FormItem>} />
-                                <FormField control={genericForm.control} name={`newEvents[${day.id}].title`} render={({ field }) => <FormItem className="flex-grow"><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                                <FormField control={genericForm.control} name={`newEvents[${day.id}].location`} render={({ field }) => <FormItem><FormLabel>Location</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                                <Button type="submit" size="sm">Add Event</Button>
-                            </form></Form>
+                           <AddScheduleEventForm dayId={day.id} onAdd={async(d) => { await firebaseService.addScheduleEvent(d); fetchAllData(); }}/>
                         </CardContent></Card>
                        ))}
                        <Card><CardHeader><CardTitle>Add New Day</CardTitle></CardHeader>
                        <CardContent>
-                         <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addScheduleDay(d.newDay); fetchAllData(); genericForm.reset({newDay: {title: '', date: ''}});})} className="flex gap-2 items-end">
-                            <FormField control={genericForm.control} name="newDay.title" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Day Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                            <FormField control={genericForm.control} name="newDay.date" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Date</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                            <Button type="submit" size="sm">Add Day</Button>
-                        </form></Form>
+                         <AddScheduleDayForm onAdd={async(d) => { await firebaseService.addScheduleDay(d); fetchAllData(); }} />
                        </CardContent>
                        </Card>
                     </AccordionContent></AccordionItem>
@@ -601,13 +637,7 @@ export default function AdminPage() {
                                 onDelete={async (id) => { if(confirm('Are you sure?')) { await firebaseService.deleteSecretariatMember(id); fetchAllData(); } }}
                             />
                         ))}
-                        <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addSecretariatMember(d.newMember); fetchAllData(); genericForm.reset({newMember: {name: '', role: '', imageUrl: '', bio: ''}});})} className="flex flex-wrap lg:flex-nowrap gap-2 items-end p-2 border-t mt-4">
-                            <FormField control={genericForm.control} name="newMember.name" render={({ field }) => <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                             <FormField control={genericForm.control} name="newMember.role" render={({ field }) => <FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                            <FormField control={genericForm.control} name="newMember.imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Use a standard image URL or a Google Drive "share" link.</FormDescription></FormItem>} />
-                            <FormField control={genericForm.control} name="newMember.bio" render={({ field }) => <FormItem className="flex-grow w-full lg:w-auto"><FormLabel>Bio</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl></FormItem>} />
-                            <Button type="submit" size="sm">Add Member</Button>
-                        </form></Form>
+                        <AddSecretariatMemberForm onAdd={async(d) => { await firebaseService.addSecretariatMember(d); fetchAllData(); }} />
                     </CardContent>
                 </Card>
             </TabsContent>

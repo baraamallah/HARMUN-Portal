@@ -274,7 +274,7 @@ export const updateCountryStatus = (id: string, status: 'Available' | 'Assigned'
 export const deleteCountry = (id: string) => deleteDoc(doc(db, COUNTRIES_COLLECTION, id));
 
 // --- Committees (Existing) ---
-export const addCommittee = (committee: Omit<Committee, 'id' | 'chairImageUrl'>) => {
+export const addCommittee = (committee: Omit<Committee, 'id'>) => {
     const processedCommittee = {
         ...committee,
         chair: {
@@ -313,7 +313,7 @@ const committeeTransformer = (row: any): Omit<Committee, 'id'> => ({
         bio: row.chairBio || '',
         imageUrl: convertGoogleDriveLink(row.chairImageUrl || 'https://placehold.co/400x400.png')
     },
-    topics: (row.topics || '').split('\n').filter(Boolean),
+    topics: (row.topics || '').split('\\n').join('\n').split('\n').filter(Boolean),
     backgroundGuideUrl: row.backgroundGuideUrl || ''
 });
 
