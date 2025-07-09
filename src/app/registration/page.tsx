@@ -28,6 +28,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { Country, Committee, RegistrationPageContent } from "@/lib/types";
 import { getCountries, getCommittees, getRegistrationPageContent } from "@/lib/firebase-service";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
@@ -228,7 +229,11 @@ export default function RegistrationPage() {
                                         <TableRow key={country.id}>
                                             <TableCell className="font-medium">{country.name}</TableCell>
                                             <TableCell>{country.committee}</TableCell>
-                                            <TableCell className={country.status === 'Available' ? 'text-green-400' : 'text-red-400'}>{country.status}</TableCell>
+                                            <TableCell>
+                                                <Badge variant={country.status === 'Available' ? 'secondary' : 'destructive'}>
+                                                    {country.status}
+                                                </Badge>
+                                            </TableCell>
                                         </TableRow>
                                     ))
                                 ) : (

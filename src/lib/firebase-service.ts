@@ -2,6 +2,8 @@ import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, quer
 import { db } from './firebase';
 import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, SecretariatMember, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, CodeOfConductItem, ConferenceHighlight } from './types';
 import { format } from 'date-fns';
+import { convertGoogleDriveLink } from './utils';
+
 
 // Collection & Document Names
 const CONFIG_COLLECTION = 'config';
@@ -128,7 +130,7 @@ async function getConfigDoc<T>(docId: string, defaultConfig: T): Promise<T> {
   }
 }
 
-async function updateConfigDoc<T>(docId: string, data: T): Promise<void> {
+async function updateConfigDoc<T>(docId: string, data: Partial<T>): Promise<void> {
     const docRef = doc(db, CONFIG_COLLECTION, docId);
     await setDoc(docRef, data, { merge: true });
 }
@@ -182,8 +184,20 @@ async function deleteCollectionDoc(collectionName: string, id: string): Promise<
 
 // --- Specific Collection Functions ---
 export const getSecretariat = () => getCollection<SecretariatMember>(SECRETARIAT_COLLECTION);
-export const addSecretariatMember = (member: Omit<SecretariatMember, 'id'>) => addCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, member);
-export const updateSecretariatMember = (id: string, member: Partial<SecretariatMember>) => updateCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, id, member);
+export const addSecretariatMember = (member: Omit<SecretariatMember, 'id' | 'order'>) => {
+    const processedMember = {
+        ...member,
+        imageUrl: convertGoogleDriveLink(member.imageUrl),
+    };
+    return addCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, processedMember);
+}
+export const updateSecretariatMember = (id: string, member: Omit<SecretariatMember, 'id' | 'order'>) => {
+    const processedMember = {
+        ...member,
+        imageUrl: convertGoogleDriveLink(member.imageUrl),
+    };
+    return updateCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, id, processedMember);
+}
 export const deleteSecretariatMember = (id: string) => deleteCollectionDoc(SECRETARIAT_COLLECTION, id);
 
 export const getHighlights = () => getCollection<ConferenceHighlight>(HIGHLIGHTS_COLLECTION);
@@ -260,7 +274,16 @@ export const updateCountryStatus = (id: string, status: 'Available' | 'Assigned'
 export const deleteCountry = (id: string) => deleteDoc(doc(db, COUNTRIES_COLLECTION, id));
 
 // --- Committees (Existing) ---
-export const addCommittee = (committee: Omit<Committee, 'id'>) => addDoc(collection(db, COMMITTEES_COLLECTION), committee).then(ref => ref.id);
+export const addCommittee = (committee: Omit<Committee, 'id' | 'chairImageUrl'>) => {
+    const processedCommittee = {
+        ...committee,
+        chair: {
+            ...committee.chair,
+            imageUrl: convertGoogleDriveLink(committee.chair.imageUrl)
+        }
+    };
+    return addDoc(collection(db, COMMITTEES_COLLECTION), processedCommittee).then(ref => ref.id);
+}
 export async function getCommittees(): Promise<Committee[]> {
     const q = query(collection(db, COMMITTEES_COLLECTION), orderBy('name'));
     const querySnapshot = await getDocs(q);
@@ -269,6 +292,49 @@ export async function getCommittees(): Promise<Committee[]> {
 export const deleteCommittee = (id: string) => deleteDoc(doc(db, COMMITTEES_COLLECTION, id));
 
 // --- Import/Export Management ---
+async function importData<T>(collectionName: string, data: any[], transform?: (row: any) => Omit<T, 'id'>): Promise<void> {
+    if (!Array.isArray(data)) {
+        throw new Error("Invalid import data. It must be an array.");
+    }
+    await clearCollection(collectionName);
+    const batch = writeBatch(db);
+    data.forEach(row => {
+        const item = transform ? transform(row) : row;
+        const newDocRef = doc(collection(db, collectionName));
+        batch.set(newDocRef, item);
+    });
+    await batch.commit();
+}
+
+const committeeTransformer = (row: any): Omit<Committee, 'id'> => ({
+    name: row.name || '',
+    chair: {
+        name: row.chairName || '',
+        bio: row.chairBio || '',
+        imageUrl: convertGoogleDriveLink(row.chairImageUrl || 'https://placehold.co/400x400.png')
+    },
+    topics: (row.topics || '').split('\n').filter(Boolean),
+    backgroundGuideUrl: row.backgroundGuideUrl || ''
+});
+
+const secretariatTransformer = (row: any): Omit<SecretariatMember, 'id'> => ({
+    name: row.name || '',
+    role: row.role || '',
+    bio: row.bio || '',
+    imageUrl: convertGoogleDriveLink(row.imageUrl || 'https://placehold.co/400x400.png'),
+    order: parseInt(row.order, 10) || 0,
+});
+
+const countryTransformer = (row: any): Omit<Country, 'id'> => ({
+    name: row.name || '',
+    committee: row.committee || '',
+    status: (row.status === 'Assigned' ? 'Assigned' : 'Available') as 'Available' | 'Assigned',
+});
+
+export const importCommittees = (data: any[]) => importData<Committee>(COMMITTEES_COLLECTION, data, committeeTransformer);
+export const importCountries = (data: any[]) => importData<Country>(COUNTRIES_COLLECTION, data, countryTransformer);
+export const importSecretariat = (data: any[]) => importData<SecretariatMember>(SECRETARIAT_COLLECTION, data, secretariatTransformer);
+
 async function clearCollection(collectionPath: string) {
     const collectionRef = collection(db, collectionPath);
     const q = query(collectionRef);
@@ -278,20 +344,3 @@ async function clearCollection(collectionPath: string) {
     querySnapshot.docs.forEach(docSnapshot => batch.delete(docSnapshot.ref));
     await batch.commit();
 }
-
-export async function importData<T>(collectionName: string, data: Omit<T, 'id'>[]): Promise<void> {
-    if (!Array.isArray(data)) {
-        throw new Error("Invalid import data. It must be an array.");
-    }
-    await clearCollection(collectionName);
-    const batch = writeBatch(db);
-    data.forEach(item => {
-        const newDocRef = doc(collection(db, collectionName));
-        batch.set(newDocRef, item);
-    });
-    await batch.commit();
-}
-
-export const importCommittees = (committees: Omit<Committee, 'id'>[]) => importData<Committee>(COMMITTEES_COLLECTION, committees);
-export const importCountries = (countries: Omit<Country, 'id'>[]) => importData<Country>(COUNTRIES_COLLECTION, countries);
-export const importSecretariat = (members: Omit<SecretariatMember, 'id'>[]) => importData<SecretariatMember>(SECRETARIAT_COLLECTION, members);

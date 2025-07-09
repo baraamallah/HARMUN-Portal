@@ -103,14 +103,14 @@ function CodeOfConductItemForm({ item, onSave, onDelete }: { item: T.CodeOfCondu
     );
 }
 
-function SecretariatMemberForm({ member, onSave, onDelete }: { member: T.SecretariatMember; onSave: (id: string, data: T.SecretariatMember) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
+function SecretariatMemberForm({ member, onSave, onDelete }: { member: T.SecretariatMember; onSave: (id: string, data: Omit<T.SecretariatMember, 'id' | 'order'>) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
     const form = useForm<z.infer<typeof secretariatMemberSchema>>({
         resolver: zodResolver(secretariatMemberSchema),
         defaultValues: { name: member.name, role: member.role, imageUrl: member.imageUrl, bio: member.bio },
     });
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => onSave(member.id, {...member, ...data}))} className="flex flex-wrap lg:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
+            <form onSubmit={form.handleSubmit((data) => onSave(member.id, data))} className="flex flex-wrap lg:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
                 <FormField control={form.control} name="name" render={({ field }) => <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="role" render={({ field }) => <FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
@@ -132,7 +132,7 @@ function ScheduleEventForm({ event, onSave, onDelete }: { event: T.ScheduleEvent
                 <FormField control={form.control} name="time" render={({ field }) => <FormItem><FormLabel>Time</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="title" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="location" render={({ field }) => <FormItem><FormLabel>Location</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-                <div className="flex gap-1 pt-6"><Button type="submit" size="sm">Save</Button><Button size="sm" variant="destructive" type="button" onClick={() => onDelete(event.id)}>Del</Button></div>
+                <div className="flex gap-1 pt-6"><Button type="submit" size="sm">Save</Button><Button size="sm" variant="destructive" type="button" onClick={() => onDelete(event.id)}>Delete</Button></div>
             </form>
         </Form>
     );
@@ -142,10 +142,10 @@ function ScheduleEventForm({ event, onSave, onDelete }: { event: T.ScheduleEvent
 const homePageContentSchema = z.object({
     heroTitle: z.string().min(5),
     heroSubtitle: z.string().min(10),
-    heroImageUrl: z.string().url(),
+    heroImageUrl: z.string(),
 });
 const aboutPageContentSchema = z.object({
-    title: z.string().min(5), subtitle: z.string().min(10), imageUrl: z.string().url(),
+    title: z.string().min(5), subtitle: z.string().min(10), imageUrl: z.string(),
     whatIsTitle: z.string().min(5), whatIsPara1: z.string().min(20), whatIsPara2: z.string().min(20),
     storyTitle: z.string().min(5), storyPara1: z.string().min(20), storyPara2: z.string().min(20),
 });
@@ -223,9 +223,13 @@ export default function AdminPage() {
   // Generic submit handler for main page forms
   const handleFormSubmit = async (updateFunction: (data: any) => Promise<void>, successMessage: string, data: any, form: any) => {
     try {
-        await updateFunction(data);
+        let processedData = data;
+        if (data.heroImageUrl) processedData.heroImageUrl = convertGoogleDriveLink(data.heroImageUrl);
+        if (data.imageUrl) processedData.imageUrl = convertGoogleDriveLink(data.imageUrl);
+
+        await updateFunction(processedData);
         toast({ title: "Success!", description: successMessage });
-        form.reset(data); // Re-sync form with saved data
+        form.reset(processedData); // Re-sync form with saved data
     } catch (error) {
         toast({ title: "Error", description: `Could not save data. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
     }
@@ -273,7 +277,28 @@ export default function AdminPage() {
   };
 
   const handleExport = (data: any[], filename: string) => {
-    const csv = Papa.unparse(data);
+    let flattenedData;
+    switch(filename) {
+        case 'committees.csv':
+            flattenedData = data.map((c: T.Committee) => ({
+                name: c.name,
+                chairName: c.chair.name,
+                chairBio: c.chair.bio,
+                chairImageUrl: c.chair.imageUrl,
+                topics: c.topics.join('\n'), // Join topics with newline for CSV
+                backgroundGuideUrl: c.backgroundGuideUrl,
+            }));
+            break;
+        case 'secretariat.csv':
+            flattenedData = data.map(({id, order, ...rest}: T.SecretariatMember) => rest);
+            break;
+        case 'countries.csv':
+            flattenedData = data.map(({id, ...rest}: T.Country) => rest);
+            break;
+        default:
+            flattenedData = data;
+    }
+    const csv = Papa.unparse(flattenedData);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -358,7 +383,7 @@ export default function AdminPage() {
                                 <Form {...homeForm}><form onSubmit={homeForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateHomePageContent, "Home page content updated.", d, homeForm))} className="space-y-4">
                                     <FormField control={homeForm.control} name="heroTitle" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                                     <FormField control={homeForm.control} name="heroSubtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
-                                    <FormField control={homeForm.control} name="heroImageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                                    <FormField control={homeForm.control} name="heroImageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Use a standard image URL or a Google Drive "share" link.</FormDescription><FormMessage /></FormItem>} />
                                     <Button type="submit">Save Hero</Button>
                                 </form></Form>
                             </CardContent></Card>
@@ -387,7 +412,7 @@ export default function AdminPage() {
                             <Form {...aboutForm}><form onSubmit={aboutForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateAboutPageContent, "About page content updated.", d, aboutForm))} className="space-y-4">
                                 <FormField control={aboutForm.control} name="title" render={({ field }) => (<FormItem><FormLabel>Page Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                                 <FormField control={aboutForm.control} name="subtitle" render={({ field }) => (<FormItem><FormLabel>Page Subtitle</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={aboutForm.control} name="imageUrl" render={({ field }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} /> <hr/>
+                                <FormField control={aboutForm.control} name="imageUrl" render={({ field }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Use a standard image URL or a Google Drive "share" link.</FormDescription><FormMessage /></FormItem>)} /> <hr/>
                                 <FormField control={aboutForm.control} name="whatIsTitle" render={({ field }) => (<FormItem><FormLabel>Section 1: Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                                 <FormField control={aboutForm.control} name="whatIsPara1" render={({ field }) => (<FormItem><FormLabel>Section 1: Paragraph 1</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
                                 <FormField control={aboutForm.control} name="whatIsPara2" render={({ field }) => (<FormItem><FormLabel>Section 1: Paragraph 2</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} /> <hr/>
@@ -451,14 +476,14 @@ export default function AdminPage() {
                         <Card><CardHeader><CardTitle>Add New Committee</CardTitle></CardHeader>
                         <CardContent>
                              <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (values: any) => {
-                                const committeeData = {
+                                await firebaseService.addCommittee({
                                     name: values.name,
-                                    chair: { name: values.chairName, bio: values.chairBio || "", imageUrl: convertGoogleDriveLink(values.chairImageUrl || "https://placehold.co/400x400.png") },
-                                    topics: (values.topics || "").split('\n').filter(Boolean), backgroundGuideUrl: values.backgroundGuideUrl || "",
-                                };
-                                await firebaseService.addCommittee(committeeData);
+                                    chair: { name: values.chairName, bio: values.chairBio || "" },
+                                    topics: (values.topics || "").split('\n').filter(Boolean), 
+                                    backgroundGuideUrl: values.backgroundGuideUrl || "",
+                                });
                                 toast({ title: "Committee Added!" });
-                                genericForm.reset({name: "", chairName: "", chairBio: "", chairImageUrl: "", topics: "", backgroundGuideUrl: ""});
+                                genericForm.reset({name: "", chairName: "", chairBio: "", topics: "", backgroundGuideUrl: ""});
                                 fetchAllData();
                             })} className="space-y-4">
                                 <div className="grid md:grid-cols-2 gap-4">
@@ -466,7 +491,6 @@ export default function AdminPage() {
                                     <FormField control={genericForm.control} name="chairName" render={({ field }) => ( <FormItem><FormLabel>Chair Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
                                 </div>
                                 <FormField control={genericForm.control} name="chairBio" render={({ field }) => ( <FormItem><FormLabel>Chair Bio</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl></FormItem> )} />
-                                <FormField control={genericForm.control} name="chairImageUrl" render={({ field }) => ( <FormItem><FormLabel>Chair Image URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
                                 <FormField control={genericForm.control} name="topics" render={({ field }) => ( <FormItem><FormLabel>Topics (one per line)</FormLabel><FormControl><Textarea {...field} rows={3}/></FormControl></FormItem> )} />
                                 <FormField control={genericForm.control} name="backgroundGuideUrl" render={({ field }) => ( <FormItem><FormLabel>Background Guide URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
                                 <Button type="submit"><PlusCircle className="mr-2" />Add Committee</Button>
@@ -563,7 +587,7 @@ export default function AdminPage() {
                         <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addSecretariatMember(d.newMember); fetchAllData(); genericForm.reset({newMember: {name: '', role: '', imageUrl: '', bio: ''}});})} className="flex flex-wrap lg:flex-nowrap gap-2 items-end p-2 border-t mt-4">
                             <FormField control={genericForm.control} name="newMember.name" render={({ field }) => <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
                              <FormField control={genericForm.control} name="newMember.role" render={({ field }) => <FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                            <FormField control={genericForm.control} name="newMember.imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                            <FormField control={genericForm.control} name="newMember.imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Use a standard image URL or a Google Drive "share" link.</FormDescription></FormItem>} />
                             <FormField control={genericForm.control} name="newMember.bio" render={({ field }) => <FormItem className="flex-grow w-full lg:w-auto"><FormLabel>Bio</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl></FormItem>} />
                             <Button type="submit" size="sm">Add Member</Button>
                         </form></Form>
@@ -614,23 +638,23 @@ export default function AdminPage() {
                     <AccordionContent className="p-1"><Card><CardContent className="pt-6 grid md:grid-cols-3 gap-6">
                         <div className="space-y-2 p-4 border rounded-lg">
                             <h3 className="font-semibold flex items-center gap-2"><Library/> Committees</h3>
-                            <Button onClick={() => handleExport(data.committees.map(({id, ...rest}: T.Committee)=>rest), 'committees.csv')} className="w-full">Export to CSV</Button>
+                            <Button onClick={() => handleExport(data.committees, 'committees.csv')} className="w-full">Export to CSV</Button>
                             <div className="border-t pt-2 mt-2"><h4 className="font-semibold mb-2">Import</h4>
-                                <div className="flex gap-2"><Input id="committeeImportFile" type="file" accept=".csv" onChange={handleFileChange(setCommitteeImportFile)}/>
+                                <div className="flex gap-2"><Input id="committeesImportFile" type="file" accept=".csv" onChange={handleFileChange(setCommitteeImportFile)}/>
                                 <Button onClick={() => handleImport(committeeImportFile, firebaseService.importCommittees, 'committees')} disabled={!committeeImportFile || isImporting}><Upload/></Button></div>
                             </div>
                         </div>
                          <div className="space-y-2 p-4 border rounded-lg">
                             <h3 className="font-semibold flex items-center gap-2"><Globe/> Countries</h3>
-                            <Button onClick={() => handleExport(data.countries.map(({id, ...rest}: T.Country)=>rest), 'countries.csv')} className="w-full">Export to CSV</Button>
+                            <Button onClick={() => handleExport(data.countries, 'countries.csv')} className="w-full">Export to CSV</Button>
                             <div className="border-t pt-2 mt-2"><h4 className="font-semibold mb-2">Import</h4>
-                                <div className="flex gap-2"><Input id="countryImportFile" type="file" accept=".csv" onChange={handleFileChange(setCountryImportFile)}/>
+                                <div className="flex gap-2"><Input id="countriesImportFile" type="file" accept=".csv" onChange={handleFileChange(setCountryImportFile)}/>
                                 <Button onClick={() => handleImport(countryImportFile, firebaseService.importCountries, 'countries')} disabled={!countryImportFile || isImporting}><Upload/></Button></div>
                             </div>
                         </div>
                          <div className="space-y-2 p-4 border rounded-lg">
                             <h3 className="font-semibold flex items-center gap-2"><Users/> Secretariat</h3>
-                            <Button onClick={() => handleExport(data.secretariat.map(({id, ...rest}: T.SecretariatMember)=>rest), 'secretariat.csv')} className="w-full">Export to CSV</Button>
+                            <Button onClick={() => handleExport(data.secretariat, 'secretariat.csv')} className="w-full">Export to CSV</Button>
                             <div className="border-t pt-2 mt-2"><h4 className="font-semibold mb-2">Import</h4>
                                 <div className="flex gap-2"><Input id="secretariatImportFile" type="file" accept=".csv" onChange={handleFileChange(setSecretariatImportFile)}/>
                                 <Button onClick={() => handleImport(secretariatImportFile, firebaseService.importSecretariat, 'secretariat')} disabled={!secretariatImportFile || isImporting}><Upload/></Button></div>
