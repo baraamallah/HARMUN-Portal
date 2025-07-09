@@ -9,6 +9,7 @@ import { Menu, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navLinks = [
+  { href: '/about', label: 'About' },
   { href: '/committees', label: 'Committees' },
   { href: '/registration', label: 'Registration' },
   { href: '/schedule', label: 'Schedule' },
