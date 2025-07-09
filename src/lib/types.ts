@@ -13,21 +13,34 @@ export type Committee = {
 };
 
 export type SecretariatMember = {
+  id: string;
   name: string;
   role: string;
   bio: string;
   imageUrl: string;
+  order: number;
 };
 
+export type ScheduleDay = {
+    id: string;
+    title: string;
+    date: string;
+    order: number;
+    events: ScheduleEvent[];
+}
+
 export type ScheduleEvent = {
+  id: string;
+  dayId: string;
   time: string;
   title: string;
   description: string;
   location: string;
+  order: number;
 };
 
 export type Country = {
-  id: string; // Document ID from Firestore
+  id:string; // Document ID from Firestore
   name: string;
   committee: string;
   status: 'Available' | 'Assigned';
@@ -43,13 +56,8 @@ export type SiteConfig = {
   conferenceDate: string;
   socialLinks: SocialLinks;
   footerText: string;
+  mapEmbedUrl: string;
   navVisibility?: Record<string, boolean>;
-};
-
-export type Theme = {
-  primaryColor: string;
-  backgroundColor: string;
-  accentColor: string;
 };
 
 export type HomePageContent = {
@@ -57,6 +65,14 @@ export type HomePageContent = {
   heroSubtitle: string;
   heroImageUrl: string;
 };
+
+export type ConferenceHighlight = {
+    id: string;
+    icon: string;
+    title: string;
+    description: string;
+    order: number;
+}
 
 export type AboutPageContent = {
   title: string;
@@ -69,6 +85,28 @@ export type AboutPageContent = {
   storyPara1: string;
   storyPara2: string;
 };
+
+export type RegistrationPageContent = {
+    title: string;
+    subtitle: string;
+};
+
+export type DocumentsPageContent = {
+    title: string;
+    subtitle: string;
+    paperDeadline: string;
+    uploadTitle: string;
+    uploadDescription: string;
+    codeOfConductTitle: string;
+    codeOfConductDescription: string;
+}
+
+export type CodeOfConductItem = {
+    id: string;
+    title: string;
+    content: string;
+    order: number;
+}
 
 export type Post = {
   id: string;

@@ -25,8 +25,8 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { Country, Committee } from "@/lib/types";
-import { getCountries, getCommittees } from "@/lib/firebase-service";
+import type { Country, Committee, RegistrationPageContent } from "@/lib/types";
+import { getCountries, getCommittees, getRegistrationPageContent } from "@/lib/firebase-service";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const formSchema = z.object({
@@ -40,6 +40,7 @@ const formSchema = z.object({
 
 export default function RegistrationPage() {
   const { toast } = useToast();
+  const [content, setContent] = useState<RegistrationPageContent | null>(null);
   const [countries, setCountries] = useState<Country[]>([]);
   const [committees, setCommittees] = useState<Committee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,10 +57,12 @@ export default function RegistrationPage() {
   useEffect(() => {
     async function fetchData() {
         try {
-            const [fetchedCountries, fetchedCommittees] = await Promise.all([
+            const [fetchedContent, fetchedCountries, fetchedCommittees] = await Promise.all([
+                getRegistrationPageContent(),
                 getCountries(),
                 getCommittees(),
             ]);
+            setContent(fetchedContent);
             setCountries(fetchedCountries);
             setCommittees(fetchedCommittees);
         } catch (error) {
@@ -84,13 +87,28 @@ export default function RegistrationPage() {
     });
     form.reset();
   }
+  
+  if (loading) {
+    return (
+        <div className="container mx-auto px-4 py-12 md:py-20">
+            <div className="text-center mb-12">
+                <Skeleton className="h-12 w-3/4 mx-auto" />
+                <Skeleton className="h-6 w-1/2 mx-auto mt-4" />
+            </div>
+            <div className="grid lg:grid-cols-5 gap-12">
+                <div className="lg:col-span-3"><Skeleton className="h-[500px] w-full" /></div>
+                <div className="lg:col-span-2"><Skeleton className="h-[500px] w-full" /></div>
+            </div>
+        </div>
+    )
+  }
 
   return (
     <div className="container mx-auto px-4 py-12 md:py-20">
       <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary-foreground">Delegate Registration</h1>
+        <h1 className="text-4xl md:text-5xl font-bold font-headline text-foreground">{content?.title}</h1>
         <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-          Complete the form below to register for HARMUN 2025. Fields marked with an asterisk (*) are required.
+          {content?.subtitle}
         </p>
       </div>
       <div className="grid lg:grid-cols-5 gap-12">

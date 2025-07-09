@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import * as z from "zod";
 import React, { useEffect, useState } from "react";
 import Papa from "papaparse";
@@ -22,294 +22,173 @@ import { useToast } from "@/hooks/use-toast";
 import { convertGoogleDriveLink } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Type, PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, Share2, BookOpenText, Upload, Download, FileSpreadsheet, CalendarDays } from "lucide-react";
-import { getHomePageContent, updateHomePageContent, addPost, getAllPosts, formatTimestamp, getCountries, addCountry, updateCountryStatus, deleteCountry, getCommittees, addCommittee, deleteCommittee, getSiteConfig, updateSiteConfig, getAboutPageContent, updateAboutPageContent, defaultSiteConfig, importCommittees, importCountries } from "@/lib/firebase-service";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import * as icons from "lucide-react";
+import {
+    PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, Share2, BookOpenText, Upload, Download, FileSpreadsheet, CalendarDays,
+    Settings, Clapperboard, Home, FileBadge, UserSquare, Shield, GripVertical, LucideIcon, HelpCircle
+} from "lucide-react";
+import * as firebaseService from "@/lib/firebase-service";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Post, Country, Committee, SiteConfig, HomePageContent, AboutPageContent } from "@/lib/types";
+import type * as T from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 
-const contentFormSchema = z.object({
-    heroTitle: z.string().min(5, "Title must be at least 5 characters."),
-    heroSubtitle: z.string().min(10, "Subtitle must be at least 10 characters."),
-    heroImageUrl: z.string().url({ message: "Please enter a valid URL." }),
-});
+const Icon = ({ name, ...props }: { name: string } & React.ComponentProps<LucideIcon>) => {
+  const LucideIcon = (icons as unknown as Record<string, LucideIcon>)[name];
+  if (!LucideIcon) return <HelpCircle {...props} />;
+  return <LucideIcon {...props} />;
+};
 
-const aboutContentFormSchema = z.object({
-    title: z.string().min(5, "Title must be at least 5 characters."),
-    subtitle: z.string().min(10, "Subtitle must be at least 10 characters."),
-    imageUrl: z.string().url({ message: "Please enter a valid URL." }),
-    whatIsTitle: z.string().min(5, "Title must be at least 5 characters."),
-    whatIsPara1: z.string().min(20, "Content must be at least 20 characters."),
-    whatIsPara2: z.string().min(20, "Content must be at least 20 characters."),
-    storyTitle: z.string().min(5, "Title must be at least 5 characters."),
-    storyPara1: z.string().min(20, "Content must be at least 20 characters."),
-    storyPara2: z.string().min(20, "Content must be at least 20 characters."),
+const homePageContentSchema = z.object({
+    heroTitle: z.string().min(5),
+    heroSubtitle: z.string().min(10),
+    heroImageUrl: z.string().url(),
 });
-
-const postFormSchema = z.object({
-    title: z.string().min(5, "Title must be at least 5 characters long."),
-    content: z.string().min(20, "Content must be at least 20 characters long."),
-    type: z.enum(['sg-note', 'news'], { required_error: "You must select a post type." }),
+const highlightSchema = z.object({ id: z.string(), icon: z.string().min(1), title: z.string().min(3), description: z.string().min(5), order: z.number() });
+const aboutPageContentSchema = z.object({
+    title: z.string().min(5), subtitle: z.string().min(10), imageUrl: z.string().url(),
+    whatIsTitle: z.string().min(5), whatIsPara1: z.string().min(20), whatIsPara2: z.string().min(20),
+    storyTitle: z.string().min(5), storyPara1: z.string().min(20), storyPara2: z.string().min(20),
 });
-
-const countryMatrixFormSchema = z.object({
-    name: z.string().min(2, "Country name is required."),
-    committee: z.string({ required_error: "Please select a committee." }).min(1, "Please select a committee."),
+const registrationPageContentSchema = z.object({ title: z.string().min(5), subtitle: z.string().min(10) });
+const documentsPageContentSchema = z.object({
+    title: z.string().min(5), subtitle: z.string().min(10), paperDeadline: z.string().min(5),
+    uploadTitle: z.string().min(5), uploadDescription: z.string().min(10),
+    codeOfConductTitle: z.string().min(5), codeOfConductDescription: z.string().min(10),
 });
-
-const committeeFormSchema = z.object({
-    name: z.string().min(3, "Committee name is required."),
-    chairName: z.string().min(2, "Chair name is required."),
-    chairBio: z.string().optional(),
-    chairImageUrl: z.string().url("Must be a valid URL or be left empty.").or(z.literal("")).optional(),
-    topics: z.string().optional(),
-    backgroundGuideUrl: z.string().url("Must be a valid URL or be left empty.").or(z.literal("")).optional(),
+const codeOfConductItemSchema = z.object({ id: z.string(), title: z.string().min(3), content: z.string().min(10), order: z.number() });
+const secretariatMemberSchema = z.object({ id: z.string(), name: z.string().min(2), role: z.string().min(2), bio: z.string(), imageUrl: z.string().url().or(z.literal("")), order: z.number() });
+const postSchema = z.object({ title: z.string().min(5), content: z.string().min(20), type: z.enum(['sg-note', 'news']) });
+const countryMatrixSchema = z.object({ name: z.string().min(2), committee: z.string().min(1) });
+const committeeSchema = z.object({
+    name: z.string().min(3), chairName: z.string().min(2), chairBio: z.string().optional(),
+    chairImageUrl: z.string().url().or(z.literal("")).optional(), topics: z.string().optional(), backgroundGuideUrl: z.string().url().or(z.literal("")).optional(),
 });
+const scheduleDaySchema = z.object({ id: z.string(), title: z.string().min(3), date: z.string().min(5), order: z.number() });
+const scheduleEventSchema = z.object({ id: z.string(), dayId: z.string(), time: z.string().min(1), title: z.string().min(3), description: z.string(), location: z.string(), order: z.number() });
 
 const navLinksForAdmin = [
-  { href: '/about', label: 'About' },
-  { href: '/committees', label: 'Committees' },
-  { href: '/news', label: 'News' },
-  { href: '/sg-notes', label: 'SG Notes' },
-  { href: '/registration', label: 'Registration' },
-  { href: '/schedule', label: 'Schedule' },
-  { href: '/secretariat', label: 'Secretariat' },
-  { href: '/documents', label: 'Documents' },
+  { href: '/about', label: 'About' }, { href: '/committees', label: 'Committees' }, { href: '/news', label: 'News' },
+  { href: '/sg-notes', label: 'SG Notes' }, { href: '/registration', label: 'Registration' }, { href: '/schedule', label: 'Schedule' },
+  { href: '/secretariat', label: 'Secretariat' }, { href: '/documents', label: 'Documents' },
 ];
-
-const siteConfigFormSchema = z.object({
-  conferenceDate: z.string().min(1, "Conference date is required."),
-  twitter: z.string().url("Must be a valid URL.").or(z.literal("")).or(z.literal("#")),
-  instagram: z.string().url("Must be a valid URL.").or(z.literal("")).or(z.literal("#")),
-  facebook: z.string().url("Must be a valid URL.").or(z.literal("")).or(z.literal("#")),
-  footerText: z.string().min(5, "Footer text must be at least 5 characters."),
-  navVisibility: z.object(
-    Object.fromEntries(navLinksForAdmin.map(link => [link.href, z.boolean()]))
-  ),
+const siteConfigSchema = z.object({
+  conferenceDate: z.string().min(1), mapEmbedUrl: z.string().url(),
+  twitter: z.string().url().or(z.literal("")).or(z.literal("#")),
+  instagram: z.string().url().or(z.literal("")).or(z.literal("#")),
+  facebook: z.string().url().or(z.literal("")).or(z.literal("#")),
+  footerText: z.string().min(5),
+  navVisibility: z.object(Object.fromEntries(navLinksForAdmin.map(link => [link.href, z.boolean()]))),
 });
 
 export default function AdminPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [countries, setCountries] = useState<Country[]>([]);
-  const [committees, setCommittees] = useState<Committee[]>([]);
-  
-  const [committeeImportFile, setCommitteeImportFile] = useState<File | null>(null);
-  const [isImportingCommittees, setIsImportingCommittees] = useState(false);
-  const [countryImportFile, setCountryImportFile] = useState<File | null>(null);
-  const [isImportingCountries, setIsImportingCountries] = useState(false);
+  const [activeAccordion, setActiveAccordion] = useState<string | undefined>();
+  const [data, setData] = useState<any>({});
 
-  const contentForm = useForm<z.infer<typeof contentFormSchema>>({ resolver: zodResolver(contentFormSchema) });
-  const aboutContentForm = useForm<z.infer<typeof aboutContentFormSchema>>({ resolver: zodResolver(aboutContentFormSchema) });
-  const siteConfigForm = useForm<z.infer<typeof siteConfigFormSchema>>({ resolver: zodResolver(siteConfigFormSchema) });
-  const postForm = useForm<z.infer<typeof postFormSchema>>({
-    resolver: zodResolver(postFormSchema),
-    defaultValues: { title: "", content: "" },
-  });
-  const countryMatrixForm = useForm<z.infer<typeof countryMatrixFormSchema>>({
-    resolver: zodResolver(countryMatrixFormSchema),
-    defaultValues: { name: "" },
-  });
-  const committeeForm = useForm<z.infer<typeof committeeFormSchema>>({
-    resolver: zodResolver(committeeFormSchema),
-    defaultValues: { name: "", chairName: "", chairBio: "", chairImageUrl: "", topics: "", backgroundGuideUrl: "" },
-  });
+  const homeForm = useForm<z.infer<typeof homePageContentSchema>>();
+  const aboutForm = useForm<z.infer<typeof aboutPageContentSchema>>();
+  const registrationForm = useForm<z.infer<typeof registrationPageContentSchema>>();
+  const documentsForm = useForm<z.infer<typeof documentsPageContentSchema>>();
+  const siteConfigForm = useForm<z.infer<typeof siteConfigSchema>>();
+  const genericForm = useForm(); // For one-off forms
 
-  const fetchAdminData = React.useCallback(async () => {
+  const fetchAllData = React.useCallback(async () => {
     try {
         setLoading(true);
-        const [content, aboutContent, allPosts, allCountries, allCommittees, siteConfig] = await Promise.all([
-            getHomePageContent(),
-            getAboutPageContent(),
-            getAllPosts(),
-            getCountries(),
-            getCommittees(),
-            getSiteConfig(),
+        const [
+            homeContent, aboutContent, registrationContent, documentsContent, siteConfig,
+            posts, countries, committees, secretariat, schedule, highlights, codeOfConduct
+        ] = await Promise.all([
+            firebaseService.getHomePageContent(), firebaseService.getAboutPageContent(),
+            firebaseService.getRegistrationPageContent(), firebaseService.getDocumentsPageContent(),
+            firebaseService.getSiteConfig(), firebaseService.getAllPosts(),
+            firebaseService.getCountries(), firebaseService.getCommittees(),
+            firebaseService.getSecretariat(), firebaseService.getSchedule(),
+            firebaseService.getHighlights(), firebaseService.getCodeOfConduct()
         ]);
-        contentForm.reset(content);
-        aboutContentForm.reset(aboutContent);
+        
+        const allData = { homeContent, aboutContent, registrationContent, documentsContent, siteConfig, posts, countries, committees, secretariat, schedule, highlights, codeOfConduct };
+        setData(allData);
+
+        homeForm.reset(allData.homeContent);
+        aboutForm.reset(allData.aboutContent);
+        registrationForm.reset(allData.registrationContent);
+        documentsForm.reset(allData.documentsContent);
         siteConfigForm.reset({
-            ...siteConfig,
-            ...siteConfig.socialLinks,
-            footerText: siteConfig.footerText,
-            navVisibility: siteConfig.navVisibility || defaultSiteConfig.navVisibility,
+            ...allData.siteConfig, ...allData.siteConfig.socialLinks, footerText: allData.siteConfig.footerText,
+            navVisibility: allData.siteConfig.navVisibility,
         });
-        setPosts(allPosts);
-        setCountries(allCountries);
-        setCommittees(allCommittees);
+
     } catch (error) {
         console.error("Failed to fetch admin data:", error);
-        toast({
-            title: "Error",
-            description: "Could not load data from the database.",
-            variant: "destructive",
-        });
+        toast({ title: "Error", description: "Could not load data from the database.", variant: "destructive" });
     } finally {
         setLoading(false);
     }
-  }, [toast, contentForm, siteConfigForm, aboutContentForm]);
+  }, [toast, homeForm, aboutForm, registrationForm, documentsForm, siteConfigForm]);
 
-  useEffect(() => {
-    fetchAdminData();
-  }, [fetchAdminData]);
+  useEffect(() => { fetchAllData(); }, [fetchAllData]);
 
-  async function onContentSubmit(values: z.infer<typeof contentFormSchema>) {
+  // Generic submit handler
+  const handleFormSubmit = async (updateFunction: (data: any) => Promise<void>, successMessage: string, data: any, form?: any) => {
     try {
-      const processedValues = {
-        ...values,
-        heroImageUrl: convertGoogleDriveLink(values.heroImageUrl),
-      };
-      await updateHomePageContent(processedValues);
-      toast({
-        title: "Content Updated!",
-        description: "Home page content has been saved successfully.",
-      });
+        await updateFunction(data);
+        toast({ title: "Success!", description: successMessage });
+        if (form) form.reset(data);
     } catch (error) {
-       toast({
-        title: "Error Saving Content",
-        description: "Could not save content to the database.",
-        variant: "destructive",
-      });
+        toast({ title: "Error", description: `Could not save data. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
     }
-  }
+  };
 
-  async function onAboutContentSubmit(values: z.infer<typeof aboutContentFormSchema>) {
-    try {
-      const processedValues = {
-          ...values,
-          imageUrl: convertGoogleDriveLink(values.imageUrl),
-      };
-      await updateAboutPageContent(processedValues as AboutPageContent);
-      toast({
-        title: "About Page Updated!",
-        description: "Your changes to the about page have been saved.",
-      });
-    } catch (error) {
-       toast({
-        title: "Error Saving Content",
-        description: "Could not save about page content to the database.",
-        variant: "destructive",
-      });
+  const handleFileChange = (setter: React.Dispatch<React.SetStateAction<File | null>>) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) setter(event.target.files[0]); else setter(null);
+  };
+  
+  const [committeeImportFile, setCommitteeImportFile] = useState<File | null>(null);
+  const [countryImportFile, setCountryImportFile] = useState<File | null>(null);
+  const [secretariatImportFile, setSecretariatImportFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const handleImport = async (file: File | null, importFunction: (data: any[]) => Promise<void>, type: string) => {
+    if (!file) {
+        toast({ title: "No file selected", description: `Please choose a ${type} CSV file.`, variant: "destructive" });
+        return;
     }
-  }
+    if (!confirm(`Are you sure you want to import ${type}? This will ERASE all existing data for ${type}. This action cannot be undone.`)) return;
+    
+    setIsImporting(true);
+    Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: async (results) => {
+            try {
+                await importFunction(results.data as any[]);
+                toast({ title: "Import Successful!", description: `Your ${type} data has been imported.` });
+                await fetchAllData();
+            } catch (error) {
+                toast({ title: "Import Failed", description: error instanceof Error ? error.message : "An unknown error occurred.", variant: "destructive" });
+            } finally {
+                setIsImporting(false);
+                setCommitteeImportFile(null); setCountryImportFile(null); setSecretariatImportFile(null);
+                const fileInput = document.getElementById(`${type}ImportFile`) as HTMLInputElement;
+                if (fileInput) fileInput.value = '';
+            }
+        },
+        error: (err) => {
+            toast({ title: "Error parsing CSV", description: err.message, variant: "destructive" });
+            setIsImporting(false);
+        }
+    });
+  };
 
-  async function onSiteConfigSubmit(values: z.infer<typeof siteConfigFormSchema>) {
-    try {
-        const config: SiteConfig = {
-            conferenceDate: values.conferenceDate,
-            socialLinks: {
-                twitter: values.twitter,
-                instagram: values.instagram,
-                facebook: values.facebook,
-            },
-            footerText: values.footerText,
-            navVisibility: values.navVisibility,
-        };
-      await updateSiteConfig(config);
-      toast({
-        title: "Site Settings Updated!",
-        description: "Your site-wide settings have been saved.",
-      });
-    } catch (error) {
-       toast({
-        title: "Error Saving Settings",
-        description: "Could not save settings to the database.",
-        variant: "destructive",
-      });
-    }
-  }
-
-  async function onPostSubmit(values: z.infer<typeof postFormSchema>) {
-    try {
-        await addPost(values);
-        toast({
-            title: "Post Created!",
-            description: "Your new post has been published.",
-        });
-        postForm.reset();
-        await fetchAdminData();
-    } catch (error) {
-        toast({
-            title: "Error Creating Post",
-            description: "Could not save the post to the database.",
-            variant: "destructive",
-        });
-    }
-  }
-
-  async function onCountrySubmit(values: z.infer<typeof countryMatrixFormSchema>) {
-    try {
-        await addCountry({ ...values, status: 'Available' });
-        toast({ title: "Country Added", description: `${values.name} has been added to the matrix.` });
-        countryMatrixForm.reset({ name: ""});
-        await fetchAdminData();
-    } catch (error) {
-        toast({ title: "Error", description: "Could not add country.", variant: "destructive" });
-    }
-  }
-
-  async function handleStatusChange(id: string, currentStatus: 'Available' | 'Assigned') {
-      const newStatus = currentStatus === 'Available' ? 'Assigned' : 'Available';
-      try {
-          await updateCountryStatus(id, newStatus);
-          toast({ title: "Status Updated", description: `Status changed to ${newStatus}.` });
-          await fetchAdminData();
-      } catch (error) {
-          toast({ title: "Error", description: "Could not update status.", variant: "destructive" });
-      }
-  }
-
-  async function handleDeleteCountry(id: string, name: string) {
-      if (confirm(`Are you sure you want to delete ${name}? This action cannot be undone.`)) {
-          try {
-              await deleteCountry(id);
-              toast({ title: "Country Deleted", description: `${name} has been removed from the matrix.` });
-              await fetchAdminData();
-          } catch (error) {
-              toast({ title: "Error", description: "Could not delete country.", variant: "destructive" });
-          }
-      }
-  }
-
-  async function onCommitteeSubmit(values: z.infer<typeof committeeFormSchema>) {
-    try {
-        const committeeData = {
-            name: values.name,
-            chair: {
-                name: values.chairName,
-                bio: values.chairBio || "The chair has not provided a biography yet.",
-                imageUrl: convertGoogleDriveLink(values.chairImageUrl || "https://placehold.co/400x400.png"),
-            },
-            topics: (values.topics || "").split('\n').filter(topic => topic.trim() !== ''),
-            backgroundGuideUrl: values.backgroundGuideUrl || "",
-        };
-        await addCommittee(committeeData);
-        toast({ title: "Committee Added!", description: `The ${values.name} committee has been created.` });
-        committeeForm.reset();
-        await fetchAdminData();
-    } catch (error) {
-        toast({ title: "Error Adding Committee", description: "Could not save the committee.", variant: "destructive" });
-    }
-  }
-
-  async function handleDeleteCommittee(id: string, name: string) {
-      if (confirm(`Are you sure you want to delete the ${name} committee? This is irreversible.`)) {
-          try {
-              await deleteCommittee(id);
-              toast({ title: "Committee Deleted", description: `The ${name} committee has been removed.` });
-              await fetchAdminData();
-          } catch (error) {
-              toast({ title: "Error", description: "Could not delete the committee.", variant: "destructive" });
-          }
-      }
-  }
-
-  const downloadCsv = (data: string, filename: string) => {
-    const blob = new Blob([data], { type: "text/csv;charset=utf-8;" });
+  const handleExport = (data: any[], filename: string) => {
+    const csv = Papa.unparse(data);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -317,147 +196,11 @@ export default function AdminPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleCommitteeExport = () => {
-    const dataToExport = committees.map(c => ({
-      name: c.name,
-      chairName: c.chair.name,
-      chairBio: c.chair.bio,
-      chairImageUrl: c.chair.imageUrl,
-      topics: c.topics.join('; '), // Join topics with a semicolon
-      backgroundGuideUrl: c.backgroundGuideUrl,
-    }));
-    const csv = Papa.unparse(dataToExport);
-    downloadCsv(csv, "harmun-committees-export.csv");
-    toast({
-        title: "Committees Exported",
-        description: "Your committee data has been downloaded as a CSV file.",
-    });
-  };
-
-  const handleCountryExport = () => {
-    const dataToExport = countries.map(c => ({
-      name: c.name,
-      committee: c.committee,
-      status: c.status,
-    }));
-    const csv = Papa.unparse(dataToExport);
-    downloadCsv(csv, "harmun-countries-export.csv");
-    toast({
-        title: "Countries Exported",
-        description: "Your country data has been downloaded as a CSV file.",
-    });
-  };
-
-  const handleFileChange = (setter: React.Dispatch<React.SetStateAction<File | null>>) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files.length > 0) {
-        setter(event.target.files[0]);
-    } else {
-        setter(null);
-    }
-  };
-
-  const handleCommitteeImport = async () => {
-    if (!committeeImportFile) {
-        toast({ title: "No file selected", description: "Please choose a committee CSV file to import.", variant: "destructive" });
-        return;
-    }
-    if (!confirm("Are you sure you want to import committees? This will ERASE all existing committee data. This action cannot be undone.")) {
-        return;
-    }
-    setIsImportingCommittees(true);
-    Papa.parse(committeeImportFile, {
-        header: true,
-        skipEmptyLines: true,
-        complete: async (results) => {
-            try {
-                const parsedData = results.data as any[];
-                const committeesToImport = parsedData.map(row => ({
-                    name: row.name || "Unnamed Committee",
-                    chair: {
-                        name: row.chairName || "TBD",
-                        bio: row.chairBio || "The chair has not provided a biography yet.",
-                        imageUrl: convertGoogleDriveLink(row.chairImageUrl || "https://placehold.co/400x400.png"),
-                    },
-                    topics: (row.topics || "").split(';').map((t: string) => t.trim()).filter(Boolean),
-                    backgroundGuideUrl: row.backgroundGuideUrl || "",
-                }));
-                await importCommittees(committeesToImport);
-                toast({
-                    title: "Committee Import Successful!",
-                    description: "Your committee data has been imported. The page will now reload.",
-                });
-                await fetchAdminData();
-            } catch (error) {
-                console.error("Import failed:", error);
-                const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-                toast({ title: "Import Failed", description: errorMessage, variant: "destructive" });
-            } finally {
-                setIsImportingCommittees(false);
-                setCommitteeImportFile(null);
-                const fileInput = document.getElementById('committeeImportFile') as HTMLInputElement;
-                if (fileInput) fileInput.value = '';
-            }
-        },
-        error: (error) => {
-            toast({ title: "Error parsing CSV", description: error.message, variant: "destructive" });
-            setIsImportingCommittees(false);
-        }
-    });
-  };
-  
-  const handleCountryImport = async () => {
-    if (!countryImportFile) {
-        toast({ title: "No file selected", description: "Please choose a country CSV file to import.", variant: "destructive" });
-        return;
-    }
-    if (!confirm("Are you sure you want to import countries? This will ERASE all existing country data. This action cannot be undone.")) {
-        return;
-    }
-    setIsImportingCountries(true);
-     Papa.parse(countryImportFile, {
-        header: true,
-        skipEmptyLines: true,
-        complete: async (results) => {
-            try {
-                const parsedData = results.data as any[];
-                 const countriesToImport = parsedData.map(row => ({
-                    name: row.name || "Unnamed Country",
-                    committee: row.committee || "Unassigned",
-                    status: (row.status === 'Available' || row.status === 'Assigned') ? row.status : 'Available',
-                }));
-                await importCountries(countriesToImport);
-                toast({
-                    title: "Country Import Successful!",
-                    description: "Your country data has been imported. The page will now reload.",
-                });
-                await fetchAdminData();
-            } catch (error) {
-                console.error("Import failed:", error);
-                const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-                toast({ title: "Import Failed", description: errorMessage, variant: "destructive" });
-            } finally {
-                setIsImportingCountries(false);
-                setCountryImportFile(null);
-                const fileInput = document.getElementById('countryImportFile') as HTMLInputElement;
-                if (fileInput) fileInput.value = '';
-            }
-        },
-        error: (error) => {
-            toast({ title: "Error parsing CSV", description: error.message, variant: "destructive" });
-            setIsImportingCountries(false);
-        }
-    });
+    toast({ title: "Export Successful", description: `Downloaded ${filename}` });
   };
 
   if (loading) {
-    return (
-      <div className="space-y-8">
-        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-64 w-full" />)}
-      </div>
-    )
+    return <div className="space-y-8 p-8">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-64 w-full" />)}</div>
   }
 
   return (
@@ -467,367 +210,360 @@ export default function AdminPage() {
             <p className="text-muted-foreground">Manage your conference website content and settings here.</p>
         </div>
 
-        <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+        <Tabs defaultValue="pages" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
                 <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-                <TabsTrigger value="content">Content &amp; Posts</TabsTrigger>
-                <TabsTrigger value="conference">Conference Data</TabsTrigger>
-                <TabsTrigger value="settings">Site Settings</TabsTrigger>
+                <TabsTrigger value="pages">Pages</TabsTrigger>
+                <TabsTrigger value="conference">Conference</TabsTrigger>
+                <TabsTrigger value="team">Team</TabsTrigger>
+                <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
             
             <TabsContent value="dashboard" className="mt-6">
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Registrations</CardTitle>
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">0</div>
-                            <p className="text-xs text-muted-foreground">This will update as delegates register.</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Published Posts</CardTitle>
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{posts.length}</div>
-                            <p className="text-xs text-muted-foreground">Across News and SG Notes.</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Countries in Matrix</CardTitle>
-                            <Globe className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{countries.length}</div>
-                            <p className="text-xs text-muted-foreground">Available and assigned positions.</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Committees</CardTitle>
-                            <Library className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{committees.length}</div>
-                            <p className="text-xs text-muted-foreground">Number of active committees.</p>
-                        </CardContent>
-                    </Card>
+                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Published Posts</CardTitle><FileText className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{data.posts.length}</div></CardContent></Card>
+                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Countries</CardTitle><Globe className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{data.countries.length}</div></CardContent></Card>
+                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Committees</CardTitle><Library className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{data.committees.length}</div></CardContent></Card>
+                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Secretariat</CardTitle><Users className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{data.secretariat.length}</div></CardContent></Card>
                 </div>
-            </TabsContent>
-            
-            <TabsContent value="content" className="mt-6 space-y-8">
-                <div className="grid lg:grid-cols-2 gap-8 items-start">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Type className="w-6 h-6" /> Home Page Content</CardTitle>
-                            <CardDescription>Edit the main text and hero image on your home page.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Form {...contentForm}><form onSubmit={contentForm.handleSubmit(onContentSubmit)} className="space-y-6">
-                                <FormField control={contentForm.control} name="heroTitle" render={({ field }) => (<FormItem><FormLabel>Hero Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={contentForm.control} name="heroSubtitle" render={({ field }) => (<FormItem><FormLabel>Hero Subtitle</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={contentForm.control} name="heroImageUrl" render={({ field }) => (<FormItem><FormLabel>Hero Image URL</FormLabel><FormControl><Input placeholder="https://example.com/image.png" {...field} /></FormControl><FormDescription>URL for the main hero banner image.</FormDescription><FormMessage /></FormItem>)} />
-                                <Button type="submit" className="w-full">Save Content</Button>
-                            </form></Form>
-                        </CardContent>
-                    </Card>
-                     <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><BookOpenText className="w-6 h-6" /> About Page Content</CardTitle>
-                            <CardDescription>Edit the content for the "About" page.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Form {...aboutContentForm}><form onSubmit={aboutContentForm.handleSubmit(onAboutContentSubmit)} className="space-y-6">
-                                <FormField control={aboutContentForm.control} name="title" render={({ field }) => (<FormItem><FormLabel>Page Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={aboutContentForm.control} name="subtitle" render={({ field }) => (<FormItem><FormLabel>Page Subtitle</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={aboutContentForm.control} name="imageUrl" render={({ field }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <hr/>
-                                <FormField control={aboutContentForm.control} name="whatIsTitle" render={({ field }) => (<FormItem><FormLabel>Section 1: Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={aboutContentForm.control} name="whatIsPara1" render={({ field }) => (<FormItem><FormLabel>Section 1: Paragraph 1</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={aboutContentForm.control} name="whatIsPara2" render={({ field }) => (<FormItem><FormLabel>Section 1: Paragraph 2</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
-                                <hr/>
-                                <FormField control={aboutContentForm.control} name="storyTitle" render={({ field }) => (<FormItem><FormLabel>Section 2: Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={aboutContentForm.control} name="storyPara1" render={({ field }) => (<FormItem><FormLabel>Section 2: Paragraph 1</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={aboutContentForm.control} name="storyPara2" render={({ field }) => (<FormItem><FormLabel>Section 2: Paragraph 2</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
-                                <Button type="submit" className="w-full">Save About Page</Button>
-                            </form></Form>
-                        </CardContent>
-                    </Card>
-                </div>
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Newspaper className="w-6 h-6" /> Create & Manage Posts</CardTitle>
-                        <CardDescription>Publish news articles or notes from the Secretary-General.</CardDescription>
-                    </CardHeader>
+                <Card className="mt-6">
+                    <CardHeader><CardTitle className="flex items-center gap-2"><Newspaper /> Create & Manage Posts</CardTitle></CardHeader>
                     <CardContent>
-                        <Form {...postForm}>
-                            <form onSubmit={postForm.handleSubmit(onPostSubmit)} className="space-y-6 mb-8">
-                                <FormField control={postForm.control} name="title" render={({ field }) => (
-                                    <FormItem><FormLabel>Post Title</FormLabel><FormControl><Input placeholder="e.g., Welcome to HARMUN 2025" {...field} /></FormControl><FormMessage /></FormItem>
-                                )} />
-                                <FormField control={postForm.control} name="type" render={({ field }) => (
-                                    <FormItem><FormLabel>Post Type</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select a post type" /></SelectTrigger></FormControl>
-                                            <SelectContent><SelectItem value="news">News</SelectItem><SelectItem value="sg-note">SG Note</SelectItem></SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                                <FormField control={postForm.control} name="content" render={({ field }) => (
-                                    <FormItem><FormLabel>Content</FormLabel><FormControl><Textarea placeholder="Write your post content here..." {...field} rows={6} /></FormControl><FormMessage /></FormItem>
-                                )} />
-                                <Button type="submit" className="w-full" disabled={postForm.formState.isSubmitting}>
-                                    <PlusCircle className="mr-2"/>
-                                    {postForm.formState.isSubmitting ? "Publishing..." : "Publish Post"}
-                                </Button>
+                        <Form {...genericForm}>
+                            <form onSubmit={genericForm.handleSubmit(async (values) => {
+                                await firebaseService.addPost(values as any);
+                                toast({ title: "Post Created!" });
+                                genericForm.reset({ title: "", content: "", type: undefined });
+                                fetchAllData();
+                            })} className="space-y-4 mb-6">
+                                <FormField control={genericForm.control} name="title" rules={{required: true}} render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                                <FormField control={genericForm.control} name="type" rules={{required: true}} render={({ field }) => ( <FormItem><FormLabel>Type</FormLabel><Select onValueChange={field.onChange}><FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl><SelectContent><SelectItem value="news">News</SelectItem><SelectItem value="sg-note">SG Note</SelectItem></SelectContent></Select></FormItem> )} />
+                                <FormField control={genericForm.control} name="content" rules={{required: true}} render={({ field }) => (<FormItem><FormLabel>Content</FormLabel><FormControl><Textarea {...field} rows={5} /></FormControl></FormItem>)} />
+                                <Button type="submit" className="w-full"><PlusCircle className="mr-2"/>Publish Post</Button>
                             </form>
                         </Form>
-                        
-                        <h3 className="text-lg font-semibold mb-4">Published Posts</h3>
+                         <h3 className="text-lg font-semibold mb-4">Published Posts</h3>
                         <div className="border rounded-md max-h-96 overflow-y-auto">
                             <Table>
-                                <TableHeader><TableRow><TableHead>Title</TableHead><TableHead>Type</TableHead><TableHead>Date</TableHead></TableRow></TableHeader>
+                                <TableHeader><TableRow><TableHead>Title</TableHead><TableHead>Type</TableHead><TableHead>Date</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader>
                                 <TableBody>
-                                    {posts.length > 0 ? posts.map(post => (
+                                    {data.posts.map((post: T.Post) => (
                                         <TableRow key={post.id}>
-                                            <TableCell className="font-medium">{post.title}</TableCell>
-                                            <TableCell>{post.type === 'news' ? 'News' : 'SG Note'}</TableCell>
-                                            <TableCell>{formatTimestamp(post.createdAt)}</TableCell>
+                                            <TableCell>{post.title}</TableCell>
+                                            <TableCell>{post.type}</TableCell>
+                                            <TableCell>{firebaseService.formatTimestamp(post.createdAt)}</TableCell>
+                                            <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={async () => { if(confirm('Delete?')) { await firebaseService.deleteDoc(collection(db, 'posts'), post.id); fetchAllData(); }}}> <Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
                                         </TableRow>
-                                    )) : (
-                                        <TableRow><TableCell colSpan={3} className="text-center">No posts found.</TableCell></TableRow>
-                                    )}
+                                    ))}
                                 </TableBody>
                             </Table>
                         </div>
                     </CardContent>
                 </Card>
             </TabsContent>
-            
-            <TabsContent value="conference" className="mt-6 space-y-8">
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Library className="w-6 h-6" /> Committee Management</CardTitle>
-                        <CardDescription>Add, remove, and manage conference committees.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Form {...committeeForm}>
-                            <form onSubmit={committeeForm.handleSubmit(onCommitteeSubmit)} className="space-y-6 mb-8 p-4 border rounded-lg">
-                                <h3 className="text-lg font-semibold border-b pb-2">Add New Committee</h3>
-                                <div className="grid md:grid-cols-2 gap-6">
-                                    <FormField control={committeeForm.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Committee Name</FormLabel><FormControl><Input placeholder="e.g., Security Council" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                                    <FormField control={committeeForm.control} name="chairName" render={({ field }) => ( <FormItem><FormLabel>Chair Name</FormLabel><FormControl><Input placeholder="e.g., Dr. Evelyn Reed" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                                </div>
-                                <FormField control={committeeForm.control} name="chairBio" render={({ field }) => ( <FormItem><FormLabel>Chair Bio</FormLabel><FormControl><Textarea placeholder="Optional: Brief biography of the chair..." {...field} rows={3} /></FormControl><FormMessage /></FormItem> )} />
-                                <FormField control={committeeForm.control} name="chairImageUrl" render={({ field }) => ( <FormItem><FormLabel>Chair Image URL</FormLabel><FormControl><Input placeholder="Optional: https://placehold.co/400x400.png" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                                <FormField control={committeeForm.control} name="topics" render={({ field }) => ( <FormItem><FormLabel>Topics</FormLabel><FormControl><Textarea placeholder="Optional: Enter each topic on a new line..." {...field} rows={3}/></FormControl><FormDescription>Separate each topic with a new line.</FormDescription><FormMessage /></FormItem> )} />
-                                <FormField control={committeeForm.control} name="backgroundGuideUrl" render={({ field }) => ( <FormItem><FormLabel>Background Guide URL</FormLabel><FormControl><Input placeholder="Optional: https://example.com/guide.pdf" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                                <Button type="submit" className="w-full" disabled={committeeForm.formState.isSubmitting}><PlusCircle className="mr-2" />{committeeForm.formState.isSubmitting ? "Adding..." : "Add Committee"}</Button>
-                            </form>
-                        </Form>
 
-                        <h3 className="text-lg font-semibold mt-6 mb-4">Existing Committees</h3>
-                        <div className="border rounded-md max-h-96 overflow-y-auto">
-                            <Table>
-                                <TableHeader><TableRow><TableHead>Committee</TableHead><TableHead>Chair</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
-                                <TableBody>
-                                    {committees.length > 0 ? committees.map(c => (
-                                        <TableRow key={c.id}>
-                                            <TableCell className="font-medium">{c.name}</TableCell>
-                                            <TableCell>{c.chair.name}</TableCell>
-                                            <TableCell className="text-right">
-                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteCommittee(c.id, c.name)}>
-                                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    )) : (
-                                        <TableRow><TableCell colSpan={3} className="text-center">No committees added yet.</TableCell></TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Globe className="w-6 h-6" /> Country Matrix Management</CardTitle>
-                        <CardDescription>Add, remove, and manage country assignments for committees.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Form {...countryMatrixForm}>
-                            <form onSubmit={countryMatrixForm.handleSubmit(onCountrySubmit)} className="flex flex-col sm:flex-row sm:items-end gap-4 mb-6">
-                                <FormField control={countryMatrixForm.control} name="name" render={({ field }) => (
-                                    <FormItem className="flex-grow w-full sm:w-auto"><FormLabel>Country Name</FormLabel><FormControl><Input placeholder="e.g., Canada" {...field} /></FormControl><FormMessage /></FormItem>
-                                )} />
-                                <FormField control={countryMatrixForm.control} name="committee" render={({ field }) => (
-                                    <FormItem className="flex-grow w-full sm:w-auto"><FormLabel>Committee</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select a committee" /></SelectTrigger></FormControl>
-                                            <SelectContent>{committees.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                                <Button type="submit" className="w-full sm:w-auto" disabled={!countryMatrixForm.formState.isValid || countryMatrixForm.formState.isSubmitting}><PlusCircle className="mr-2 h-4 w-4" /> Add Country</Button>
-                            </form>
-                        </Form>
-                        <div className="border rounded-md max-h-96 overflow-y-auto">
-                            <Table>
-                                <TableHeader><TableRow><TableHead>Country</TableHead><TableHead>Committee</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
-                                <TableBody>
-                                    {countries.length > 0 ? countries.map(country => (
-                                        <TableRow key={country.id}>
-                                            <TableCell className="font-medium">{country.name}</TableCell>
-                                            <TableCell>{country.committee}</TableCell>
-                                            <TableCell>
-                                                <Badge variant={country.status === 'Available' ? 'secondary' : 'default'}>{country.status}</Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right space-x-2 flex items-center justify-end">
-                                                <div className="flex items-center gap-2">
-                                                    <Switch
-                                                        checked={country.status === 'Assigned'}
-                                                        onCheckedChange={() => handleStatusChange(country.id, country.status)}
-                                                        aria-label={`Set ${country.name} to ${country.status === 'Available' ? 'Assigned' : 'Available'}`}
-                                                    />
-                                                </div>
-                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteCountry(country.id, country.name)}>
-                                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    )) : (
-                                        <TableRow><TableCell colSpan={4} className="text-center">No countries added yet.</TableCell></TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </CardContent>
-                </Card>
-            </TabsContent>
-            
-            <TabsContent value="settings" className="mt-6 space-y-8">
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Share2 className="w-6 h-6" /> Site-wide Settings</CardTitle>
-                        <CardDescription>Manage social media links, footer text, and navigation visibility.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Form {...siteConfigForm}>
-                            <form onSubmit={siteConfigForm.handleSubmit(onSiteConfigSubmit)} className="space-y-6">
-                                <FormField
-                                    control={siteConfigForm.control}
-                                    name="conferenceDate"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="flex items-center gap-2"><CalendarDays className="w-4 h-4" /> Conference Countdown Date</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    placeholder="YYYY-MM-DDTHH:mm:ss"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormDescription>
-                                                The target date for the homepage countdown. Use format: YYYY-MM-DDTHH:mm:ss
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField control={siteConfigForm.control} name="twitter" render={({ field }) => (<FormItem><FormLabel>Twitter URL</FormLabel><FormControl><Input placeholder="https://twitter.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={siteConfigForm.control} name="instagram" render={({ field }) => (<FormItem><FormLabel>Instagram URL</FormLabel><FormControl><Input placeholder="https://instagram.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={siteConfigForm.control} name="facebook" render={({ field }) => (<FormItem><FormLabel>Facebook URL</FormLabel><FormControl><Input placeholder="https://facebook.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={siteConfigForm.control} name="footerText" render={({ field }) => (<FormItem><FormLabel>Footer Text</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>)} />
-                                
-                                <div>
-                                    <h3 className="text-md font-semibold pt-4 border-t mb-2">Navigation Visibility</h3>
-                                    <p className="text-sm text-muted-foreground mb-4">Toggle which pages appear in the main navigation bar.</p>
-                                    <div className="space-y-2">
-                                        {navLinksForAdmin.map((link) => (
-                                            <FormField
-                                                key={link.href}
-                                                control={siteConfigForm.control}
-                                                name={`navVisibility.${link.href}` as const}
-                                                render={({ field }) => (
-                                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                                                        <FormLabel>{link.label}</FormLabel>
-                                                        <FormControl>
-                                                            <Switch
-                                                                checked={field.value}
-                                                                onCheckedChange={field.onChange}
-                                                            />
-                                                        </FormControl>
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        ))}
+            <TabsContent value="pages" className="mt-6">
+                <Accordion type="single" collapsible value={activeAccordion} onValueChange={setActiveAccordion}>
+                    <AccordionItem value="home">
+                        <AccordionTrigger><div className="flex items-center gap-2 text-lg"><Home /> Home Page</div></AccordionTrigger>
+                        <AccordionContent className="p-1 space-y-6">
+                            <Card><CardHeader><CardTitle>Hero Section</CardTitle></CardHeader>
+                            <CardContent>
+                                <Form {...homeForm}><form onSubmit={homeForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateHomePageContent, "Home page content updated.", d, homeForm))} className="space-y-4">
+                                    <FormField control={homeForm.control} name="heroTitle" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                    <FormField control={homeForm.control} name="heroSubtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>} />
+                                    <FormField control={homeForm.control} name="heroImageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                    <Button type="submit">Save Hero</Button>
+                                </form></Form>
+                            </CardContent></Card>
+                            <Card><CardHeader><CardTitle>Highlights Section</CardTitle></CardHeader>
+                            <CardContent>
+                                {data.highlights?.map((item: T.ConferenceHighlight, index: number) => (
+                                    <div key={item.id} className="flex gap-2 items-end p-2 border rounded-md mb-2">
+                                        <Form {...genericForm}>
+                                        <FormField control={genericForm.control} name={`highlights[${index}].icon`} defaultValue={item.icon} render={({ field }) => <FormItem><FormLabel>Icon</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                        <FormField control={genericForm.control} name={`highlights[${index}].title`} defaultValue={item.title} render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                        <FormField control={genericForm.control} name={`highlights[${index}].description`} defaultValue={item.description} render={({ field }) => <FormItem className="flex-grow"><FormLabel>Description</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                        </Form>
+                                        <Button size="sm" onClick={genericForm.handleSubmit(async (d) => { await firebaseService.updateHighlight(item.id, d.highlights[index]); fetchAllData(); })}>Save</Button>
+                                        <Button size="sm" variant="destructive" onClick={async () => { await firebaseService.deleteHighlight(item.id); fetchAllData(); }}>Delete</Button>
                                     </div>
-                                </div>
-                                
-                                <Button type="submit" className="w-full">Save Settings</Button>
-                            </form>
-                        </Form>
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Download className="w-6 h-6" /> Import / Export CSV Data</CardTitle>
-                        <CardDescription>Backup and restore your data using CSV files. You can edit these in any spreadsheet software.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid md:grid-cols-2 gap-8">
-                        
-                        <div className="space-y-6 p-6 border rounded-lg">
-                            <h3 className="font-semibold text-lg flex items-center gap-2"><Library /> Committee Data</h3>
-                            <p className="text-sm text-muted-foreground">Export all committees to a CSV file or import a file to overwrite existing committee data.</p>
-                            <Button onClick={handleCommitteeExport} className="w-full">
-                                <FileSpreadsheet className="mr-2" />
-                                Export Committees to CSV
-                            </Button>
-                            <div className="border-t pt-6">
-                                <h4 className="font-semibold mb-2">Import Committees</h4>
-                                <p className="text-sm text-muted-foreground mb-3">
-                                    <strong className="text-destructive">Warning:</strong> This will replace all current committees.
-                                </p>
-                                <div className="flex flex-col sm:flex-row gap-2">
-                                    <Input id="committeeImportFile" type="file" accept=".csv" onChange={handleFileChange(setCommitteeImportFile)} className="flex-grow"/>
-                                    <Button onClick={handleCommitteeImport} disabled={!committeeImportFile || isImportingCommittees} className="sm:w-auto">
-                                        <Upload className="mr-2" />
-                                        {isImportingCommittees ? "Importing..." : "Import"}
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
+                                ))}
+                                <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addHighlight(d); fetchAllData(); genericForm.reset({icon: '', title: '', description: ''});})} className="flex gap-2 items-end p-2 border-t mt-4">
+                                    <FormField control={genericForm.control} name="icon" render={({ field }) => <FormItem><FormLabel>Icon</FormLabel><FormControl><Input {...field} placeholder="e.g. Calendar" /></FormControl></FormItem>} />
+                                    <FormField control={genericForm.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                    <FormField control={genericForm.control} name="description" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Description</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                    <Button type="submit" size="sm">Add Highlight</Button>
+                                </form></Form>
+                            </CardContent></Card>
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="about">
+                        <AccordionTrigger><div className="flex items-center gap-2 text-lg"><FileBadge /> About Page</div></AccordionTrigger>
+                        <AccordionContent className="p-1"><Card><CardContent className="pt-6">
+                            <Form {...aboutForm}><form onSubmit={aboutForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateAboutPageContent, "About page content updated.", d, aboutForm))} className="space-y-4">
+                                <FormField control={aboutForm.control} name="title" render={({ field }) => (<FormItem><FormLabel>Page Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                                <FormField control={aboutForm.control} name="subtitle" render={({ field }) => (<FormItem><FormLabel>Page Subtitle</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl></FormItem>)} />
+                                <FormField control={aboutForm.control} name="imageUrl" render={({ field }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} /> <hr/>
+                                <FormField control={aboutForm.control} name="whatIsTitle" render={({ field }) => (<FormItem><FormLabel>Section 1: Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                                <FormField control={aboutForm.control} name="whatIsPara1" render={({ field }) => (<FormItem><FormLabel>Section 1: Paragraph 1</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl></FormItem>)} />
+                                <FormField control={aboutForm.control} name="whatIsPara2" render={({ field }) => (<FormItem><FormLabel>Section 1: Paragraph 2</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl></FormItem>)} /> <hr/>
+                                <FormField control={aboutForm.control} name="storyTitle" render={({ field }) => (<FormItem><FormLabel>Section 2: Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                                <FormField control={aboutForm.control} name="storyPara1" render={({ field }) => (<FormItem><FormLabel>Section 2: Paragraph 1</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl></FormItem>)} />
+                                <FormField control={aboutForm.control} name="storyPara2" render={({ field }) => (<FormItem><FormLabel>Section 2: Paragraph 2</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl></FormItem>)} />
+                                <Button type="submit">Save About Page</Button>
+                            </form></Form>
+                        </CardContent></Card></AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="registration">
+                        <AccordionTrigger><div className="flex items-center gap-2 text-lg"><UserSquare /> Registration Page</div></AccordionTrigger>
+                        <AccordionContent className="p-1"><Card><CardContent className="pt-6">
+                            <Form {...registrationForm}><form onSubmit={registrationForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateRegistrationPageContent, "Registration page updated.", d, registrationForm))} className="space-y-4">
+                                <FormField control={registrationForm.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                <FormField control={registrationForm.control} name="subtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>} />
+                                <Button type="submit">Save</Button>
+                            </form></Form>
+                        </CardContent></Card></AccordionContent>
+                    </AccordionItem>
+                     <AccordionItem value="documents">
+                        <AccordionTrigger><div className="flex items-center gap-2 text-lg"><Shield /> Documents Page</div></AccordionTrigger>
+                        <AccordionContent className="p-1 space-y-6">
+                             <Card><CardHeader><CardTitle>Page Content</CardTitle></CardHeader>
+                            <CardContent>
+                                <Form {...documentsForm}><form onSubmit={documentsForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateDocumentsPageContent, "Documents page updated.", d, documentsForm))} className="space-y-4">
+                                    <FormField control={documentsForm.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                    <FormField control={documentsForm.control} name="subtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>} />
+                                    <FormField control={documentsForm.control} name="uploadTitle" render={({ field }) => <FormItem><FormLabel>Upload Box Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                    <FormField control={documentsForm.control} name="uploadDescription" render={({ field }) => <FormItem><FormLabel>Upload Box Description</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>} />
+                                    <FormField control={documentsForm.control} name="codeOfConductTitle" render={({ field }) => <FormItem><FormLabel>Code of Conduct Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                    <FormField control={documentsForm.control} name="codeOfConductDescription" render={({ field }) => <FormItem><FormLabel>CoC Description</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>} />
+                                    <Button type="submit">Save Content</Button>
+                                </form></Form>
+                            </CardContent></Card>
+                            <Card><CardHeader><CardTitle>Code of Conduct Items</CardTitle></CardHeader>
+                            <CardContent>
+                                {data.codeOfConduct?.map((item: T.CodeOfConductItem, index: number) => (
+                                    <div key={item.id} className="flex gap-2 items-end p-2 border rounded-md mb-2">
+                                        <Form {...genericForm}>
+                                        <FormField control={genericForm.control} name={`coc[${index}].title`} defaultValue={item.title} render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                        <FormField control={genericForm.control} name={`coc[${index}].content`} defaultValue={item.content} render={({ field }) => <FormItem className="flex-grow"><FormLabel>Content</FormLabel><FormControl><Textarea {...field} rows={2}/></FormControl></FormItem>} />
+                                        </Form>
+                                        <div className="flex flex-col gap-1">
+                                        <Button size="sm" onClick={genericForm.handleSubmit(async (d) => { await firebaseService.updateCodeOfConductItem(item.id, d.coc[index]); fetchAllData(); })}>Save</Button>
+                                        <Button size="sm" variant="destructive" onClick={async () => { await firebaseService.deleteCodeOfConductItem(item.id); fetchAllData(); }}>Delete</Button>
+                                        </div>
+                                    </div>
+                                ))}
+                                <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addCodeOfConductItem(d); fetchAllData(); genericForm.reset({title: '', content: ''});})} className="flex gap-2 items-end p-2 border-t mt-4">
+                                    <FormField control={genericForm.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                    <FormField control={genericForm.control} name="content" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Content</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl></FormItem>} />
+                                    <Button type="submit" size="sm">Add Rule</Button>
+                                </form></Form>
+                            </CardContent></Card>
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            </TabsContent>
 
-                        <div className="space-y-6 p-6 border rounded-lg">
-                            <h3 className="font-semibold text-lg flex items-center gap-2"><Globe /> Country Data</h3>
-                            <p className="text-sm text-muted-foreground">Export the full country matrix to a CSV file or import a file to overwrite it.</p>
-                            <Button onClick={handleCountryExport} className="w-full">
-                                <FileSpreadsheet className="mr-2" />
-                                Export Countries to CSV
-                            </Button>
-                            <div className="border-t pt-6">
-                                <h4 className="font-semibold mb-2">Import Countries</h4>
-                                <p className="text-sm text-muted-foreground mb-3">
-                                    <strong className="text-destructive">Warning:</strong> This will replace all current countries.
-                                </p>
-                                <div className="flex flex-col sm:flex-row gap-2">
-                                    <Input id="countryImportFile" type="file" accept=".csv" onChange={handleFileChange(setCountryImportFile)} className="flex-grow"/>
-                                    <Button onClick={handleCountryImport} disabled={!countryImportFile || isImportingCountries} className="sm:w-auto">
-                                        <Upload className="mr-2" />
-                                        {isImportingCountries ? "Importing..." : "Import"}
-                                    </Button>
+            <TabsContent value="conference" className="mt-6">
+                 <Accordion type="single" collapsible value={activeAccordion} onValueChange={setActiveAccordion}>
+                    <AccordionItem value="committees"><AccordionTrigger><div className="flex items-center gap-2 text-lg"><Library /> Committees</div></AccordionTrigger>
+                    <AccordionContent className="p-1 space-y-6">
+                        <Card><CardHeader><CardTitle>Add New Committee</CardTitle></CardHeader>
+                        <CardContent>
+                             <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (values: any) => {
+                                const committeeData = {
+                                    name: values.name,
+                                    chair: { name: values.chairName, bio: values.chairBio || "", imageUrl: convertGoogleDriveLink(values.chairImageUrl || "https://placehold.co/400x400.png") },
+                                    topics: (values.topics || "").split('\n').filter(Boolean), backgroundGuideUrl: values.backgroundGuideUrl || "",
+                                };
+                                await firebaseService.addCommittee(committeeData);
+                                toast({ title: "Committee Added!" });
+                                genericForm.reset({name: "", chairName: "", chairBio: "", chairImageUrl: "", topics: "", backgroundGuideUrl: ""});
+                                fetchAllData();
+                            })} className="space-y-4">
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <FormField control={genericForm.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Committee Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+                                    <FormField control={genericForm.control} name="chairName" render={({ field }) => ( <FormItem><FormLabel>Chair Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+                                </div>
+                                <FormField control={genericForm.control} name="chairBio" render={({ field }) => ( <FormItem><FormLabel>Chair Bio</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl></FormItem> )} />
+                                <FormField control={genericForm.control} name="chairImageUrl" render={({ field }) => ( <FormItem><FormLabel>Chair Image URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+                                <FormField control={genericForm.control} name="topics" render={({ field }) => ( <FormItem><FormLabel>Topics (one per line)</FormLabel><FormControl><Textarea {...field} rows={3}/></FormControl></FormItem> )} />
+                                <FormField control={genericForm.control} name="backgroundGuideUrl" render={({ field }) => ( <FormItem><FormLabel>Background Guide URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+                                <Button type="submit"><PlusCircle className="mr-2" />Add Committee</Button>
+                            </form></Form>
+                        </CardContent></Card>
+                        <Card><CardHeader><CardTitle>Existing Committees</CardTitle></CardHeader>
+                        <CardContent>
+                             <div className="border rounded-md max-h-96 overflow-y-auto">
+                                <Table><TableHeader><TableRow><TableHead>Committee</TableHead><TableHead>Chair</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                                <TableBody>
+                                    {data.committees?.map((c: T.Committee) => (
+                                        <TableRow key={c.id}>
+                                            <TableCell>{c.name}</TableCell><TableCell>{c.chair.name}</TableCell>
+                                            <TableCell className="text-right">
+                                                <Button variant="ghost" size="icon" onClick={async () => { if (confirm(`Delete ${c.name}?`)) { await firebaseService.deleteCommittee(c.id); fetchAllData(); }}}>
+                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody></Table>
+                            </div>
+                        </CardContent></Card>
+                    </AccordionContent></AccordionItem>
+                    <AccordionItem value="countries"><AccordionTrigger><div className="flex items-center gap-2 text-lg"><Globe /> Country Matrix</div></AccordionTrigger>
+                    <AccordionContent className="p-1"><Card><CardContent className="pt-6">
+                        <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (values) => { await firebaseService.addCountry({ ...values, status: 'Available' } as any); fetchAllData(); genericForm.reset({name: ''}); })} className="flex items-end gap-2 mb-4">
+                            <FormField control={genericForm.control} name="name" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Country Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                            <FormField control={genericForm.control} name="committee" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Committee</FormLabel><Select onValueChange={field.onChange}><FormControl><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger></FormControl><SelectContent>{data.committees?.map((c:T.Committee) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select></FormItem>} />
+                            <Button type="submit"><PlusCircle className="mr-2 h-4 w-4" /> Add</Button>
+                        </form></Form>
+                         <div className="border rounded-md max-h-96 overflow-y-auto">
+                            <Table><TableHeader><TableRow><TableHead>Country</TableHead><TableHead>Committee</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                            <TableBody>
+                                {data.countries?.map((country: T.Country) => (
+                                    <TableRow key={country.id}>
+                                        <TableCell>{country.name}</TableCell><TableCell>{country.committee}</TableCell>
+                                        <TableCell><Badge variant={country.status === 'Available' ? 'secondary' : 'default'}>{country.status}</Badge></TableCell>
+                                        <TableCell className="text-right flex items-center justify-end gap-2">
+                                            <Switch checked={country.status === 'Assigned'} onCheckedChange={async () => { const newStatus = country.status === 'Available' ? 'Assigned' : 'Available'; await firebaseService.updateCountryStatus(country.id, newStatus); fetchAllData(); }} />
+                                            <Button variant="ghost" size="icon" onClick={async () => { if (confirm(`Delete ${country.name}?`)) { await firebaseService.deleteCountry(country.id); fetchAllData(); }}}> <Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody></Table>
+                        </div>
+                    </CardContent></Card></AccordionContent></AccordionItem>
+                    <AccordionItem value="schedule"><AccordionTrigger><div className="flex items-center gap-2 text-lg"><CalendarDays /> Schedule</div></AccordionTrigger>
+                    <AccordionContent className="p-1 space-y-4">
+                       {data.schedule?.map((day: T.ScheduleDay) => (
+                        <Card key={day.id}><CardHeader><CardTitle>{day.title} - {day.date}</CardTitle></CardHeader>
+                        <CardContent>
+                           {day.events.map((event, index) => (
+                             <div key={event.id} className="flex gap-2 items-end p-2 border rounded-md mb-2">
+                                 <Form {...genericForm}>
+                                    <FormField control={genericForm.control} name={`event${event.id}.time`} defaultValue={event.time} render={({ field }) => <FormItem><FormLabel>Time</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                    <FormField control={genericForm.control} name={`event${event.id}.title`} defaultValue={event.title} render={({ field }) => <FormItem className="flex-grow"><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                    <FormField control={genericForm.control} name={`event${event.id}.location`} defaultValue={event.location} render={({ field }) => <FormItem><FormLabel>Location</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                 </Form>
+                                 <Button size="sm" onClick={genericForm.handleSubmit(async (d) => { await firebaseService.updateScheduleEvent(event.id, { ...d[`event${event.id}`] }); fetchAllData(); })}>Save</Button>
+                                 <Button size="sm" variant="destructive" onClick={async () => { await firebaseService.deleteScheduleEvent(event.id); fetchAllData(); }}>Del</Button>
+                            </div>
+                           ))}
+                            <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addScheduleEvent({...(d.newEvents[day.id] as any), dayId: day.id}); fetchAllData();})} className="flex gap-2 items-end p-2 border-t mt-4">
+                                <FormField control={genericForm.control} name={`newEvents[${day.id}].time`} render={({ field }) => <FormItem><FormLabel>Time</FormLabel><FormControl><Input placeholder="e.g. 9:00 AM" {...field} /></FormControl></FormItem>} />
+                                <FormField control={genericForm.control} name={`newEvents[${day.id}].title`} render={({ field }) => <FormItem className="flex-grow"><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                <FormField control={genericForm.control} name={`newEvents[${day.id}].location`} render={({ field }) => <FormItem><FormLabel>Location</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                <Button type="submit" size="sm">Add Event</Button>
+                            </form></Form>
+                        </CardContent></Card>
+                       ))}
+                       <Card><CardHeader><CardTitle>Add New Day</CardTitle></CardHeader>
+                       <CardContent>
+                         <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addScheduleDay(d.newDay); fetchAllData();})} className="flex gap-2 items-end">
+                            <FormField control={genericForm.control} name="newDay.title" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Day Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                            <FormField control={genericForm.control} name="newDay.date" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Date</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                            <Button type="submit" size="sm">Add Day</Button>
+                        </form></Form>
+                       </CardContent>
+                       </Card>
+                    </AccordionContent></AccordionItem>
+                 </Accordion>
+            </TabsContent>
+
+            <TabsContent value="team" className="mt-6">
+                <Card>
+                    <CardHeader><CardTitle>Secretariat Members</CardTitle></CardHeader>
+                    <CardContent>
+                         {data.secretariat?.map((member: T.SecretariatMember, index: number) => (
+                            <div key={member.id} className="flex gap-2 items-end p-2 border rounded-md mb-2">
+                                <Form {...genericForm}>
+                                <FormField control={genericForm.control} name={`sm[${index}].name`} defaultValue={member.name} render={({ field }) => <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                <FormField control={genericForm.control} name={`sm[${index}].role`} defaultValue={member.role} render={({ field }) => <FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                <FormField control={genericForm.control} name={`sm[${index}].imageUrl`} defaultValue={member.imageUrl} render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                <FormField control={genericForm.control} name={`sm[${index}].bio`} defaultValue={member.bio} render={({ field }) => <FormItem className="flex-grow"><FormLabel>Bio</FormLabel><FormControl><Textarea {...field} rows={2}/></FormControl></FormItem>} />
+                                </Form>
+                                <div className="flex flex-col gap-1">
+                                <Button size="sm" onClick={genericForm.handleSubmit(async (d) => { await firebaseService.updateSecretariatMember(member.id, d.sm[index]); fetchAllData(); })}>Save</Button>
+                                <Button size="sm" variant="destructive" onClick={async () => { await firebaseService.deleteSecretariatMember(member.id); fetchAllData(); }}>Delete</Button>
                                 </div>
                             </div>
-                        </div>
+                        ))}
+                        <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addSecretariatMember(d.newMember); fetchAllData(); genericForm.reset({newMember: {name: '', role: '', imageUrl: '', bio: ''}});})} className="flex gap-2 items-end p-2 border-t mt-4">
+                            <FormField control={genericForm.control} name="newMember.name" render={({ field }) => <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                             <FormField control={genericForm.control} name="newMember.role" render={({ field }) => <FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                            <FormField control={genericForm.control} name="newMember.imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                            <FormField control={genericForm.control} name="newMember.bio" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Bio</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl></FormItem>} />
+                            <Button type="submit" size="sm">Add Member</Button>
+                        </form></Form>
                     </CardContent>
                 </Card>
+            </TabsContent>
+
+            <TabsContent value="settings" className="mt-6">
+                <Accordion type="single" collapsible value={activeAccordion} onValueChange={setActiveAccordion}>
+                    <AccordionItem value="site"><AccordionTrigger><div className="flex items-center gap-2 text-lg"><Settings /> Site & Navigation</div></AccordionTrigger>
+                    <AccordionContent className="p-1 space-y-6">
+                        <Card><CardHeader><CardTitle>General Settings</CardTitle></CardHeader>
+                        <CardContent>
+                            <Form {...siteConfigForm}><form onSubmit={siteConfigForm.handleSubmit(async (values) => {
+                                const { twitter, instagram, facebook, footerText, conferenceDate, mapEmbedUrl, navVisibility } = values;
+                                const config = { conferenceDate, mapEmbedUrl, socialLinks: { twitter, instagram, facebook }, footerText, navVisibility };
+                                await handleFormSubmit(firebaseService.updateSiteConfig, "Site settings updated.", config, siteConfigForm)
+                            })} className="space-y-4">
+                                <FormField control={siteConfigForm.control} name="conferenceDate" render={({ field }) => (<FormItem><FormLabel>Countdown Date</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Format: YYYY-MM-DDTHH:mm:ss</FormDescription></FormItem>)} />
+                                <FormField control={siteConfigForm.control} name="mapEmbedUrl" render={({ field }) => (<FormItem><FormLabel>Google Maps Embed URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                                <FormField control={siteConfigForm.control} name="twitter" render={({ field }) => (<FormItem><FormLabel>Twitter URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                                <FormField control={siteConfigForm.control} name="instagram" render={({ field }) => (<FormItem><FormLabel>Instagram URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                                <FormField control={siteConfigForm.control} name="facebook" render={({ field }) => (<FormItem><FormLabel>Facebook URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                                <FormField control={siteConfigForm.control} name="footerText" render={({ field }) => (<FormItem><FormLabel>Footer Text</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>)} />
+                                <Button type="submit">Save General</Button>
+                            </form></Form>
+                        </CardContent></Card>
+                        <Card><CardHeader><CardTitle>Navigation Visibility</CardTitle></CardHeader>
+                        <CardContent>
+                            <Form {...siteConfigForm}><form onSubmit={siteConfigForm.handleSubmit(async (values) => { await firebaseService.updateSiteConfig({ navVisibility: values.navVisibility }); toast({title: "Nav Updated!"}) })} className="space-y-2">
+                                {navLinksForAdmin.map((link) => (
+                                    <FormField key={link.href} control={siteConfigForm.control} name={`navVisibility.${link.href}` as const} render={({ field }) => (
+                                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                                            <FormLabel>{link.label}</FormLabel>
+                                            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                        </FormItem>
+                                    )} />
+                                ))}
+                                <Button type="submit" className="w-full">Save Navigation</Button>
+                            </form></Form>
+                        </CardContent></Card>
+                    </AccordionContent></AccordionItem>
+                    <AccordionItem value="import-export"><AccordionTrigger><div className="flex items-center gap-2 text-lg"><Download /> Import / Export</div></AccordionTrigger>
+                    <AccordionContent className="p-1"><Card><CardContent className="pt-6 grid md:grid-cols-3 gap-6">
+                        <div className="space-y-2 p-4 border rounded-lg">
+                            <h3 className="font-semibold flex items-center gap-2"><Library/> Committees</h3>
+                            <Button onClick={() => handleExport(data.committees.map(({id, ...rest}: T.Committee)=>rest), 'committees.csv')} className="w-full">Export to CSV</Button>
+                            <div className="border-t pt-2 mt-2"><h4 className="font-semibold mb-2">Import</h4>
+                                <div className="flex gap-2"><Input id="committeeImportFile" type="file" accept=".csv" onChange={handleFileChange(setCommitteeImportFile)}/>
+                                <Button onClick={() => handleImport(committeeImportFile, firebaseService.importCommittees, 'committees')} disabled={!committeeImportFile || isImporting}><Upload/></Button></div>
+                            </div>
+                        </div>
+                         <div className="space-y-2 p-4 border rounded-lg">
+                            <h3 className="font-semibold flex items-center gap-2"><Globe/> Countries</h3>
+                            <Button onClick={() => handleExport(data.countries.map(({id, ...rest}: T.Country)=>rest), 'countries.csv')} className="w-full">Export to CSV</Button>
+                            <div className="border-t pt-2 mt-2"><h4 className="font-semibold mb-2">Import</h4>
+                                <div className="flex gap-2"><Input id="countryImportFile" type="file" accept=".csv" onChange={handleFileChange(setCountryImportFile)}/>
+                                <Button onClick={() => handleImport(countryImportFile, firebaseService.importCountries, 'countries')} disabled={!countryImportFile || isImporting}><Upload/></Button></div>
+                            </div>
+                        </div>
+                         <div className="space-y-2 p-4 border rounded-lg">
+                            <h3 className="font-semibold flex items-center gap-2"><Users/> Secretariat</h3>
+                            <Button onClick={() => handleExport(data.secretariat.map(({id, ...rest}: T.SecretariatMember)=>rest), 'secretariat.csv')} className="w-full">Export to CSV</Button>
+                            <div className="border-t pt-2 mt-2"><h4 className="font-semibold mb-2">Import</h4>
+                                <div className="flex gap-2"><Input id="secretariatImportFile" type="file" accept=".csv" onChange={handleFileChange(setSecretariatImportFile)}/>
+                                <Button onClick={() => handleImport(secretariatImportFile, firebaseService.importSecretariat, 'secretariat')} disabled={!secretariatImportFile || isImporting}><Upload/></Button></div>
+                            </div>
+                        </div>
+                    </CardContent></Card></AccordionContent></AccordionItem>
+                </Accordion>
             </TabsContent>
         </Tabs>
     </div>

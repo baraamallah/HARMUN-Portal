@@ -1,259 +1,295 @@
-import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc, writeBatch, documentId, runTransaction } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Theme, HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent } from './types';
+import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, SecretariatMember, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, CodeOfConductItem, ConferenceHighlight } from './types';
 import { format } from 'date-fns';
 
+// Collection & Document Names
 const CONFIG_COLLECTION = 'config';
 const POSTS_COLLECTION = 'posts';
 const COUNTRIES_COLLECTION = 'countries';
 const COMMITTEES_COLLECTION = 'committees';
-const THEME_DOC_ID = 'theme';
+const SECRETARIAT_COLLECTION = 'secretariat';
+const SCHEDULE_DAYS_COLLECTION = 'scheduleDays';
+const SCHEDULE_EVENTS_COLLECTION = 'scheduleEvents';
+const HIGHLIGHTS_COLLECTION = 'highlights';
+const CODE_OF_CONDUCT_COLLECTION = 'codeOfConduct';
+
 const HOME_PAGE_CONTENT_DOC_ID = 'homePage';
 const ABOUT_PAGE_CONTENT_DOC_ID = 'aboutPage';
 const SITE_CONFIG_DOC_ID = 'siteConfig';
+const REGISTRATION_PAGE_CONTENT_DOC_ID = 'registrationPage';
+const DOCUMENTS_PAGE_CONTENT_DOC_ID = 'documentsPage';
 
-// Default values
-const defaultTheme: Theme = {
-  primaryColor: "227 66% 32%",
-  backgroundColor: "210 17% 98%",
-  accentColor: "47 96% 52%",
-};
 
-const defaultHomePageContent: HomePageContent = {
-  heroTitle: "HARMUN 2025 Portal",
-  heroSubtitle: "Engage in diplomacy, foster international cooperation, and shape the future. Welcome, delegates!",
-  heroImageUrl: "https://placehold.co/1920x1080.png",
-};
+// --- Default Data ---
+// This function initializes the database with default content if it's empty.
+export async function initializeDefaultData() {
+    const defaultData = {
+        [CONFIG_COLLECTION]: {
+            [HOME_PAGE_CONTENT_DOC_ID]: {
+                heroTitle: "HARMUN 2025 Portal",
+                heroSubtitle: "Engage in diplomacy, foster international cooperation, and shape the future. Welcome, delegates!",
+                heroImageUrl: "https://placehold.co/1920x1080.png",
+            },
+            [ABOUT_PAGE_CONTENT_DOC_ID]: {
+                title: "About HARMUN",
+                subtitle: "Discover the history, mission, and spirit of the Harvard Model United Nations conference.",
+                imageUrl: "https://placehold.co/600x400.png",
+                whatIsTitle: "What is Model UN?",
+                whatIsPara1: "Model United Nations is an academic simulation of the United Nations where students play the role of delegates from different countries and attempt to solve real world issues with the policies and perspectives of their assigned country.",
+                whatIsPara2: "Participants learn about diplomacy, international relations, and the United Nations. Delegates are placed in committees and assigned countries, research topics, and formulate positions to debate with their peers, staying true to the actual position of the country they represent.",
+                storyTitle: "The Story of HARMUN",
+                storyPara1: "Harvard Model United Nations (HARMUN) was founded in 1953, only a few years after the creation of the United Nations itself. It was conceived as a platform to educate the next generation of leaders about the complexities of international affairs and the importance of diplomacy. From its humble beginnings, HARMUN has grown into one of the largest, oldest, and most prestigious conferences of its kind in the world.",
+                storyPara2: "Each year, HARMUN brings together over 3,000 high school students from across the globe to our campus in Cambridge. Our mission is to provide a dynamic and engaging educational experience that promotes a deeper understanding of the world, fosters a spirit of collaboration, and inspires a commitment to global citizenship. The conference is entirely run by Harvard undergraduates who are passionate about international relations and dedicated to creating a memorable and impactful experience for every delegate.",
+            },
+            [SITE_CONFIG_DOC_ID]: {
+                conferenceDate: '2025-01-30T09:00:00',
+                socialLinks: { twitter: "#", instagram: "#", facebook: "#" },
+                footerText: "This is a fictional event created for demonstration purposes.",
+                mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2925.733553224765!2d-71.1194179234839!3d42.37361573426569!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89e377427d73825b%3A0x5e567c1d7756919a!2sHarvard%20University!5e0!3m2!1sen!2sus!4v1709876543210!5m2!1sen!2sus",
+                navVisibility: { '/about': true, '/committees': true, '/news': true, '/sg-notes': true, '/registration': true, '/schedule': true, '/secretariat': true, '/documents': true },
+            },
+            [REGISTRATION_PAGE_CONTENT_DOC_ID]: {
+                title: "Delegate Registration",
+                subtitle: "Complete the form below to register for HARMUN 2025. Fields marked with an asterisk (*) are required."
+            },
+            [DOCUMENTS_PAGE_CONTENT_DOC_ID]: {
+                title: "Conference Documents",
+                subtitle: "Access important resources and upload your position papers here.",
+                paperDeadline: "January 15, 2025",
+                uploadTitle: "Position Paper Upload",
+                uploadDescription: "Please upload your position papers in PDF or DOCX format. The deadline for submission is January 15, 2025.",
+                codeOfConductTitle: "Code of Conduct",
+                codeOfConductDescription: "All delegates are expected to adhere to the code of conduct throughout the conference.",
+            },
+        },
+        [SECRETARIAT_COLLECTION]: [
+            { name: 'James Harrison', role: 'Secretary-General', bio: 'A senior at Harvard studying Government and Economics. This is his fourth and final HARMUN, and he is thrilled to lead an unforgettable conference experience.', imageUrl: 'https://placehold.co/400x400.png', order: 1 },
+            { name: 'Chloe Davis', role: 'Director-General', bio: 'A junior concentrating in History & Literature. Chloe oversees all committee operations and is dedicated to ensuring a high level of debate and engagement.', imageUrl: 'https://placehold.co/400x400.png', order: 2 },
+        ],
+        [HIGHLIGHTS_COLLECTION]: [
+            { icon: 'Calendar', title: 'Conference Dates', description: 'January 30 - February 2, 2025', order: 1 },
+            { icon: 'MapPin', title: 'Location', description: 'Harvard University, Cambridge, MA', order: 2 },
+        ],
+        [CODE_OF_CONDUCT_COLLECTION]: [
+            { title: 'Respect and Decorum', content: 'Delegates must maintain a professional and respectful demeanor at all times. This includes respectful language and behavior towards all participants, staff, and faculty. Personal attacks are strictly prohibited.', order: 1 },
+            { title: 'Plagiarism', content: 'All work, including position papers and draft resolutions, must be the original work of the delegate. Plagiarism will result in immediate disqualification from awards and may lead to removal from the conference.', order: 2 },
+        ],
+        [SCHEDULE_DAYS_COLLECTION]: [
+            { title: 'Day 1: Thursday', date: 'January 30, 2025', order: 1, id: 'day1' },
+        ],
+        [SCHEDULE_EVENTS_COLLECTION]: [
+            { dayId: 'day1', time: '2:00 PM - 5:00 PM', title: 'Delegate Registration', description: 'Pick up your credentials and welcome packet.', location: 'Main Hall', order: 1 },
+        ],
+    };
 
-export const defaultSiteConfig: SiteConfig = {
-    conferenceDate: '2025-01-30T09:00:00',
-    socialLinks: {
-        twitter: "#",
-        instagram: "#",
-        facebook: "#",
-    },
-    footerText: "This is a fictional event created for demonstration purposes.",
-    navVisibility: {
-        '/about': true,
-        '/committees': true,
-        '/news': true,
-        '/sg-notes': true,
-        '/registration': true,
-        '/schedule': true,
-        '/secretariat': true,
-        '/documents': true,
-    },
-};
+    const batch = writeBatch(db);
 
-const defaultAboutPageContent: AboutPageContent = {
-  title: "About HARMUN",
-  subtitle: "Discover the history, mission, and spirit of the Harvard Model United Nations conference.",
-  imageUrl: "https://placehold.co/600x400.png",
-  whatIsTitle: "What is Model UN?",
-  whatIsPara1: "Model United Nations is an academic simulation of the United Nations where students play the role of delegates from different countries and attempt to solve real world issues with the policies and perspectives of their assigned country.",
-  whatIsPara2: "Participants learn about diplomacy, international relations, and the United Nations. Delegates are placed in committees and assigned countries, research topics, and formulate positions to debate with their peers, staying true to the actual position of the country they represent.",
-  storyTitle: "The Story of HARMUN",
-  storyPara1: "Harvard Model United Nations (HARMUN) was founded in 1953, only a few years after the creation of the United Nations itself. It was conceived as a platform to educate the next generation of leaders about the complexities of international affairs and the importance of diplomacy. From its humble beginnings, HARMUN has grown into one of the largest, oldest, and most prestigious conferences of its kind in the world.",
-  storyPara2: "Each year, HARMUN brings together over 3,000 high school students from across the globe to our campus in Cambridge. Our mission is to provide a dynamic and engaging educational experience that promotes a deeper understanding of the world, fosters a spirit of collaboration, and inspires a commitment to global citizenship. The conference is entirely run by Harvard undergraduates who are passionate about international relations and dedicated to creating a memorable and impactful experience for every delegate.",
-};
+    for (const [collectionName, docs] of Object.entries(defaultData)) {
+        if (collectionName === CONFIG_COLLECTION) {
+             for (const [docId, data] of Object.entries(docs)) {
+                const docRef = doc(db, collectionName, docId);
+                const docSnap = await getDoc(docRef);
+                if (!docSnap.exists()) {
+                    batch.set(docRef, data);
+                }
+            }
+        } else {
+            const collectionRef = collection(db, collectionName);
+            const snapshot = await getDocs(query(collectionRef));
+            if (snapshot.empty && Array.isArray(docs)) {
+                docs.forEach(data => {
+                    const docId = data.id || undefined;
+                    const docRef = docId ? doc(db, collectionName, docId) : doc(collectionRef);
+                    const {id, ...rest} = data;
+                    batch.set(docRef, rest);
+                });
+            }
+        }
+    }
+    await batch.commit();
+}
 
-// --- Theme Management ---
-export async function getTheme(): Promise<Theme> {
+
+// --- Generic Get/Set for Config Documents ---
+async function getConfigDoc<T>(docId: string, defaultConfig: T): Promise<T> {
   try {
-    const docRef = doc(db, CONFIG_COLLECTION, THEME_DOC_ID);
-    const docSnap = await getDoc(docRef);
-    return docSnap.exists() ? (docSnap.data() as Theme) : defaultTheme;
-  } catch (error) {
-    console.error("Error fetching theme, returning default:", error);
-    return defaultTheme;
-  }
-}
-
-export async function updateTheme(theme: Theme): Promise<void> {
-  const docRef = doc(db, CONFIG_COLLECTION, THEME_DOC_ID);
-  await setDoc(docRef, theme, { merge: true });
-}
-
-// --- Home Page Content Management ---
-export async function getHomePageContent(): Promise<HomePageContent> {
-  try {
-    const docRef = doc(db, CONFIG_COLLECTION, HOME_PAGE_CONTENT_DOC_ID);
-    const docSnap = await getDoc(docRef);
-    return docSnap.exists() ? (docSnap.data() as HomePageContent) : defaultHomePageContent;
-  } catch (error) {
-    console.error("Error fetching home page content, returning default:", error);
-    return defaultHomePageContent;
-  }
-}
-
-export async function updateHomePageContent(content: HomePageContent): Promise<void> {
-  const docRef = doc(db, CONFIG_COLLECTION, HOME_PAGE_CONTENT_DOC_ID);
-  await setDoc(docRef, content, { merge: true });
-}
-
-// --- About Page Content Management ---
-export async function getAboutPageContent(): Promise<AboutPageContent> {
-  try {
-    const docRef = doc(db, CONFIG_COLLECTION, ABOUT_PAGE_CONTENT_DOC_ID);
-    const docSnap = await getDoc(docRef);
-    return docSnap.exists() ? (docSnap.data() as AboutPageContent) : defaultAboutPageContent;
-  } catch (error) {
-    console.error("Error fetching about page content, returning default:", error);
-    return defaultAboutPageContent;
-  }
-}
-
-export async function updateAboutPageContent(content: AboutPageContent): Promise<void> {
-  const docRef = doc(db, CONFIG_COLLECTION, ABOUT_PAGE_CONTENT_DOC_ID);
-  await setDoc(docRef, content, { merge: true });
-}
-
-// --- Site Config Management ---
-export async function getSiteConfig(): Promise<SiteConfig> {
-  try {
-    const docRef = doc(db, CONFIG_COLLECTION, SITE_CONFIG_DOC_ID);
+    await initializeDefaultData(); // Ensure defaults exist
+    const docRef = doc(db, CONFIG_COLLECTION, docId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      const dbConfig = docSnap.data();
-      // Deep merge to ensure defaults are kept for missing properties
-      return {
-        ...defaultSiteConfig,
-        ...dbConfig,
-        socialLinks: {
-          ...defaultSiteConfig.socialLinks,
-          ...(dbConfig.socialLinks || {}),
-        },
-        navVisibility: {
-          ...defaultSiteConfig.navVisibility,
-          ...(dbConfig.navVisibility || {}),
-        },
-      };
+      return { ...defaultConfig, ...docSnap.data() } as T;
     }
-    return defaultSiteConfig;
+    // If it still doesn't exist after init, something is wrong, but return default
+    return defaultConfig;
   } catch (error) {
-    console.error("Error fetching site config, returning default:", error);
-    return defaultSiteConfig;
+    console.error(`Error fetching ${docId}, returning default:`, error);
+    return defaultConfig;
   }
 }
 
-export async function updateSiteConfig(config: Partial<SiteConfig>): Promise<void> {
-  const docRef = doc(db, CONFIG_COLLECTION, SITE_CONFIG_DOC_ID);
-  await setDoc(docRef, config, { merge: true });
+async function updateConfigDoc<T>(docId: string, data: T): Promise<void> {
+    const docRef = doc(db, CONFIG_COLLECTION, docId);
+    await setDoc(docRef, data, { merge: true });
 }
 
-// --- Post Management ---
+// --- Specific Content Getters/Setters ---
+export const getHomePageContent = () => getConfigDoc<HomePageContent>(HOME_PAGE_CONTENT_DOC_ID, {} as HomePageContent);
+export const updateHomePageContent = (content: Partial<HomePageContent>) => updateConfigDoc(HOME_PAGE_CONTENT_DOC_ID, content);
+
+export const getAboutPageContent = () => getConfigDoc<AboutPageContent>(ABOUT_PAGE_CONTENT_DOC_ID, {} as AboutPageContent);
+export const updateAboutPageContent = (content: Partial<AboutPageContent>) => updateConfigDoc(ABOUT_PAGE_CONTENT_DOC_ID, content);
+
+export const getRegistrationPageContent = () => getConfigDoc<RegistrationPageContent>(REGISTRATION_PAGE_CONTENT_DOC_ID, {} as RegistrationPageContent);
+export const updateRegistrationPageContent = (content: Partial<RegistrationPageContent>) => updateConfigDoc(REGISTRATION_PAGE_CONTENT_DOC_ID, content);
+
+export const getDocumentsPageContent = () => getConfigDoc<DocumentsPageContent>(DOCUMENTS_PAGE_CONTENT_DOC_ID, {} as DocumentsPageContent);
+export const updateDocumentsPageContent = (content: Partial<DocumentsPageContent>) => updateConfigDoc(DOCUMENTS_PAGE_CONTENT_DOC_ID, content);
+
+export const getSiteConfig = () => getConfigDoc<SiteConfig>(SITE_CONFIG_DOC_ID, {} as SiteConfig);
+export const updateSiteConfig = (config: Partial<SiteConfig>) => updateConfigDoc(SITE_CONFIG_DOC_ID, config);
+
+
+// --- Generic Collection CRUD ---
+async function getCollection<T>(collectionName: string, orderByField: string = 'order'): Promise<T[]> {
+    await initializeDefaultData();
+    const q = query(collection(db, collectionName), orderBy(orderByField));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
+}
+
+async function addCollectionDoc<T extends {order?: number}>(collectionName: string, data: Omit<T, 'id'>): Promise<string> {
+    const collRef = collection(db, collectionName);
+    // If order is not provided, calculate the next order number
+    if (data.order === undefined || data.order === null) {
+        const snapshot = await getDocs(query(collRef, orderBy('order', 'desc')));
+        const lastOrder = snapshot.docs.length > 0 ? (snapshot.docs[0].data().order || 0) : 0;
+        data.order = lastOrder + 1;
+    }
+    const docRef = await addDoc(collRef, data);
+    return docRef.id;
+}
+
+async function updateCollectionDoc<T>(collectionName: string, id: string, data: Partial<T>): Promise<void> {
+    const docRef = doc(db, collectionName, id);
+    await updateDoc(docRef, data);
+}
+
+async function deleteCollectionDoc(collectionName: string, id: string): Promise<void> {
+    const docRef = doc(db, collectionName, id);
+    await deleteDoc(docRef);
+}
+
+// --- Specific Collection Functions ---
+export const getSecretariat = () => getCollection<SecretariatMember>(SECRETARIAT_COLLECTION);
+export const addSecretariatMember = (member: Omit<SecretariatMember, 'id'>) => addCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, member);
+export const updateSecretariatMember = (id: string, member: Partial<SecretariatMember>) => updateCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, id, member);
+export const deleteSecretariatMember = (id: string) => deleteCollectionDoc(SECRETARIAT_COLLECTION, id);
+
+export const getHighlights = () => getCollection<ConferenceHighlight>(HIGHLIGHTS_COLLECTION);
+export const addHighlight = (highlight: Omit<ConferenceHighlight, 'id'>) => addCollectionDoc<ConferenceHighlight>(HIGHLIGHTS_COLLECTION, highlight);
+export const updateHighlight = (id: string, highlight: Partial<ConferenceHighlight>) => updateCollectionDoc<ConferenceHighlight>(HIGHLIGHTS_COLLECTION, id, highlight);
+export const deleteHighlight = (id: string) => deleteCollectionDoc(HIGHLIGHTS_COLLECTION, id);
+
+export const getCodeOfConduct = () => getCollection<CodeOfConductItem>(CODE_OF_CONDUCT_COLLECTION);
+export const addCodeOfConductItem = (item: Omit<CodeOfConductItem, 'id'>) => addCollectionDoc<CodeOfConductItem>(CODE_OF_CONDUCT_COLLECTION, item);
+export const updateCodeOfConductItem = (id: string, item: Partial<CodeOfConductItem>) => updateCollectionDoc<CodeOfConductItem>(CODE_OF_CONDUCT_COLLECTION, id, item);
+export const deleteCodeOfConductItem = (id: string) => deleteCollectionDoc(CODE_OF_CONDUCT_COLLECTION, id);
+
+// --- Schedule (Special Handling) ---
+export async function getSchedule(): Promise<ScheduleDay[]> {
+    await initializeDefaultData();
+    const days = await getCollection<Omit<ScheduleDay, 'events'>>(SCHEDULE_DAYS_COLLECTION, 'order');
+    const events = await getCollection<ScheduleEvent>(SCHEDULE_EVENTS_COLLECTION, 'order');
+    return days.map(day => ({
+        ...day,
+        events: events.filter(event => event.dayId === day.id)
+    }));
+}
+export const addScheduleDay = (day: Omit<ScheduleDay, 'id' | 'events'>) => addCollectionDoc<ScheduleDay>(SCHEDULE_DAYS_COLLECTION, day);
+export const updateScheduleDay = (id: string, day: Partial<ScheduleDay>) => updateCollectionDoc<ScheduleDay>(SCHEDULE_DAYS_COLLECTION, id, day);
+export async function deleteScheduleDay(id: string): Promise<void> {
+    await runTransaction(db, async (transaction) => {
+        const dayRef = doc(db, SCHEDULE_DAYS_COLLECTION, id);
+        transaction.delete(dayRef);
+        const eventsQuery = query(collection(db, SCHEDULE_EVENTS_COLLECTION), where('dayId', '==', id));
+        const eventsSnapshot = await getDocs(eventsQuery);
+        eventsSnapshot.forEach(eventDoc => transaction.delete(eventDoc.ref));
+    });
+}
+export const addScheduleEvent = (event: Omit<ScheduleEvent, 'id'>) => addCollectionDoc<ScheduleEvent>(SCHEDULE_EVENTS_COLLECTION, event);
+export const updateScheduleEvent = (id: string, event: Partial<ScheduleEvent>) => updateCollectionDoc<ScheduleEvent>(SCHEDULE_EVENTS_COLLECTION, id, event);
+export const deleteScheduleEvent = (id: string) => deleteCollectionDoc(SCHEDULE_EVENTS_COLLECTION, id);
+
+
+// --- Posts (Existing) ---
 export async function addPost(post: Omit<Post, 'id' | 'createdAt'>): Promise<string> {
-  const docRef = await addDoc(collection(db, POSTS_COLLECTION), {
-    ...post,
-    createdAt: serverTimestamp(),
-  });
+  const docRef = await addDoc(collection(db, POSTS_COLLECTION), { ...post, createdAt: serverTimestamp() });
   return docRef.id;
 }
-
 export async function getAllPosts(): Promise<Post[]> {
   const q = query(collection(db, POSTS_COLLECTION), orderBy('createdAt', 'desc'));
   const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
 }
-
 export async function getPosts(type: 'sg-note' | 'news'): Promise<Post[]> {
-  const allPosts = await getAllPosts();
-  return allPosts.filter(post => post.type === type);
+  return (await getAllPosts()).filter(post => post.type === type);
 }
-
 export function formatTimestamp(timestamp: any, dateFormat: string = 'PPP'): string {
+    if (!timestamp) return "";
     if (timestamp && typeof timestamp.toDate === 'function') {
         return format(timestamp.toDate(), dateFormat);
     }
-    // Fallback for cases where it might not be a Firestore timestamp
     try {
-      const date = new Date(timestamp);
-      return format(date, dateFormat);
+      return format(new Date(timestamp), dateFormat);
     } catch(e) {
       return "Invalid Date";
     }
 }
 
-// --- Country Matrix Management ---
-export async function addCountry(country: Omit<Country, 'id'>): Promise<string> {
-  const docRef = await addDoc(collection(db, COUNTRIES_COLLECTION), country);
-  return docRef.id;
-}
-
+// --- Country Matrix (Existing) ---
+export const addCountry = (country: Omit<Country, 'id'>) => addDoc(collection(db, COUNTRIES_COLLECTION), country).then(ref => ref.id);
 export async function getCountries(): Promise<Country[]> {
     const q = query(collection(db, COUNTRIES_COLLECTION), orderBy('committee'), orderBy('name'));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Country));
 }
+export const updateCountryStatus = (id: string, status: 'Available' | 'Assigned') => updateDoc(doc(db, COUNTRIES_COLLECTION, id), { status });
+export const deleteCountry = (id: string) => deleteDoc(doc(db, COUNTRIES_COLLECTION, id));
 
-export async function updateCountryStatus(id: string, status: 'Available' | 'Assigned'): Promise<void> {
-    const docRef = doc(db, COUNTRIES_COLLECTION, id);
-    await updateDoc(docRef, { status });
-}
-
-export async function deleteCountry(id: string): Promise<void> {
-    const docRef = doc(db, COUNTRIES_COLLECTION, id);
-    await deleteDoc(docRef);
-}
-
-// --- Committee Management ---
-export async function addCommittee(committee: Omit<Committee, 'id'>): Promise<string> {
-  const docRef = await addDoc(collection(db, COMMITTEES_COLLECTION), committee);
-  return docRef.id;
-}
-
+// --- Committees (Existing) ---
+export const addCommittee = (committee: Omit<Committee, 'id'>) => addDoc(collection(db, COMMITTEES_COLLECTION), committee).then(ref => ref.id);
 export async function getCommittees(): Promise<Committee[]> {
     const q = query(collection(db, COMMITTEES_COLLECTION), orderBy('name'));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Committee));
 }
-
-export async function deleteCommittee(id: string): Promise<void> {
-    const docRef = doc(db, COMMITTEES_COLLECTION, id);
-    await deleteDoc(docRef);
-}
+export const deleteCommittee = (id: string) => deleteDoc(doc(db, COMMITTEES_COLLECTION, id));
 
 // --- Import/Export Management ---
-
-// Helper function to clear a collection
 async function clearCollection(collectionPath: string) {
     const collectionRef = collection(db, collectionPath);
     const q = query(collectionRef);
     const querySnapshot = await getDocs(q);
-    
-    if (querySnapshot.empty) {
-        return;
-    }
-
+    if (querySnapshot.empty) return;
     const batch = writeBatch(db);
-    querySnapshot.docs.forEach((docSnapshot) => {
-        batch.delete(docSnapshot.ref);
+    querySnapshot.docs.forEach(docSnapshot => batch.delete(docSnapshot.ref));
+    await batch.commit();
+}
+
+export async function importData<T>(collectionName: string, data: Omit<T, 'id'>[]): Promise<void> {
+    if (!Array.isArray(data)) {
+        throw new Error("Invalid import data. It must be an array.");
+    }
+    await clearCollection(collectionName);
+    const batch = writeBatch(db);
+    data.forEach(item => {
+        const newDocRef = doc(collection(db, collectionName));
+        batch.set(newDocRef, item);
     });
     await batch.commit();
 }
 
-export async function importCommittees(committees: Omit<Committee, 'id'>[]): Promise<void> {
-    if (!Array.isArray(committees)) {
-        throw new Error("Invalid import data. It must be an array of committees.");
-    }
-    await clearCollection(COMMITTEES_COLLECTION);
-    const batch = writeBatch(db);
-    committees.forEach(committeeData => {
-        const newDocRef = doc(collection(db, COMMITTEES_COLLECTION));
-        batch.set(newDocRef, committeeData);
-    });
-    await batch.commit();
-}
-
-export async function importCountries(countries: Omit<Country, 'id'>[]): Promise<void> {
-    if (!Array.isArray(countries)) {
-        throw new Error("Invalid import data. It must be an array of countries.");
-    }
-    await clearCollection(COUNTRIES_COLLECTION);
-    const batch = writeBatch(db);
-    countries.forEach(countryData => {
-        const newDocRef = doc(collection(db, COUNTRIES_COLLECTION));
-        batch.set(newDocRef, countryData);
-    });
-    await batch.commit();
-}
+export const importCommittees = (committees: Omit<Committee, 'id'>[]) => importData<Committee>(COMMITTEES_COLLECTION, committees);
+export const importCountries = (countries: Omit<Country, 'id'>[]) => importData<Country>(COUNTRIES_COLLECTION, countries);
+export const importSecretariat = (members: Omit<SecretariatMember, 'id'>[]) => importData<SecretariatMember>(SECRETARIAT_COLLECTION, members);

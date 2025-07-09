@@ -2,14 +2,26 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Countdown } from '@/components/countdown';
-import { Calendar, MapPin } from 'lucide-react';
+import { Calendar, MapPin, type LucideIcon, type LucideProps } from 'lucide-react';
+import * as icons from 'lucide-react';
 import Image from 'next/image';
-import { getHomePageContent, getSiteConfig } from '@/lib/firebase-service';
+import { getHomePageContent, getSiteConfig, getHighlights } from '@/lib/firebase-service';
+import type { ConferenceHighlight } from '@/lib/types';
+
+const Icon = ({ name, ...props }: { name: string } & LucideProps) => {
+  const LucideIcon = (icons as unknown as Record<string, LucideIcon>)[name];
+  if (!LucideIcon) {
+    return <icons.HelpCircle {...props} />; // Fallback icon
+  }
+  return <LucideIcon {...props} />;
+};
+
 
 export default async function Home() {
-  const [content, siteConfig] = await Promise.all([
+  const [content, siteConfig, highlights] = await Promise.all([
     getHomePageContent(),
     getSiteConfig(),
+    getHighlights(),
   ]);
 
   const conferenceDate = new Date(siteConfig.conferenceDate);
@@ -45,7 +57,7 @@ export default async function Home() {
       {/* Countdown Section */}
       <section className="bg-transparent py-16">
         <div className="container mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-2 font-headline text-primary-foreground">Conference Countdown</h2>
+          <h2 className="text-3xl font-bold mb-2 font-headline text-foreground">Conference Countdown</h2>
           <p className="text-muted-foreground mb-8">The next session is just around the corner.</p>
           <Countdown targetDate={conferenceDate} />
         </div>
@@ -55,29 +67,20 @@ export default async function Home() {
       <section className="bg-transparent py-20">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-3 gap-8 text-center">
-            <Card>
-              <CardHeader>
-                <div className="mx-auto bg-primary text-primary-foreground rounded-full w-16 h-16 flex items-center justify-center mb-4">
-                  <Calendar className="w-8 h-8" />
-                </div>
-                <CardTitle className="font-headline">Conference Dates</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-lg">January 30 - February 2, 2025</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <div className="mx-auto bg-primary text-primary-foreground rounded-full w-16 h-16 flex items-center justify-center mb-4">
-                  <MapPin className="w-8 h-8" />
-                </div>
-                <CardTitle className="font-headline">Location</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-lg">Harvard University, Cambridge, MA</p>
-              </CardContent>
-            </Card>
-            <Card>
+            {highlights.map((highlight) => (
+               <Card key={highlight.id}>
+                <CardHeader>
+                  <div className="mx-auto bg-primary text-primary-foreground rounded-full w-16 h-16 flex items-center justify-center mb-4">
+                    <Icon name={highlight.icon} className="w-8 h-8" />
+                  </div>
+                  <CardTitle className="font-headline">{highlight.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-lg">{highlight.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+             <Card>
               <CardHeader>
                 <div className="mx-auto bg-primary text-primary-foreground rounded-full w-16 h-16 flex items-center justify-center mb-4">
                   <MapPin className="w-8 h-8" />
@@ -86,7 +89,7 @@ export default async function Home() {
               </CardHeader>
               <CardContent>
                 <iframe 
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d13295.621718905126!2d35.37829399108886!3d33.58180460940153!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x151efaac9c5cdf6f%3A0x73a55ec5ecdc2fc2!2sRafic%20Hariri%20High%20School!5e0!3m2!1sen!2slb!4v1752039583301!5m2!1sen!2slb" 
+                    src={siteConfig.mapEmbedUrl} 
                     className="w-full h-48 border-0 rounded-md"
                     allowFullScreen={true}
                     loading="lazy" 

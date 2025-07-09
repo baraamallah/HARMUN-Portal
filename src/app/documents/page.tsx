@@ -1,13 +1,17 @@
 "use client";
 
+import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Upload, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getDocumentsPageContent, getCodeOfConduct } from '@/lib/firebase-service';
+import type { DocumentsPageContent, CodeOfConductItem } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
-function PaperUploadForm() {
+function PaperUploadForm({ title, description }: { title?: string; description?: string }) {
     const { toast } = useToast();
 
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -30,69 +34,90 @@ function PaperUploadForm() {
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <Input id="paperFile" name="paperFile" type="file" accept=".pdf,.doc,.docx" />
-            <Button type="submit" className="w-full">
-                <Upload className="mr-2 h-4 w-4" /> Upload Paper
-            </Button>
-        </form>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Upload className="w-6 h-6 text-primary"/> {title}</CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </CardHeader>
+          <CardContent>
+             <form onSubmit={handleSubmit} className="space-y-4">
+                <Input id="paperFile" name="paperFile" type="file" accept=".pdf,.doc,.docx" />
+                <Button type="submit" className="w-full">
+                    <Upload className="mr-2 h-4 w-4" /> Upload Paper
+                </Button>
+            </form>
+          </CardContent>
+        </Card>
     )
 }
 
 export default function DocumentsPage() {
+    const [content, setContent] = useState<DocumentsPageContent | null>(null);
+    const [rules, setRules] = useState<CodeOfConductItem[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function fetchData() {
+            try {
+                const [pageContent, codeOfConduct] = await Promise.all([
+                    getDocumentsPageContent(),
+                    getCodeOfConduct()
+                ]);
+                setContent(pageContent);
+                setRules(codeOfConduct);
+            } catch (error) {
+                console.error("Failed to load documents page data", error);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchData();
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="container mx-auto px-4 py-12 md:py-20">
+                <div className="text-center mb-12">
+                    <Skeleton className="h-12 w-3/4 mx-auto" />
+                    <Skeleton className="h-6 w-1/2 mx-auto mt-4" />
+                </div>
+                 <div className="grid lg:grid-cols-2 gap-12 items-start">
+                    <Skeleton className="h-64 w-full" />
+                    <Skeleton className="h-96 w-full" />
+                 </div>
+            </div>
+        )
+    }
+
   return (
     <div className="container mx-auto px-4 py-12 md:py-20">
       <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-5xl font-bold font-headline text-foreground">Conference Documents</h1>
+        <h1 className="text-4xl md:text-5xl font-bold font-headline text-foreground">{content?.title}</h1>
         <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-          Access important resources and upload your position papers here.
+          {content?.subtitle}
         </p>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-12 items-start">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Upload className="w-6 h-6 text-primary"/> Position Paper Upload</CardTitle>
-            <CardDescription>
-              Please upload your position papers in PDF or DOCX format. The deadline for submission is January 15, 2025.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <PaperUploadForm />
-          </CardContent>
-        </Card>
+        <PaperUploadForm title={content?.uploadTitle} description={content?.uploadDescription} />
         
         <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2"><FileText className="w-6 h-6 text-primary" /> Code of Conduct</CardTitle>
-                <CardDescription>All delegates are expected to adhere to the code of conduct throughout the conference.</CardDescription>
+                <CardTitle className="flex items-center gap-2"><FileText className="w-6 h-6 text-primary" /> {content?.codeOfConductTitle}</CardTitle>
+                <CardDescription>{content?.codeOfConductDescription}</CardDescription>
             </CardHeader>
             <CardContent>
                 <Accordion type="single" collapsible className="w-full">
-                    <AccordionItem value="item-1">
-                        <AccordionTrigger>Respect and Decorum</AccordionTrigger>
-                        <AccordionContent>
-                        Delegates must maintain a professional and respectful demeanor at all times. This includes respectful language and behavior towards all participants, staff, and faculty. Personal attacks are strictly prohibited.
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="item-2">
-                        <AccordionTrigger>Plagiarism</AccordionTrigger>
-                        <AccordionContent>
-                        All work, including position papers and draft resolutions, must be the original work of the delegate. Plagiarism will result in immediate disqualification from awards and may lead to removal from the conference.
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="item-3">
-                        <AccordionTrigger>Punctuality and Attendance</AccordionTrigger>
-                        <AccordionContent>
-                        Delegates are expected to be present and on time for all mandatory events, including all committee sessions and ceremonies. Absence without prior notification may affect eligibility for awards.
-                        </AccordionContent>
-                    </AccordionItem>
-                     <AccordionItem value="item-4">
-                        <AccordionTrigger>Electronic Device Policy</AccordionTrigger>
-                        <AccordionContent>
-                        Use of electronic devices is permitted for research purposes only during committee sessions. Devices must be silenced and should not be used for social media, games, or other non-conference activities.
-                        </AccordionContent>
-                    </AccordionItem>
+                    {rules.length > 0 ? (
+                        rules.map(rule => (
+                            <AccordionItem value={`item-${rule.id}`} key={rule.id}>
+                                <AccordionTrigger>{rule.title}</AccordionTrigger>
+                                <AccordionContent>{rule.content}</AccordionContent>
+                            </AccordionItem>
+                        ))
+                    ) : (
+                        <p className="text-muted-foreground text-center py-4">The code of conduct is not available yet.</p>
+                    )}
                 </Accordion>
             </CardContent>
         </Card>
