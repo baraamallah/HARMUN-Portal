@@ -43,7 +43,7 @@ export default function DocumentsPage() {
   return (
     <div className="container mx-auto px-4 py-12 md:py-20">
       <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary-foreground">Conference Documents</h1>
+        <h1 className="text-4xl md:text-5xl font-bold font-headline text-foreground">Conference Documents</h1>
         <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
           Access important resources and upload your position papers here.
         </p>

@@ -11,7 +11,7 @@ export default async function CommitteesPage() {
   return (
     <div className="container mx-auto px-4 py-12 md:py-20">
       <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary-foreground">Our Committees</h1>
+        <h1 className="text-4xl md:text-5xl font-bold font-headline text-foreground">Our Committees</h1>
         <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
           Explore the diverse range of committees at HARMUN 2025. Each committee offers a unique challenge and opportunity for debate.
         </p>
@@ -22,7 +22,7 @@ export default async function CommitteesPage() {
           {committees.map((committee) => (
             <Card key={committee.id} className="flex flex-col">
               <CardHeader>
-                <CardTitle className="text-2xl font-headline text-primary-foreground">{committee.name}</CardTitle>
+                <CardTitle className="text-2xl font-headline text-foreground">{committee.name}</CardTitle>
               </CardHeader>
               <CardContent className="flex-grow">
                 <div className="flex items-start gap-6">

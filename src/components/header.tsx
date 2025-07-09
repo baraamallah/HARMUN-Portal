@@ -30,7 +30,7 @@ export function AppHeader({ siteConfig }: { siteConfig: SiteConfig }) {
   );
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2 font-bold text-xl text-foreground font-headline">
           <Globe className="h-7 w-7 text-primary" />
