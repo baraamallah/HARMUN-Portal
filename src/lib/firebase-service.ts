@@ -231,28 +231,28 @@ async function clearCollection(collectionPath: string) {
     await batch.commit();
 }
 
-export async function importData(data: { committees: Committee[], countries: Country[] }): Promise<void> {
-    if (!Array.isArray(data.committees) || !Array.isArray(data.countries)) {
-        throw new Error("Invalid import file format. It must contain 'committees' and 'countries' arrays.");
+export async function importCommittees(committees: Omit<Committee, 'id'>[]): Promise<void> {
+    if (!Array.isArray(committees)) {
+        throw new Error("Invalid import data. It must be an array of committees.");
     }
-
-    // This is a destructive operation. Clear existing data first.
     await clearCollection(COMMITTEES_COLLECTION);
-    await clearCollection(COUNTRIES_COLLECTION);
-    
-    const committeeBatch = writeBatch(db);
-    data.committees.forEach(c => {
-        const { id, ...committeeData } = c; // Exclude ID from the imported object
+    const batch = writeBatch(db);
+    committees.forEach(committeeData => {
         const newDocRef = doc(collection(db, COMMITTEES_COLLECTION));
-        committeeBatch.set(newDocRef, committeeData);
+        batch.set(newDocRef, committeeData);
     });
-    await committeeBatch.commit();
-    
-    const countryBatch = writeBatch(db);
-    data.countries.forEach(c => {
-        const { id, ...countryData } = c; // Exclude ID
+    await batch.commit();
+}
+
+export async function importCountries(countries: Omit<Country, 'id'>[]): Promise<void> {
+    if (!Array.isArray(countries)) {
+        throw new Error("Invalid import data. It must be an array of countries.");
+    }
+    await clearCollection(COUNTRIES_COLLECTION);
+    const batch = writeBatch(db);
+    countries.forEach(countryData => {
         const newDocRef = doc(collection(db, COUNTRIES_COLLECTION));
-        countryBatch.set(newDocRef, countryData);
+        batch.set(newDocRef, countryData);
     });
-    await countryBatch.commit();
+    await batch.commit();
 }
