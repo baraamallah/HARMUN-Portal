@@ -20,7 +20,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { convertGoogleDriveLink } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -358,13 +357,9 @@ export default function AdminPage() {
 
   const handleFormSubmit = async (updateFunction: (data: any) => Promise<void>, successMessage: string, data: any, form: any) => {
     try {
-        let processedData = data;
-        if (data.heroImageUrl) processedData.heroImageUrl = convertGoogleDriveLink(data.heroImageUrl);
-        if (data.imageUrl) processedData.imageUrl = convertGoogleDriveLink(data.imageUrl);
-
-        await updateFunction(processedData);
+        await updateFunction(data);
         toast({ title: "Success!", description: successMessage });
-        form.reset(processedData); 
+        form.reset(data); 
     } catch (error) {
         toast({ title: "Error", description: `Could not save data. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
     }

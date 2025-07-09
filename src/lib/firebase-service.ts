@@ -156,10 +156,20 @@ export async function getDocById(collectionName: string, id: string): Promise<an
 
 // --- Specific Content Getters/Setters ---
 export const getHomePageContent = () => getConfigDoc<HomePageContent>(HOME_PAGE_CONTENT_DOC_ID, {} as HomePageContent);
-export const updateHomePageContent = (content: Partial<HomePageContent>) => updateConfigDoc(HOME_PAGE_CONTENT_DOC_ID, content);
+export const updateHomePageContent = (content: Partial<HomePageContent>) => {
+    if (content.heroImageUrl) {
+        content.heroImageUrl = convertGoogleDriveLink(content.heroImageUrl);
+    }
+    return updateConfigDoc(HOME_PAGE_CONTENT_DOC_ID, content);
+};
 
 export const getAboutPageContent = () => getConfigDoc<AboutPageContent>(ABOUT_PAGE_CONTENT_DOC_ID, {} as AboutPageContent);
-export const updateAboutPageContent = (content: Partial<AboutPageContent>) => updateConfigDoc(ABOUT_PAGE_CONTENT_DOC_ID, content);
+export const updateAboutPageContent = (content: Partial<AboutPageContent>) => {
+    if (content.imageUrl) {
+        content.imageUrl = convertGoogleDriveLink(content.imageUrl);
+    }
+    return updateConfigDoc(ABOUT_PAGE_CONTENT_DOC_ID, content);
+};
 
 export const getRegistrationPageContent = () => getConfigDoc<RegistrationPageContent>(REGISTRATION_PAGE_CONTENT_DOC_ID, {} as RegistrationPageContent);
 export const updateRegistrationPageContent = (content: Partial<RegistrationPageContent>) => updateConfigDoc(REGISTRATION_PAGE_CONTENT_DOC_ID, content);
