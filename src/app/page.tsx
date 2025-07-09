@@ -4,11 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Countdown } from '@/components/countdown';
 import { Calendar, MapPin, Globe } from 'lucide-react';
 import Image from 'next/image';
-import { getHomePageContent } from '@/lib/firebase-service';
+import { getHomePageContent, getSiteConfig } from '@/lib/firebase-service';
 
 export default async function Home() {
-  const conferenceDate = new Date('2025-01-30T09:00:00');
-  const content = await getHomePageContent();
+  const [content, siteConfig] = await Promise.all([
+    getHomePageContent(),
+    getSiteConfig(),
+  ]);
+
+  const conferenceDate = new Date(siteConfig.conferenceDate);
 
   return (
     <div className="flex flex-col">

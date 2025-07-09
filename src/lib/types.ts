@@ -40,6 +40,7 @@ export type SocialLinks = {
 };
 
 export type SiteConfig = {
+  conferenceDate: string;
   socialLinks: SocialLinks;
   footerText: string;
   navVisibility?: Record<string, boolean>;

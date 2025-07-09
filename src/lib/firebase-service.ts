@@ -26,6 +26,7 @@ const defaultHomePageContent: HomePageContent = {
 };
 
 export const defaultSiteConfig: SiteConfig = {
+    conferenceDate: '2025-01-30T09:00:00',
     socialLinks: {
         twitter: "#",
         instagram: "#",

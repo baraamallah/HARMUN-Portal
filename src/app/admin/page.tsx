@@ -21,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { convertGoogleDriveLink } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Paintbrush, Type, PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, Share2, BookOpenText, Upload, Download, FileSpreadsheet } from "lucide-react";
+import { Paintbrush, Type, PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, Share2, BookOpenText, Upload, Download, FileSpreadsheet, CalendarDays } from "lucide-react";
 import { getTheme, updateTheme, getHomePageContent, updateHomePageContent, addPost, getAllPosts, formatTimestamp, getCountries, addCountry, updateCountryStatus, deleteCountry, getCommittees, addCommittee, deleteCommittee, getSiteConfig, updateSiteConfig, getAboutPageContent, updateAboutPageContent, defaultSiteConfig, importCommittees, importCountries } from "@/lib/firebase-service";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Post, Country, Committee, SiteConfig, HomePageContent, AboutPageContent } from "@/lib/types";
@@ -86,6 +86,7 @@ const navLinksForAdmin = [
 ];
 
 const siteConfigFormSchema = z.object({
+  conferenceDate: z.string().min(1, "Conference date is required."),
   twitter: z.string().url("Must be a valid URL.").or(z.literal("")).or(z.literal("#")),
   instagram: z.string().url("Must be a valid URL.").or(z.literal("")).or(z.literal("#")),
   facebook: z.string().url("Must be a valid URL.").or(z.literal("")).or(z.literal("#")),
@@ -140,6 +141,7 @@ export default function AdminPage() {
         contentForm.reset(content);
         aboutContentForm.reset(aboutContent);
         siteConfigForm.reset({
+            ...siteConfig,
             ...siteConfig.socialLinks,
             footerText: siteConfig.footerText,
             navVisibility: siteConfig.navVisibility || defaultSiteConfig.navVisibility,
@@ -222,6 +224,7 @@ export default function AdminPage() {
   async function onSiteConfigSubmit(values: z.infer<typeof siteConfigFormSchema>) {
     try {
         const config: SiteConfig = {
+            conferenceDate: values.conferenceDate,
             socialLinks: {
                 twitter: values.twitter,
                 instagram: values.instagram,
@@ -595,6 +598,25 @@ export default function AdminPage() {
                 <CardContent>
                     <Form {...siteConfigForm}>
                         <form onSubmit={siteConfigForm.handleSubmit(onSiteConfigSubmit)} className="space-y-6">
+                             <FormField
+                                control={siteConfigForm.control}
+                                name="conferenceDate"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="flex items-center gap-2"><CalendarDays className="w-4 h-4" /> Conference Countdown Date</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                placeholder="YYYY-MM-DDTHH:mm:ss"
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormDescription>
+                                            The target date for the homepage countdown. Use format: YYYY-MM-DDTHH:mm:ss
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                             <FormField control={siteConfigForm.control} name="twitter" render={({ field }) => (<FormItem><FormLabel>Twitter URL</FormLabel><FormControl><Input placeholder="https://twitter.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={siteConfigForm.control} name="instagram" render={({ field }) => (<FormItem><FormLabel>Instagram URL</FormLabel><FormControl><Input placeholder="https://instagram.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={siteConfigForm.control} name="facebook" render={({ field }) => (<FormItem><FormLabel>Facebook URL</FormLabel><FormControl><Input placeholder="https://facebook.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
