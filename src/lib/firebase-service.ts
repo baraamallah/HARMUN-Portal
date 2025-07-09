@@ -71,13 +71,8 @@ export async function getAllPosts(): Promise<Post[]> {
 }
 
 export async function getPosts(type: 'sg-note' | 'news'): Promise<Post[]> {
-  const q = query(
-    collection(db, POSTS_COLLECTION),
-    where('type', '==', type),
-    orderBy('createdAt', 'desc')
-  );
-  const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+  const allPosts = await getAllPosts();
+  return allPosts.filter(post => post.type === type);
 }
 
 export function formatTimestamp(timestamp: any, dateFormat: string = 'PPP'): string {
