@@ -56,6 +56,18 @@ export type HomePageContent = {
   heroImageUrl: string;
 };
 
+export type AboutPageContent = {
+  title: string;
+  subtitle: string;
+  imageUrl: string;
+  whatIsTitle: string;
+  whatIsPara1: string;
+  whatIsPara2: string;
+  storyTitle: string;
+  storyPara1: string;
+  storyPara2: string;
+};
+
 export type Post = {
   id: string;
   title: string;

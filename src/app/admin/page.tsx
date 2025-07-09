@@ -19,10 +19,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Paintbrush, Type, PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, Share2 } from "lucide-react";
-import { getTheme, updateTheme, getHomePageContent, updateHomePageContent, addPost, getAllPosts, formatTimestamp, getCountries, addCountry, updateCountryStatus, deleteCountry, getCommittees, addCommittee, deleteCommittee, getSiteConfig, updateSiteConfig } from "@/lib/firebase-service";
+import { Paintbrush, Type, PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, Share2, BookOpenText } from "lucide-react";
+import { getTheme, updateTheme, getHomePageContent, updateHomePageContent, addPost, getAllPosts, formatTimestamp, getCountries, addCountry, updateCountryStatus, deleteCountry, getCommittees, addCommittee, deleteCommittee, getSiteConfig, updateSiteConfig, getAboutPageContent, updateAboutPageContent } from "@/lib/firebase-service";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Post, Country, Committee, SiteConfig } from "@/lib/types";
+import type { Post, Country, Committee, SiteConfig, HomePageContent, AboutPageContent } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +38,18 @@ const contentFormSchema = z.object({
     heroTitle: z.string().min(5, "Title must be at least 5 characters."),
     heroSubtitle: z.string().min(10, "Subtitle must be at least 10 characters."),
     heroImageUrl: z.string().url({ message: "Please enter a valid URL." }),
+});
+
+const aboutContentFormSchema = z.object({
+    title: z.string().min(5, "Title must be at least 5 characters."),
+    subtitle: z.string().min(10, "Subtitle must be at least 10 characters."),
+    imageUrl: z.string().url({ message: "Please enter a valid URL." }),
+    whatIsTitle: z.string().min(5, "Title must be at least 5 characters."),
+    whatIsPara1: z.string().min(20, "Content must be at least 20 characters."),
+    whatIsPara2: z.string().min(20, "Content must be at least 20 characters."),
+    storyTitle: z.string().min(5, "Title must be at least 5 characters."),
+    storyPara1: z.string().min(20, "Content must be at least 20 characters."),
+    storyPara2: z.string().min(20, "Content must be at least 20 characters."),
 });
 
 const postFormSchema = z.object({
@@ -76,6 +88,7 @@ export default function AdminPage() {
 
   const themeForm = useForm<z.infer<typeof themeFormSchema>>({ resolver: zodResolver(themeFormSchema) });
   const contentForm = useForm<z.infer<typeof contentFormSchema>>({ resolver: zodResolver(contentFormSchema) });
+  const aboutContentForm = useForm<z.infer<typeof aboutContentFormSchema>>({ resolver: zodResolver(aboutContentFormSchema) });
   const siteConfigForm = useForm<z.infer<typeof siteConfigFormSchema>>({ resolver: zodResolver(siteConfigFormSchema) });
   const postForm = useForm<z.infer<typeof postFormSchema>>({
     resolver: zodResolver(postFormSchema),
@@ -93,9 +106,10 @@ export default function AdminPage() {
   const fetchAdminData = React.useCallback(async () => {
     try {
         setLoading(true);
-        const [theme, content, allPosts, allCountries, allCommittees, siteConfig] = await Promise.all([
+        const [theme, content, aboutContent, allPosts, allCountries, allCommittees, siteConfig] = await Promise.all([
             getTheme(),
             getHomePageContent(),
+            getAboutPageContent(),
             getAllPosts(),
             getCountries(),
             getCommittees(),
@@ -103,6 +117,7 @@ export default function AdminPage() {
         ]);
         themeForm.reset(theme);
         contentForm.reset(content);
+        aboutContentForm.reset(aboutContent);
         const socialLinks = siteConfig.socialLinks || { twitter: '', instagram: '', facebook: '' };
         siteConfigForm.reset({ ...socialLinks, footerText: siteConfig.footerText });
         setPosts(allPosts);
@@ -118,7 +133,7 @@ export default function AdminPage() {
     } finally {
         setLoading(false);
     }
-  }, [toast, themeForm, contentForm, siteConfigForm]);
+  }, [toast, themeForm, contentForm, siteConfigForm, aboutContentForm]);
 
   useEffect(() => {
     fetchAdminData();
@@ -151,6 +166,22 @@ export default function AdminPage() {
        toast({
         title: "Error Saving Content",
         description: "Could not save content to the database.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  async function onAboutContentSubmit(values: z.infer<typeof aboutContentFormSchema>) {
+    try {
+      await updateAboutPageContent(values as AboutPageContent);
+      toast({
+        title: "About Page Updated!",
+        description: "Your changes to the about page have been saved.",
+      });
+    } catch (error) {
+       toast({
+        title: "Error Saving Content",
+        description: "Could not save about page content to the database.",
         variant: "destructive",
       });
     }
@@ -355,23 +386,49 @@ export default function AdminPage() {
             </Card>
         </div>
         
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Share2 className="w-6 h-6" /> Site-wide Settings</CardTitle>
-                <CardDescription>Manage social media links and other global settings.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Form {...siteConfigForm}>
-                    <form onSubmit={siteConfigForm.handleSubmit(onSiteConfigSubmit)} className="space-y-6">
-                        <FormField control={siteConfigForm.control} name="twitter" render={({ field }) => (<FormItem><FormLabel>Twitter URL</FormLabel><FormControl><Input placeholder="https://twitter.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={siteConfigForm.control} name="instagram" render={({ field }) => (<FormItem><FormLabel>Instagram URL</FormLabel><FormControl><Input placeholder="https://instagram.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={siteConfigForm.control} name="facebook" render={({ field }) => (<FormItem><FormLabel>Facebook URL</FormLabel><FormControl><Input placeholder="https://facebook.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={siteConfigForm.control} name="footerText" render={({ field }) => (<FormItem><FormLabel>Footer Text</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>)} />
-                        <Button type="submit" className="w-full">Save Settings</Button>
-                    </form>
-                </Form>
-            </CardContent>
-        </Card>
+        <div className="grid lg:grid-cols-2 gap-8 items-start">
+             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><BookOpenText className="w-6 h-6" /> About Page Content</CardTitle>
+                    <CardDescription>Edit the content for the "About" page.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Form {...aboutContentForm}><form onSubmit={aboutContentForm.handleSubmit(onAboutContentSubmit)} className="space-y-6">
+                        <FormField control={aboutContentForm.control} name="title" render={({ field }) => (<FormItem><FormLabel>Page Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={aboutContentForm.control} name="subtitle" render={({ field }) => (<FormItem><FormLabel>Page Subtitle</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={aboutContentForm.control} name="imageUrl" render={({ field }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <hr/>
+                        <FormField control={aboutContentForm.control} name="whatIsTitle" render={({ field }) => (<FormItem><FormLabel>Section 1: Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={aboutContentForm.control} name="whatIsPara1" render={({ field }) => (<FormItem><FormLabel>Section 1: Paragraph 1</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={aboutContentForm.control} name="whatIsPara2" render={({ field }) => (<FormItem><FormLabel>Section 1: Paragraph 2</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
+                        <hr/>
+                        <FormField control={aboutContentForm.control} name="storyTitle" render={({ field }) => (<FormItem><FormLabel>Section 2: Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={aboutContentForm.control} name="storyPara1" render={({ field }) => (<FormItem><FormLabel>Section 2: Paragraph 1</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={aboutContentForm.control} name="storyPara2" render={({ field }) => (<FormItem><FormLabel>Section 2: Paragraph 2</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
+                        <Button type="submit" className="w-full">Save About Page</Button>
+                    </form></Form>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Share2 className="w-6 h-6" /> Site-wide Settings</CardTitle>
+                    <CardDescription>Manage social media links and other global settings.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Form {...siteConfigForm}>
+                        <form onSubmit={siteConfigForm.handleSubmit(onSiteConfigSubmit)} className="space-y-6">
+                            <FormField control={siteConfigForm.control} name="twitter" render={({ field }) => (<FormItem><FormLabel>Twitter URL</FormLabel><FormControl><Input placeholder="https://twitter.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={siteConfigForm.control} name="instagram" render={({ field }) => (<FormItem><FormLabel>Instagram URL</FormLabel><FormControl><Input placeholder="https://instagram.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={siteConfigForm.control} name="facebook" render={({ field }) => (<FormItem><FormLabel>Facebook URL</FormLabel><FormControl><Input placeholder="https://facebook.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={siteConfigForm.control} name="footerText" render={({ field }) => (<FormItem><FormLabel>Footer Text</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>)} />
+                            <Button type="submit" className="w-full">Save Settings</Button>
+                        </form>
+                    </Form>
+                </CardContent>
+            </Card>
+        </div>
+
 
         <Card>
             <CardHeader>

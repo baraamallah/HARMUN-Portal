@@ -1,6 +1,6 @@
 import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Theme, HomePageContent, Post, Country, Committee, SiteConfig } from './types';
+import type { Theme, HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent } from './types';
 import { format } from 'date-fns';
 
 const CONFIG_COLLECTION = 'config';
@@ -9,6 +9,7 @@ const COUNTRIES_COLLECTION = 'countries';
 const COMMITTEES_COLLECTION = 'committees';
 const THEME_DOC_ID = 'theme';
 const HOME_PAGE_CONTENT_DOC_ID = 'homePage';
+const ABOUT_PAGE_CONTENT_DOC_ID = 'aboutPage';
 const SITE_CONFIG_DOC_ID = 'siteConfig';
 
 // Default values
@@ -31,6 +32,18 @@ const defaultSiteConfig: SiteConfig = {
         facebook: "#",
     },
     footerText: "This is a fictional event created for demonstration purposes.",
+};
+
+const defaultAboutPageContent: AboutPageContent = {
+  title: "About HARMUN",
+  subtitle: "Discover the history, mission, and spirit of the Harvard Model United Nations conference.",
+  imageUrl: "https://placehold.co/600x400.png",
+  whatIsTitle: "What is Model UN?",
+  whatIsPara1: "Model United Nations is an academic simulation of the United Nations where students play the role of delegates from different countries and attempt to solve real world issues with the policies and perspectives of their assigned country.",
+  whatIsPara2: "Participants learn about diplomacy, international relations, and the United Nations. Delegates are placed in committees and assigned countries, research topics, and formulate positions to debate with their peers, staying true to the actual position of the country they represent.",
+  storyTitle: "The Story of HARMUN",
+  storyPara1: "Harvard Model United Nations (HARMUN) was founded in 1953, only a few years after the creation of the United Nations itself. It was conceived as a platform to educate the next generation of leaders about the complexities of international affairs and the importance of diplomacy. From its humble beginnings, HARMUN has grown into one of the largest, oldest, and most prestigious conferences of its kind in the world.",
+  storyPara2: "Each year, HARMUN brings together over 3,000 high school students from across the globe to our campus in Cambridge. Our mission is to provide a dynamic and engaging educational experience that promotes a deeper understanding of the world, fosters a spirit of collaboration, and inspires a commitment to global citizenship. The conference is entirely run by Harvard undergraduates who are passionate about international relations and dedicated to creating a memorable and impactful experience for every delegate.",
 };
 
 // --- Theme Management ---
@@ -64,6 +77,23 @@ export async function getHomePageContent(): Promise<HomePageContent> {
 
 export async function updateHomePageContent(content: HomePageContent): Promise<void> {
   const docRef = doc(db, CONFIG_COLLECTION, HOME_PAGE_CONTENT_DOC_ID);
+  await setDoc(docRef, content, { merge: true });
+}
+
+// --- About Page Content Management ---
+export async function getAboutPageContent(): Promise<AboutPageContent> {
+  try {
+    const docRef = doc(db, CONFIG_COLLECTION, ABOUT_PAGE_CONTENT_DOC_ID);
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? (docSnap.data() as AboutPageContent) : defaultAboutPageContent;
+  } catch (error) {
+    console.error("Error fetching about page content, returning default:", error);
+    return defaultAboutPageContent;
+  }
+}
+
+export async function updateAboutPageContent(content: AboutPageContent): Promise<void> {
+  const docRef = doc(db, CONFIG_COLLECTION, ABOUT_PAGE_CONTENT_DOC_ID);
   await setDoc(docRef, content, { merge: true });
 }
 
