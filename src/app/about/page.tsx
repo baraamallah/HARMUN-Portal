@@ -7,10 +7,10 @@ export default async function AboutPage() {
   const content = await getAboutPageContent();
 
   return (
-    <div className="bg-background">
+    <div className="bg-transparent">
         <div className="container mx-auto px-4 py-12 md:py-20">
         <div className="text-center mb-16">
-            <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary">{content.title}</h1>
+            <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary-foreground">{content.title}</h1>
             <p className="mt-4 text-lg text-muted-foreground max-w-3xl mx-auto">
             {content.subtitle}
             </p>
@@ -27,7 +27,7 @@ export default async function AboutPage() {
                 />
             </div>
             <div>
-                <h2 className="text-3xl font-bold font-headline text-primary mb-4 flex items-center gap-3"><BookOpen className="w-8 h-8"/> {content.whatIsTitle}</h2>
+                <h2 className="text-3xl font-bold font-headline text-primary-foreground mb-4 flex items-center gap-3"><BookOpen className="w-8 h-8 text-primary"/> {content.whatIsTitle}</h2>
                 <div className="space-y-4 text-muted-foreground">
                     <p>
                         {content.whatIsPara1}
@@ -39,9 +39,9 @@ export default async function AboutPage() {
             </div>
         </div>
 
-        <Card className="bg-secondary/50 border-primary/20">
+        <Card>
             <CardHeader>
-            <CardTitle className="text-3xl font-bold font-headline text-primary flex items-center gap-3"><Landmark className="w-8 h-8" /> {content.storyTitle}</CardTitle>
+            <CardTitle className="text-3xl font-bold font-headline text-primary-foreground flex items-center gap-3"><Landmark className="w-8 h-8 text-primary" /> {content.storyTitle}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-muted-foreground">
             <p>

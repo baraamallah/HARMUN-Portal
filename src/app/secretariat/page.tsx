@@ -32,10 +32,10 @@ const secretariatMembers: SecretariatMember[] = [
 
 export default function SecretariatPage() {
   return (
-    <div className="bg-secondary">
+    <div className="bg-transparent">
       <div className="container mx-auto px-4 py-12 md:py-20">
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary">Meet the Secretariat</h1>
+          <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary-foreground">Meet the Secretariat</h1>
           <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
             The dedicated team working behind the scenes to make HARMUN 2025 a reality.
           </p>
@@ -43,9 +43,9 @@ export default function SecretariatPage() {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {secretariatMembers.map((member) => (
-            <Card key={member.name} className="text-center hover:shadow-xl transition-shadow duration-300">
+            <Card key={member.name} className="text-center">
               <CardHeader className="items-center">
-                <Avatar className="w-32 h-32 mb-4 border-4 border-primary/10">
+                <Avatar className="w-32 h-32 mb-4 border-4 border-primary/20">
                   <AvatarImage src={member.imageUrl} alt={`Photo of ${member.name}`} data-ai-hint="person portrait" />
                   <AvatarFallback>{member.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                 </Avatar>

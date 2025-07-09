@@ -7,11 +7,11 @@ export function AppFooter({ siteConfig }: { siteConfig: SiteConfig }) {
   const { twitter, instagram, facebook } = siteConfig.socialLinks;
 
   return (
-    <footer className="bg-secondary border-t">
+    <footer className="border-t border-border/50 bg-background/80 backdrop-blur-lg">
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col items-center gap-6">
-          <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary font-headline">
-            <Globe className="h-7 w-7" />
+          <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary-foreground font-headline">
+            <Globe className="h-7 w-7 text-primary" />
             <span>HARMUN 2025</span>
           </Link>
 

@@ -47,7 +47,7 @@ export default function SchedulePage() {
   return (
     <div className="container mx-auto px-4 py-12 md:py-20">
       <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary">Conference Schedule</h1>
+        <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary-foreground">Conference Schedule</h1>
         <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
           Plan your time at HARMUN 2025. Here is the official schedule of events.
         </p>
@@ -56,13 +56,13 @@ export default function SchedulePage() {
       <div className="space-y-12">
         {schedule.map((day) => (
           <div key={day.day}>
-            <h2 className="text-2xl md:text-3xl font-bold font-headline text-primary mb-2">{day.day}</h2>
+            <h2 className="text-2xl md:text-3xl font-bold font-headline text-primary-foreground mb-2">{day.day}</h2>
             <p className="text-md text-muted-foreground mb-6">{day.date}</p>
-            <div className="relative border-l-2 border-primary pl-8 space-y-8">
+            <div className="relative border-l-2 border-primary/50 pl-8 space-y-8">
               {day.events.map((event, index) => (
                 <div key={index} className="relative">
-                  <div className="absolute -left-[38px] top-1 h-4 w-4 rounded-full bg-primary border-4 border-background" />
-                  <Card className="hover:shadow-lg transition-shadow duration-300">
+                  <div className="absolute -left-[39px] top-1 h-4 w-4 rounded-full bg-primary border-4 border-black" />
+                  <Card>
                     <CardHeader>
                       <CardTitle>{event.title}</CardTitle>
                     </CardHeader>

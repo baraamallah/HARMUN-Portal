@@ -9,7 +9,7 @@ export default async function NewsPage() {
   return (
     <div className="container mx-auto px-4 py-12 md:py-20">
       <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary">Conference News</h1>
+        <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary-foreground">Conference News</h1>
         <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
           The latest updates, announcements, and articles from the HARMUN team.
         </p>
@@ -18,7 +18,7 @@ export default async function NewsPage() {
       {newsPosts.length > 0 ? (
         <div className="space-y-8 max-w-4xl mx-auto">
           {newsPosts.map((post: Post) => (
-            <Card key={post.id} className="hover:shadow-lg transition-shadow duration-300">
+            <Card key={post.id}>
               <CardHeader>
                 <CardTitle className="text-2xl font-headline">{post.title}</CardTitle>
                 <CardDescription className="flex items-center gap-2 pt-2">

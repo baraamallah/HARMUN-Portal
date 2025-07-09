@@ -22,20 +22,14 @@ import { useToast } from "@/hooks/use-toast";
 import { convertGoogleDriveLink } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Paintbrush, Type, PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, Share2, BookOpenText, Upload, Download, FileSpreadsheet, CalendarDays } from "lucide-react";
-import { getTheme, updateTheme, getHomePageContent, updateHomePageContent, addPost, getAllPosts, formatTimestamp, getCountries, addCountry, updateCountryStatus, deleteCountry, getCommittees, addCommittee, deleteCommittee, getSiteConfig, updateSiteConfig, getAboutPageContent, updateAboutPageContent, defaultSiteConfig, importCommittees, importCountries } from "@/lib/firebase-service";
+import { Type, PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, Share2, BookOpenText, Upload, Download, FileSpreadsheet, CalendarDays } from "lucide-react";
+import { getHomePageContent, updateHomePageContent, addPost, getAllPosts, formatTimestamp, getCountries, addCountry, updateCountryStatus, deleteCountry, getCommittees, addCommittee, deleteCommittee, getSiteConfig, updateSiteConfig, getAboutPageContent, updateAboutPageContent, defaultSiteConfig, importCommittees, importCountries } from "@/lib/firebase-service";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Post, Country, Committee, SiteConfig, HomePageContent, AboutPageContent } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-
-const themeFormSchema = z.object({
-  primaryColor: z.string().regex(/^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/, "Must be a valid HSL string (e.g., 227 66% 32%)"),
-  backgroundColor: z.string().regex(/^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/, "Must be a valid HSL string (e.g., 210 17% 98%)"),
-  accentColor: z.string().regex(/^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/, "Must be a valid HSL string (e.g., 47 96% 52%)"),
-});
 
 const contentFormSchema = z.object({
     heroTitle: z.string().min(5, "Title must be at least 5 characters."),
@@ -109,7 +103,6 @@ export default function AdminPage() {
   const [countryImportFile, setCountryImportFile] = useState<File | null>(null);
   const [isImportingCountries, setIsImportingCountries] = useState(false);
 
-  const themeForm = useForm<z.infer<typeof themeFormSchema>>({ resolver: zodResolver(themeFormSchema) });
   const contentForm = useForm<z.infer<typeof contentFormSchema>>({ resolver: zodResolver(contentFormSchema) });
   const aboutContentForm = useForm<z.infer<typeof aboutContentFormSchema>>({ resolver: zodResolver(aboutContentFormSchema) });
   const siteConfigForm = useForm<z.infer<typeof siteConfigFormSchema>>({ resolver: zodResolver(siteConfigFormSchema) });
@@ -129,8 +122,7 @@ export default function AdminPage() {
   const fetchAdminData = React.useCallback(async () => {
     try {
         setLoading(true);
-        const [theme, content, aboutContent, allPosts, allCountries, allCommittees, siteConfig] = await Promise.all([
-            getTheme(),
+        const [content, aboutContent, allPosts, allCountries, allCommittees, siteConfig] = await Promise.all([
             getHomePageContent(),
             getAboutPageContent(),
             getAllPosts(),
@@ -138,7 +130,6 @@ export default function AdminPage() {
             getCommittees(),
             getSiteConfig(),
         ]);
-        themeForm.reset(theme);
         contentForm.reset(content);
         aboutContentForm.reset(aboutContent);
         siteConfigForm.reset({
@@ -160,27 +151,11 @@ export default function AdminPage() {
     } finally {
         setLoading(false);
     }
-  }, [toast, themeForm, contentForm, siteConfigForm, aboutContentForm]);
+  }, [toast, contentForm, siteConfigForm, aboutContentForm]);
 
   useEffect(() => {
     fetchAdminData();
   }, [fetchAdminData]);
-
-  async function onThemeSubmit(values: z.infer<typeof themeFormSchema>) {
-    try {
-      await updateTheme(values);
-      toast({
-        title: "Theme Updated!",
-        description: "Your color settings have been saved. Refresh the page to see them applied.",
-      });
-    } catch (error) {
-       toast({
-        title: "Error Saving Theme",
-        description: "Could not save theme settings to the database.",
-        variant: "destructive",
-      });
-    }
-  }
 
   async function onContentSubmit(values: z.infer<typeof contentFormSchema>) {
     try {
@@ -488,7 +463,7 @@ export default function AdminPage() {
   return (
     <div className="space-y-8">
         <div className="text-left">
-            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+            <h1 className="text-3xl font-bold font-headline">Admin Dashboard</h1>
             <p className="text-muted-foreground">Manage your conference website content and settings here.</p>
         </div>
 
@@ -739,85 +714,68 @@ export default function AdminPage() {
             </TabsContent>
             
             <TabsContent value="settings" className="mt-6 space-y-8">
-                <div className="grid lg:grid-cols-2 gap-8 items-start">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Paintbrush className="w-6 h-6" /> Theme Customization</CardTitle>
-                            <CardDescription>Change the look and feel of your website.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Form {...themeForm}><form onSubmit={themeForm.handleSubmit(onThemeSubmit)} className="space-y-6">
-                                <FormField control={themeForm.control} name="primaryColor" render={({ field }) => (<FormItem><FormLabel>Primary Color</FormLabel><FormControl><Input placeholder="e.g., 227 66% 32%" {...field} /></FormControl><FormDescription>Used for main buttons, links, and highlights.</FormDescription><FormMessage /></FormItem>)} />
-                                <FormField control={themeForm.control} name="backgroundColor" render={({ field }) => (<FormItem><FormLabel>Background Color</FormLabel><FormControl><Input placeholder="e.g., 210 17% 98%" {...field} /></FormControl><FormDescription>The main background color for most pages.</FormDescription><FormMessage /></FormItem>)} />
-                                <FormField control={themeForm.control} name="accentColor" render={({ field }) => (<FormItem><FormLabel>Accent Color</FormLabel><FormControl><Input placeholder="e.g., 47 96% 52%" {...field} /></FormControl><FormDescription>Used for call-to-action buttons and special highlights.</FormDescription><FormMessage /></FormItem>)} />
-                                <Button type="submit" className="w-full">Save Theme</Button>
-                            </form></Form>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Share2 className="w-6 h-6" /> Site-wide Settings</CardTitle>
-                            <CardDescription>Manage social media links, footer text, and navigation visibility.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Form {...siteConfigForm}>
-                                <form onSubmit={siteConfigForm.handleSubmit(onSiteConfigSubmit)} className="space-y-6">
-                                    <FormField
-                                        control={siteConfigForm.control}
-                                        name="conferenceDate"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="flex items-center gap-2"><CalendarDays className="w-4 h-4" /> Conference Countdown Date</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        placeholder="YYYY-MM-DDTHH:mm:ss"
-                                                        {...field}
-                                                    />
-                                                </FormControl>
-                                                <FormDescription>
-                                                    The target date for the homepage countdown. Use format: YYYY-MM-DDTHH:mm:ss
-                                                </FormDescription>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField control={siteConfigForm.control} name="twitter" render={({ field }) => (<FormItem><FormLabel>Twitter URL</FormLabel><FormControl><Input placeholder="https://twitter.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                    <FormField control={siteConfigForm.control} name="instagram" render={({ field }) => (<FormItem><FormLabel>Instagram URL</FormLabel><FormControl><Input placeholder="https://instagram.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                    <FormField control={siteConfigForm.control} name="facebook" render={({ field }) => (<FormItem><FormLabel>Facebook URL</FormLabel><FormControl><Input placeholder="https://facebook.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                    <FormField control={siteConfigForm.control} name="footerText" render={({ field }) => (<FormItem><FormLabel>Footer Text</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>)} />
-                                    
-                                    <div>
-                                        <h3 className="text-md font-semibold pt-4 border-t mb-2">Navigation Visibility</h3>
-                                        <p className="text-sm text-muted-foreground mb-4">Toggle which pages appear in the main navigation bar.</p>
-                                        <div className="space-y-2">
-                                            {navLinksForAdmin.map((link) => (
-                                                <FormField
-                                                    key={link.href}
-                                                    control={siteConfigForm.control}
-                                                    name={`navVisibility.${link.href}` as const}
-                                                    render={({ field }) => (
-                                                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                                                            <FormLabel>{link.label}</FormLabel>
-                                                            <FormControl>
-                                                                <Switch
-                                                                    checked={field.value}
-                                                                    onCheckedChange={field.onChange}
-                                                                />
-                                                            </FormControl>
-                                                        </FormItem>
-                                                    )}
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Share2 className="w-6 h-6" /> Site-wide Settings</CardTitle>
+                        <CardDescription>Manage social media links, footer text, and navigation visibility.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Form {...siteConfigForm}>
+                            <form onSubmit={siteConfigForm.handleSubmit(onSiteConfigSubmit)} className="space-y-6">
+                                <FormField
+                                    control={siteConfigForm.control}
+                                    name="conferenceDate"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="flex items-center gap-2"><CalendarDays className="w-4 h-4" /> Conference Countdown Date</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    placeholder="YYYY-MM-DDTHH:mm:ss"
+                                                    {...field}
                                                 />
-                                            ))}
-                                        </div>
+                                            </FormControl>
+                                            <FormDescription>
+                                                The target date for the homepage countdown. Use format: YYYY-MM-DDTHH:mm:ss
+                                            </FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField control={siteConfigForm.control} name="twitter" render={({ field }) => (<FormItem><FormLabel>Twitter URL</FormLabel><FormControl><Input placeholder="https://twitter.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={siteConfigForm.control} name="instagram" render={({ field }) => (<FormItem><FormLabel>Instagram URL</FormLabel><FormControl><Input placeholder="https://instagram.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={siteConfigForm.control} name="facebook" render={({ field }) => (<FormItem><FormLabel>Facebook URL</FormLabel><FormControl><Input placeholder="https://facebook.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={siteConfigForm.control} name="footerText" render={({ field }) => (<FormItem><FormLabel>Footer Text</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>)} />
+                                
+                                <div>
+                                    <h3 className="text-md font-semibold pt-4 border-t mb-2">Navigation Visibility</h3>
+                                    <p className="text-sm text-muted-foreground mb-4">Toggle which pages appear in the main navigation bar.</p>
+                                    <div className="space-y-2">
+                                        {navLinksForAdmin.map((link) => (
+                                            <FormField
+                                                key={link.href}
+                                                control={siteConfigForm.control}
+                                                name={`navVisibility.${link.href}` as const}
+                                                render={({ field }) => (
+                                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                                                        <FormLabel>{link.label}</FormLabel>
+                                                        <FormControl>
+                                                            <Switch
+                                                                checked={field.value}
+                                                                onCheckedChange={field.onChange}
+                                                            />
+                                                        </FormControl>
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        ))}
                                     </div>
-                                    
-                                    <Button type="submit" className="w-full">Save Settings</Button>
-                                </form>
-                            </Form>
-                        </CardContent>
-                    </Card>
-                </div>
+                                </div>
+                                
+                                <Button type="submit" className="w-full">Save Settings</Button>
+                            </form>
+                        </Form>
+                    </CardContent>
+                </Card>
                  <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><Download className="w-6 h-6" /> Import / Export CSV Data</CardTitle>

@@ -88,7 +88,7 @@ export default function RegistrationPage() {
   return (
     <div className="container mx-auto px-4 py-12 md:py-20">
       <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary">Delegate Registration</h1>
+        <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary-foreground">Delegate Registration</h1>
         <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
           Complete the form below to register for HARMUN 2025. Fields marked with an asterisk (*) are required.
         </p>
@@ -176,7 +176,7 @@ export default function RegistrationPage() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">Submit Registration</Button>
+                  <Button type="submit" size="lg" className="w-full">Submit Registration</Button>
                 </form>
               </Form>
             </CardContent>
@@ -210,7 +210,7 @@ export default function RegistrationPage() {
                                         <TableRow key={country.id}>
                                             <TableCell className="font-medium">{country.name}</TableCell>
                                             <TableCell>{country.committee}</TableCell>
-                                            <TableCell className={country.status === 'Available' ? 'text-green-600' : 'text-red-600'}>{country.status}</TableCell>
+                                            <TableCell className={country.status === 'Available' ? 'text-green-400' : 'text-red-400'}>{country.status}</TableCell>
                                         </TableRow>
                                     ))
                                 ) : (

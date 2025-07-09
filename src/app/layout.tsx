@@ -3,26 +3,12 @@ import './globals.css';
 import { AppHeader } from '@/components/header';
 import { AppFooter } from '@/components/footer';
 import { Toaster } from "@/components/ui/toaster";
-import { getTheme, getSiteConfig } from '@/lib/firebase-service';
-import type { Theme, SiteConfig } from '@/lib/types';
+import { getSiteConfig } from '@/lib/firebase-service';
+import type { SiteConfig } from '@/lib/types';
 
 export const metadata: Metadata = {
   title: 'HARMUN 2025 Portal',
   description: 'The official portal for the Harvard Model United Nations 2025 conference.',
-};
-
-// This component dynamically injects CSS variables based on the theme from Firestore.
-const DynamicThemeStyle = ({ theme }: { theme: Theme }) => {
-  // We only override the colors managed by the admin panel.
-  // The rest of the theme values in globals.css remain as fallbacks.
-  const css = `
-    :root {
-      --background: ${theme.backgroundColor};
-      --primary: ${theme.primaryColor};
-      --accent: ${theme.accentColor};
-    }
-  `;
-  return <style dangerouslySetInnerHTML={{ __html: css }} />;
 };
 
 export default async function RootLayout({
@@ -30,18 +16,16 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const theme = await getTheme();
   const siteConfig = await getSiteConfig();
 
   return (
-    <html lang="en" className="!scroll-smooth">
+    <html lang="en" className="!scroll-smooth dark">
       <head>
-        <DynamicThemeStyle theme={theme} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@700;800&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@700;800&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-body antialiased">
+      <body>
         <div className="flex min-h-screen flex-col">
           <AppHeader siteConfig={siteConfig} />
           <main className="flex-grow">{children}</main>

@@ -29,10 +29,10 @@ export function AppHeader({ siteConfig }: { siteConfig: SiteConfig }) {
   );
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-lg">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary font-headline">
-          <Globe className="h-7 w-7" />
+        <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary-foreground font-headline">
+          <Globe className="h-7 w-7 text-primary" />
           <span>HARMUN '25</span>
         </Link>
         <nav className="hidden md:flex items-center gap-4 text-sm font-medium">
@@ -41,8 +41,8 @@ export function AppHeader({ siteConfig }: { siteConfig: SiteConfig }) {
               key={link.href}
               href={link.href}
               className={cn(
-                'transition-colors hover:text-primary',
-                pathname === link.href ? 'text-primary' : 'text-muted-foreground'
+                'transition-colors hover:text-primary-foreground',
+                pathname === link.href ? 'text-primary-foreground' : 'text-muted-foreground'
               )}
             >
               {link.label}
@@ -50,7 +50,7 @@ export function AppHeader({ siteConfig }: { siteConfig: SiteConfig }) {
           ))}
         </nav>
         <div className="hidden md:block">
-          <Button asChild className="bg-accent text-accent-foreground hover:bg-accent/90">
+          <Button asChild>
             <Link href="/registration">Register Now</Link>
           </Button>
         </div>
@@ -61,10 +61,10 @@ export function AppHeader({ siteConfig }: { siteConfig: SiteConfig }) {
                 <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right">
+            <SheetContent side="right" className="bg-popover/95 backdrop-blur-lg">
               <div className="flex flex-col gap-6 p-6">
-                <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary font-headline mb-4" onClick={() => setSheetOpen(false)}>
-                  <Globe className="h-7 w-7" />
+                <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary-foreground font-headline mb-4" onClick={() => setSheetOpen(false)}>
+                  <Globe className="h-7 w-7 text-primary" />
                   <span>HARMUN '25</span>
                 </Link>
                 {visibleNavLinks.map((link) => (
@@ -73,14 +73,14 @@ export function AppHeader({ siteConfig }: { siteConfig: SiteConfig }) {
                     href={link.href}
                     onClick={() => setSheetOpen(false)}
                     className={cn(
-                      'text-lg font-medium transition-colors hover:text-primary',
-                      pathname === link.href ? 'text-primary' : 'text-foreground'
+                      'text-lg font-medium transition-colors hover:text-primary-foreground',
+                      pathname === link.href ? 'text-primary-foreground' : 'text-foreground'
                     )}
                   >
                     {link.label}
                   </Link>
                 ))}
-                <Button asChild className="mt-4 bg-accent text-accent-foreground hover:bg-accent/90">
+                <Button asChild className="mt-4">
                   <Link href="/registration" onClick={() => setSheetOpen(false)}>Register Now</Link>
                 </Button>
               </div>
