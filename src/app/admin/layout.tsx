@@ -1,12 +1,40 @@
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarContent } from "@/components/ui/sidebar";
-import { Globe, LayoutDashboard } from "lucide-react";
+"use client";
+
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarContent, SidebarFooter, SidebarSeparator } from "@/components/ui/sidebar";
+import { Globe, LayoutDashboard, LogOut } from "lucide-react";
 import Link from "next/link";
+import { useAuth, AuthLoader } from "@/context/auth-context";
+import { useRouter } from "next/navigation";
+import React, { useEffect } from "react";
+import { signOutUser } from "@/lib/auth-service";
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
+  const handleLogout = async () => {
+    await signOutUser();
+    router.push('/login');
+  };
+
+  if (loading || !user) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <AuthLoader />
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider>
       <Sidebar>
@@ -36,6 +64,17 @@ export default function AdminLayout({
                 </SidebarMenuItem>
             </SidebarMenu>
         </SidebarContent>
+        <SidebarFooter>
+            <SidebarSeparator />
+            <SidebarMenu>
+                <SidebarMenuItem>
+                    <SidebarMenuButton onClick={handleLogout}>
+                        <LogOut />
+                        Logout
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            </SidebarMenu>
+        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <main className="p-4 sm:p-6 lg:p-8">

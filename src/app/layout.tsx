@@ -5,6 +5,7 @@ import { AppFooter } from '@/components/footer';
 import { Toaster } from "@/components/ui/toaster";
 import { getSiteConfig } from '@/lib/firebase-service';
 import type { SiteConfig } from '@/lib/types';
+import { AuthProvider } from '@/context/auth-context';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,12 +43,14 @@ export default async function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@700;800&display=swap" rel="stylesheet" />
       </head>
       <body>
-        <div className="flex min-h-screen flex-col">
-          <AppHeader siteConfig={siteConfig} />
-          <main className="flex-grow">{children}</main>
-          <AppFooter siteConfig={siteConfig} />
-        </div>
-        <Toaster />
+        <AuthProvider>
+          <div className="flex min-h-screen flex-col">
+            <AppHeader siteConfig={siteConfig} />
+            <main className="flex-grow">{children}</main>
+            <AppFooter siteConfig={siteConfig} />
+          </div>
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );

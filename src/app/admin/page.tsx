@@ -25,14 +25,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import * as icons from "lucide-react";
-import { PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, CalendarDays, Settings, Home, FileBadge, UserSquare, Shield, HelpCircle, type LucideIcon, Upload, Download } from "lucide-react";
+import { PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, CalendarDays, Settings, Home, FileBadge, UserSquare, Shield, HelpCircle, type LucideIcon, Upload, Download, KeyRound } from "lucide-react";
 import * as firebaseService from "@/lib/firebase-service";
+import * as authService from "@/lib/auth-service";
 import { Skeleton } from "@/components/ui/skeleton";
 import type * as T from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { useAuth } from "@/context/auth-context";
 
 const Icon = ({ name, ...props }: { name: string } & React.ComponentProps<LucideIcon>) => {
   const LucideIcon = (icons as unknown as Record<string, LucideIcon>)[name];
@@ -76,7 +78,7 @@ function HighlightItemForm({ item, onSave, onDelete }: { item: T.ConferenceHighl
 
   React.useEffect(() => {
     form.reset(item);
-  }, [item]);
+  }, [item, form]);
 
   return (
     <Form {...form}>
@@ -97,7 +99,7 @@ function CodeOfConductItemForm({ item, onSave, onDelete }: { item: T.CodeOfCondu
     });
      React.useEffect(() => {
         form.reset(item);
-    }, [item]);
+    }, [item, form]);
 
     return (
         <Form {...form}>
@@ -117,7 +119,7 @@ function SecretariatMemberForm({ member, onSave, onDelete }: { member: T.Secreta
     });
     React.useEffect(() => {
         form.reset(member);
-    }, [member]);
+    }, [member, form]);
 
     return (
         <Form {...form}>
@@ -139,7 +141,7 @@ function ScheduleEventForm({ event, onSave, onDelete }: { event: T.ScheduleEvent
     });
     React.useEffect(() => {
         form.reset(event);
-    }, [event]);
+    }, [event, form]);
 
     return (
         <Form {...form}>
@@ -185,31 +187,40 @@ const siteConfigSchema = z.object({
   navVisibility: z.object(Object.fromEntries(navLinksForAdmin.map(link => [link.href, z.boolean()]))),
 });
 
+const changePasswordSchema = z.object({
+    currentPassword: z.string().min(6, "Password must be at least 6 characters."),
+    newPassword: z.string().min(6, "New password must be at least 6 characters."),
+    confirmPassword: z.string()
+}).refine(data => data.newPassword === data.confirmPassword, {
+    message: "New passwords do not match.",
+    path: ["confirmPassword"],
+});
+
 // "Add New" Item Forms - each with its own useForm hook
 function AddHighlightForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
-    const form = useForm({ defaultValues: { icon: '', title: '', description: '' } });
+    const form = useForm({ resolver: zodResolver(highlightItemSchema), defaultValues: { icon: '', title: '', description: '' } });
     return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd(d); form.reset(); })} className="flex flex-wrap md:flex-nowrap gap-2 items-end p-2 border-t mt-4">
-        <FormField control={form.control} name="icon" render={({ field }) => <FormItem><FormLabel>Icon</FormLabel><FormControl><Input {...field} placeholder="e.g. Calendar" /></FormControl></FormItem>} />
-        <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-        <FormField control={form.control} name="description" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Description</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+        <FormField control={form.control} name="icon" render={({ field }) => <FormItem><FormLabel>Icon</FormLabel><FormControl><Input {...field} placeholder="e.g. Calendar" /></FormControl><FormMessage /></FormItem>} />
+        <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+        <FormField control={form.control} name="description" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Description</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
         <Button type="submit" size="sm">Add Highlight</Button>
     </form></Form>;
 }
 function AddCodeOfConductForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
-    const form = useForm({ defaultValues: { title: '', content: '' } });
+    const form = useForm({ resolver: zodResolver(codeOfConductItemSchema), defaultValues: { title: '', content: '' } });
     return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd(d); form.reset(); })} className="flex flex-wrap md:flex-nowrap gap-2 items-end p-2 border-t mt-4">
-        <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-        <FormField control={form.control} name="content" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Content</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl></FormItem>} />
+        <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+        <FormField control={form.control} name="content" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Content</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl><FormMessage /></FormItem>} />
         <Button type="submit" size="sm">Add Rule</Button>
     </form></Form>;
 }
 function AddSecretariatMemberForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
-    const form = useForm({ defaultValues: { name: '', role: '', imageUrl: '', bio: '' } });
+    const form = useForm({ resolver: zodResolver(secretariatMemberSchema), defaultValues: { name: '', role: '', imageUrl: '', bio: '' } });
     return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd(d); form.reset(); })} className="flex flex-wrap lg:flex-nowrap gap-2 items-end p-2 border-t mt-4">
-        <FormField control={form.control} name="name" render={({ field }) => <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-        <FormField control={form.control} name="role" render={({ field }) => <FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-        <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Use a standard image URL or a Google Drive "share" link.</FormDescription></FormItem>} />
-        <FormField control={form.control} name="bio" render={({ field }) => <FormItem className="flex-grow w-full lg:w-auto"><FormLabel>Bio</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl></FormItem>} />
+        <FormField control={form.control} name="name" render={({ field }) => <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+        <FormField control={form.control} name="role" render={({ field }) => <FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+        <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Use a standard image URL or a Google Drive "share" link.</FormDescription><FormMessage /></FormItem>} />
+        <FormField control={form.control} name="bio" render={({ field }) => <FormItem className="flex-grow w-full lg:w-auto"><FormLabel>Bio</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl><FormMessage /></FormItem>} />
         <Button type="submit" size="sm">Add Member</Button>
     </form></Form>;
 }
@@ -222,7 +233,7 @@ function AddScheduleDayForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) 
     </form></Form>;
 }
 function AddScheduleEventForm({ dayId, onAdd }: { dayId: string; onAdd: (data: any) => Promise<void> }) {
-    const form = useForm({ defaultValues: { time: '', title: '', location: '' } });
+    const form = useForm({ resolver: zodResolver(scheduleEventSchema), defaultValues: { time: '', title: '', location: '', description: '' } });
     return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd({ ...d, dayId }); form.reset(); })} className="flex flex-wrap md:flex-nowrap gap-2 items-end p-2 border-t mt-4">
         <FormField control={form.control} name="time" render={({ field }) => <FormItem><FormLabel>Time</FormLabel><FormControl><Input placeholder="e.g. 9:00 AM" {...field} /></FormControl></FormItem>} />
         <FormField control={form.control} name="title" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
@@ -264,6 +275,7 @@ function CreatePostForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
 
 export default function AdminPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [activeAccordion, setActiveAccordion] = useState<string | undefined>();
   const [data, setData] = useState<any>({
@@ -276,6 +288,8 @@ export default function AdminPage() {
   const registrationForm = useForm<z.infer<typeof registrationPageContentSchema>>({ resolver: zodResolver(registrationPageContentSchema) });
   const documentsForm = useForm<z.infer<typeof documentsPageContentSchema>>({ resolver: zodResolver(documentsPageContentSchema) });
   const siteConfigForm = useForm<z.infer<typeof siteConfigSchema>>({ resolver: zodResolver(siteConfigSchema) });
+  const changePasswordForm = useForm<z.infer<typeof changePasswordSchema>>({ resolver: zodResolver(changePasswordSchema), defaultValues: {currentPassword: "", newPassword: "", confirmPassword: ""}});
+
 
   const fetchAllData = React.useCallback(async () => {
     try {
@@ -314,7 +328,6 @@ export default function AdminPage() {
 
   useEffect(() => { fetchAllData(); }, [fetchAllData]);
 
-  // Generic submit handler for main page forms
   const handleFormSubmit = async (updateFunction: (data: any) => Promise<void>, successMessage: string, data: any, form: any) => {
     try {
         let processedData = data;
@@ -323,15 +336,15 @@ export default function AdminPage() {
 
         await updateFunction(processedData);
         toast({ title: "Success!", description: successMessage });
-        form.reset(processedData); // Re-sync form with saved data
+        form.reset(processedData); 
     } catch (error) {
         toast({ title: "Error", description: `Could not save data. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
     }
   };
   
-    const handleFileChange = (setter: React.Dispatch<React.SetStateAction<File | null>>) => (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files && event.target.files.length > 0) setter(event.target.files[0]); else setter(null);
-    };
+  const handleFileChange = (setter: React.Dispatch<React.SetStateAction<File | null>>) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) setter(event.target.files[0]); else setter(null);
+  };
   
   const [committeeImportFile, setCommitteeImportFile] = useState<File | null>(null);
   const [countryImportFile, setCountryImportFile] = useState<File | null>(null);
@@ -379,7 +392,7 @@ export default function AdminPage() {
                 chairName: c.chair.name,
                 chairBio: c.chair.bio,
                 chairImageUrl: c.chair.imageUrl,
-                topics: c.topics.join('\\n'), // Join topics with newline for CSV
+                topics: c.topics.join('\\n'),
                 backgroundGuideUrl: c.backgroundGuideUrl,
             }));
             break;
@@ -404,7 +417,6 @@ export default function AdminPage() {
     toast({ title: "Export Successful", description: `Downloaded ${filename}` });
   };
   
-    // --- GENERIC CRUD HANDLERS ---
     const handleUpdateItem = async <T extends {id: string}>(
         updateFunction: (id: string, data: Partial<T>) => Promise<void>,
         id: string,
@@ -420,7 +432,7 @@ export default function AdminPage() {
             }));
             toast({ title: "Success!", description: message });
         } catch (error) {
-            toast({ title: "Error", description: `Could not save item.`, variant: "destructive" });
+            toast({ title: "Error", description: `Could not save item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
         }
     };
 
@@ -439,10 +451,23 @@ export default function AdminPage() {
             }));
             toast({ title: "Success!", description: message });
         } catch (error) {
-            toast({ title: "Error", description: `Could not delete item.`, variant: "destructive" });
+            toast({ title: "Error", description: `Could not delete item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
         }
     };
-    // --- END GENERIC CRUD HANDLERS ---
+
+    const handleChangePassword = async (values: z.infer<typeof changePasswordSchema>) => {
+        if (!user || !user.email) {
+            toast({ title: "Error", description: "No user is logged in.", variant: "destructive" });
+            return;
+        }
+        try {
+            await authService.reauthenticateAndChangePassword(user.email, values.currentPassword, values.newPassword);
+            toast({ title: "Success", description: "Your password has been changed." });
+            changePasswordForm.reset();
+        } catch (error) {
+            toast({ title: "Error Changing Password", description: error instanceof Error ? error.message : "An unknown error occurred.", variant: "destructive" });
+        }
+    }
 
   if (loading) {
     return <div className="space-y-8 p-8">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-64 w-full" />)}</div>
@@ -456,12 +481,13 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="pages" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
+            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6">
                 <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
                 <TabsTrigger value="pages">Pages</TabsTrigger>
                 <TabsTrigger value="conference">Conference</TabsTrigger>
                 <TabsTrigger value="team">Team</TabsTrigger>
                 <TabsTrigger value="settings">Settings</TabsTrigger>
+                <TabsTrigger value="security">Security</TabsTrigger>
             </TabsList>
             
             <TabsContent value="dashboard" className="mt-6">
@@ -791,6 +817,57 @@ export default function AdminPage() {
                         </div>
                     </CardContent></Card></AccordionContent></AccordionItem>
                 </Accordion>
+            </TabsContent>
+            
+            <TabsContent value="security" className="mt-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><KeyRound /> Change Password</CardTitle>
+                        <CardDescription>Update the password for your admin account.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Form {...changePasswordForm}>
+                            <form onSubmit={changePasswordForm.handleSubmit(handleChangePassword)} className="space-y-4 max-w-sm">
+                                <FormField
+                                    control={changePasswordForm.control}
+                                    name="currentPassword"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Current Password</FormLabel>
+                                            <FormControl><Input type="password" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={changePasswordForm.control}
+                                    name="newPassword"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>New Password</FormLabel>
+                                            <FormControl><Input type="password" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={changePasswordForm.control}
+                                    name="confirmPassword"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Confirm New Password</FormLabel>
+                                            <FormControl><Input type="password" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <Button type="submit" disabled={changePasswordForm.formState.isSubmitting}>
+                                    {changePasswordForm.formState.isSubmitting ? "Updating..." : "Update Password"}
+                                </Button>
+                            </form>
+                        </Form>
+                    </CardContent>
+                </Card>
             </TabsContent>
         </Tabs>
     </div>
