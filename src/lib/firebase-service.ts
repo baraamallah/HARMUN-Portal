@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Theme, HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent } from './types';
 import { format } from 'date-fns';
@@ -210,4 +210,49 @@ export async function getCommittees(): Promise<Committee[]> {
 export async function deleteCommittee(id: string): Promise<void> {
     const docRef = doc(db, COMMITTEES_COLLECTION, id);
     await deleteDoc(docRef);
+}
+
+// --- Import/Export Management ---
+
+// Helper function to clear a collection
+async function clearCollection(collectionPath: string) {
+    const collectionRef = collection(db, collectionPath);
+    const q = query(collectionRef);
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+        return;
+    }
+
+    const batch = writeBatch(db);
+    querySnapshot.docs.forEach((docSnapshot) => {
+        batch.delete(docSnapshot.ref);
+    });
+    await batch.commit();
+}
+
+export async function importData(data: { committees: Committee[], countries: Country[] }): Promise<void> {
+    if (!Array.isArray(data.committees) || !Array.isArray(data.countries)) {
+        throw new Error("Invalid import file format. It must contain 'committees' and 'countries' arrays.");
+    }
+
+    // This is a destructive operation. Clear existing data first.
+    await clearCollection(COMMITTEES_COLLECTION);
+    await clearCollection(COUNTRIES_COLLECTION);
+    
+    const committeeBatch = writeBatch(db);
+    data.committees.forEach(c => {
+        const { id, ...committeeData } = c; // Exclude ID from the imported object
+        const newDocRef = doc(collection(db, COMMITTEES_COLLECTION));
+        committeeBatch.set(newDocRef, committeeData);
+    });
+    await committeeBatch.commit();
+    
+    const countryBatch = writeBatch(db);
+    data.countries.forEach(c => {
+        const { id, ...countryData } = c; // Exclude ID
+        const newDocRef = doc(collection(db, COUNTRIES_COLLECTION));
+        countryBatch.set(newDocRef, countryData);
+    });
+    await countryBatch.commit();
 }

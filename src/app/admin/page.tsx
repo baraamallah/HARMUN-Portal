@@ -19,8 +19,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Paintbrush, Type, PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, Share2, BookOpenText, List } from "lucide-react";
-import { getTheme, updateTheme, getHomePageContent, updateHomePageContent, addPost, getAllPosts, formatTimestamp, getCountries, addCountry, updateCountryStatus, deleteCountry, getCommittees, addCommittee, deleteCommittee, getSiteConfig, updateSiteConfig, getAboutPageContent, updateAboutPageContent, defaultSiteConfig } from "@/lib/firebase-service";
+import { Paintbrush, Type, PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, Share2, BookOpenText, Download, Upload } from "lucide-react";
+import { getTheme, updateTheme, getHomePageContent, updateHomePageContent, addPost, getAllPosts, formatTimestamp, getCountries, addCountry, updateCountryStatus, deleteCountry, getCommittees, addCommittee, deleteCommittee, getSiteConfig, updateSiteConfig, getAboutPageContent, updateAboutPageContent, defaultSiteConfig, importData } from "@/lib/firebase-service";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Post, Country, Committee, SiteConfig, HomePageContent, AboutPageContent } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -99,6 +99,8 @@ export default function AdminPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
   const [committees, setCommittees] = useState<Committee[]>([]);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
 
   const themeForm = useForm<z.infer<typeof themeFormSchema>>({ resolver: zodResolver(themeFormSchema) });
   const contentForm = useForm<z.infer<typeof contentFormSchema>>({ resolver: zodResolver(contentFormSchema) });
@@ -313,7 +315,76 @@ export default function AdminPage() {
           }
       }
   }
-  
+
+    const handleExport = () => {
+        const exportData = { committees, countries };
+        const jsonString = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([jsonString], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "harmun-data-export.json";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast({
+            title: "Data Exported",
+            description: "Your committee and country data has been downloaded.",
+        });
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.files && event.target.files.length > 0) {
+            setImportFile(event.target.files[0]);
+        } else {
+            setImportFile(null);
+        }
+    };
+
+    const handleImport = async () => {
+        if (!importFile) {
+            toast({ title: "No file selected", description: "Please choose a file to import.", variant: "destructive" });
+            return;
+        }
+        if (!confirm("Are you sure you want to import this data? This will ERASE all existing committee and country data and replace it. This action cannot be undone.")) {
+            return;
+        }
+
+        setIsImporting(true);
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const content = event.target?.result as string;
+                const data = JSON.parse(content);
+                await importData(data);
+                toast({
+                    title: "Import Successful!",
+                    description: "Your data has been imported. The page will now reload.",
+                });
+                await fetchAdminData();
+            } catch (error) {
+                console.error("Import failed:", error);
+                const errorMessage = error instanceof Error ? error.message : "An unknown error occurred during import.";
+                toast({
+                    title: "Import Failed",
+                    description: errorMessage,
+                    variant: "destructive",
+                });
+            } finally {
+                setIsImporting(false);
+                setImportFile(null);
+                const fileInput = document.getElementById('importFile') as HTMLInputElement;
+                if (fileInput) fileInput.value = '';
+            }
+        };
+        reader.onerror = () => {
+            toast({ title: "Error reading file", variant: "destructive" });
+            setIsImporting(false);
+        }
+        reader.readAsText(importFile);
+    };
+
   if (loading) {
     return (
       <div className="space-y-8">
@@ -472,6 +543,38 @@ export default function AdminPage() {
                 </CardContent>
             </Card>
         </div>
+        
+        <Card className="lg:col-span-2">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Download className="w-6 h-6" /> Import / Export Data</CardTitle>
+                <CardDescription>Backup and restore your committee and country matrix data.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div>
+                    <h3 className="font-semibold mb-2">Export Data</h3>
+                    <p className="text-sm text-muted-foreground mb-3">Download a JSON file containing all current committee and country data. Keep this file as a backup.</p>
+                    <Button onClick={handleExport} className="w-full">
+                        <Download className="mr-2" />
+                        Export Committee & Country Data
+                    </Button>
+                </div>
+                <div className="border-t pt-6">
+                     <h3 className="font-semibold mb-2">Import Data</h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                        Upload a JSON file (in the same format as the export file) to restore your data.
+                        <br/>
+                        <strong className="text-destructive">Warning: This will overwrite all existing committee and country data.</strong>
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                         <Input id="importFile" type="file" accept=".json" onChange={handleFileChange} className="flex-grow"/>
+                        <Button onClick={handleImport} disabled={!importFile || isImporting} className="sm:w-auto">
+                            <Upload className="mr-2" />
+                            {isImporting ? "Importing..." : "Import & Overwrite"}
+                        </Button>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
 
 
         <Card>
