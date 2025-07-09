@@ -29,7 +29,7 @@ export function AppHeader({ siteConfig }: { siteConfig: SiteConfig }) {
   );
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-popover">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary-foreground font-headline">
           <Globe className="h-7 w-7 text-primary" />
@@ -61,7 +61,7 @@ export function AppHeader({ siteConfig }: { siteConfig: SiteConfig }) {
                 <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="bg-popover/95 backdrop-blur-lg">
+            <SheetContent side="right" className="bg-popover">
               <div className="flex flex-col gap-6 p-6">
                 <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary-foreground font-headline mb-4" onClick={() => setSheetOpen(false)}>
                   <Globe className="h-7 w-7 text-primary" />

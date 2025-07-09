@@ -8,7 +8,7 @@ type TimeUnitProps = {
 };
 
 const TimeUnit: React.FC<TimeUnitProps> = ({ value, label }) => (
-  <div className="flex flex-col items-center justify-center bg-primary/80 text-primary-foreground rounded-lg w-24 h-24 md:w-32 md:h-32 p-4 shadow-lg border border-primary-foreground/10 backdrop-blur-md">
+  <div className="flex flex-col items-center justify-center bg-primary text-primary-foreground rounded-lg w-24 h-24 md:w-32 md:h-32 p-4 shadow-lg">
     <span className="text-4xl md:text-6xl font-bold font-mono">{String(value).padStart(2, '0')}</span>
     <span className="text-sm md:text-base uppercase tracking-wider">{label}</span>
   </div>
