@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Paintbrush, Type, PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, Share2, BookOpenText, Upload, Download, FileCsv } from "lucide-react";
+import { Paintbrush, Type, PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, Share2, BookOpenText, Upload, Download, FileSpreadsheet } from "lucide-react";
 import { getTheme, updateTheme, getHomePageContent, updateHomePageContent, addPost, getAllPosts, formatTimestamp, getCountries, addCountry, updateCountryStatus, deleteCountry, getCommittees, addCommittee, deleteCommittee, getSiteConfig, updateSiteConfig, getAboutPageContent, updateAboutPageContent, defaultSiteConfig, importCommittees, importCountries } from "@/lib/firebase-service";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Post, Country, Committee, SiteConfig, HomePageContent, AboutPageContent } from "@/lib/types";
@@ -634,7 +634,7 @@ export default function AdminPage() {
                     <h3 className="font-semibold text-lg flex items-center gap-2"><Library /> Committee Data</h3>
                     <p className="text-sm text-muted-foreground">Export all committees to a CSV file or import a file to overwrite existing committee data.</p>
                     <Button onClick={handleCommitteeExport} className="w-full">
-                        <FileCsv className="mr-2" />
+                        <FileSpreadsheet className="mr-2" />
                         Export Committees to CSV
                     </Button>
                     <div className="border-t pt-6">
@@ -656,7 +656,7 @@ export default function AdminPage() {
                     <h3 className="font-semibold text-lg flex items-center gap-2"><Globe /> Country Data</h3>
                      <p className="text-sm text-muted-foreground">Export the full country matrix to a CSV file or import a file to overwrite it.</p>
                     <Button onClick={handleCountryExport} className="w-full">
-                        <FileCsv className="mr-2" />
+                        <FileSpreadsheet className="mr-2" />
                         Export Countries to CSV
                     </Button>
                      <div className="border-t pt-6">
