@@ -2,7 +2,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 import * as z from "zod";
 import React, { useEffect, useState } from "react";
 import Papa from "papaparse";
@@ -23,8 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import * as icons from "lucide-react";
-import { PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, CalendarDays, Settings, Home, FileBadge, UserSquare, Shield, HelpCircle, type LucideIcon, Upload, Download, KeyRound, GalleryHorizontal } from "lucide-react";
+import { PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, CalendarDays, Settings, Home, FileBadge, UserSquare, Shield, HelpCircle, type LucideIcon, Upload, Download, KeyRound, GalleryHorizontal, Linkedin, Youtube, Facebook, Twitter, Instagram, type LucideProps } from "lucide-react";
 import * as firebaseService from "@/lib/firebase-service";
 import * as authService from "@/lib/auth-service";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,8 +34,14 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/context/auth-context";
 
-const Icon = ({ name, ...props }: { name: string } & React.ComponentProps<LucideIcon>) => {
-  const LucideIcon = (icons as unknown as Record<string, LucideIcon>)[name];
+const icons: Record<string, LucideIcon> = {
+    HelpCircle, PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, CalendarDays,
+    Settings, Home, FileBadge, UserSquare, Shield, Upload, Download, KeyRound, GalleryHorizontal,
+    Linkedin, Youtube, Facebook, Twitter, Instagram,
+};
+
+const Icon = ({ name, ...props }: { name: string } & LucideProps) => {
+  const LucideIcon = icons[name];
   if (!LucideIcon) return <HelpCircle {...props} />;
   return <LucideIcon {...props} />;
 };
@@ -193,11 +198,14 @@ const navLinksForAdmin = [
   { href: '/sg-notes', label: 'SG Notes' }, { href: '/registration', label: 'Registration' }, { href: '/schedule', label: 'Schedule' },
   { href: '/secretariat', label: 'Secretariat' }, { href: '/documents', label: 'Documents' }, { href: '/gallery', label: 'Gallery'}
 ];
+
 const siteConfigSchema = z.object({
-  conferenceDate: z.string().min(1), mapEmbedUrl: z.string().url(),
-  twitter: z.string().url().or(z.literal("")).or(z.literal("#")),
-  instagram: z.string().url().or(z.literal("")).or(z.literal("#")),
-  facebook: z.string().url().or(z.literal("")).or(z.literal("#")),
+  conferenceDate: z.string().min(1),
+  mapEmbedUrl: z.string().url(),
+  socialLinks: z.array(z.object({
+      platform: z.string(),
+      url: z.string().url().or(z.literal("")).or(z.literal("#")),
+  })),
   footerText: z.string().min(5),
   navVisibility: z.object(Object.fromEntries(navLinksForAdmin.map(link => [link.href, z.boolean()]))),
 });
@@ -297,13 +305,57 @@ function AddGalleryImageForm({ onAdd }: { onAdd: (data: any) => Promise<void> })
 }
 
 
+const availablePlatforms = ['Twitter', 'Instagram', 'Facebook', 'LinkedIn', 'YouTube'];
+function AddSocialLinkForm({ onAdd, existingPlatforms }: { onAdd: (link: T.SocialLink) => void; existingPlatforms: string[] }) {
+    const [platform, setPlatform] = useState('');
+    const [url, setUrl] = useState('');
+
+    const filteredPlatforms = availablePlatforms.filter(p => !existingPlatforms.includes(p));
+
+    const handleAdd = () => {
+        if (platform && url) {
+            onAdd({ platform, url });
+            setPlatform('');
+            setUrl('');
+        }
+    };
+
+    return (
+        <div className="p-2 border-t mt-4">
+            <h4 className="font-semibold mb-2">Add New Social Link</h4>
+            <div className="flex flex-wrap md:flex-nowrap gap-2 items-end">
+                 <FormItem className="w-full md:w-auto">
+                    <FormLabel>Platform</FormLabel>
+                    <Select onValueChange={setPlatform} value={platform}>
+                        <FormControl>
+                            <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {filteredPlatforms.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                 </FormItem>
+                 <FormItem className="flex-grow">
+                    <FormLabel>URL</FormLabel>
+                    <FormControl>
+                        <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." />
+                    </FormControl>
+                 </FormItem>
+                <Button type="button" onClick={handleAdd} disabled={!platform || !url || filteredPlatforms.length === 0}>Add</Button>
+            </div>
+             {filteredPlatforms.length === 0 && <p className="text-xs text-muted-foreground mt-2">All available platforms have been added.</p>}
+        </div>
+    );
+}
+
+
 export default function AdminPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [activeAccordion, setActiveAccordion] = useState<string | undefined>();
   const [data, setData] = useState<any>({
-    homeContent: {}, aboutContent: {}, registrationContent: {}, documentsContent: {}, galleryContent: {}, siteConfig: {},
+    homeContent: {}, aboutContent: {}, registrationContent: {}, documentsContent: {}, galleryContent: {}, siteConfig: { socialLinks: [] },
     posts: [], countries: [], committees: [], secretariat: [], schedule: [], highlights: [], codeOfConduct: [], galleryImages: []
   });
 
@@ -315,6 +367,10 @@ export default function AdminPage() {
   const siteConfigForm = useForm<z.infer<typeof siteConfigSchema>>({ resolver: zodResolver(siteConfigSchema) });
   const changePasswordForm = useForm<z.infer<typeof changePasswordSchema>>({ resolver: zodResolver(changePasswordSchema), defaultValues: {currentPassword: "", newPassword: "", confirmPassword: ""}});
 
+  const { fields: socialLinkFields, append: appendSocialLink, remove: removeSocialLink, replace: replaceSocialLinks } = useFieldArray({
+    control: siteConfigForm.control,
+    name: "socialLinks",
+  });
 
   const fetchAllData = React.useCallback(async () => {
     try {
@@ -341,7 +397,9 @@ export default function AdminPage() {
         documentsForm.reset(allData.documentsContent);
         galleryForm.reset(allData.galleryContent);
         siteConfigForm.reset({
-            ...allData.siteConfig, ...allData.siteConfig.socialLinks, footerText: allData.siteConfig.footerText,
+            ...allData.siteConfig,
+            socialLinks: allData.siteConfig.socialLinks || [],
+            footerText: allData.siteConfig.footerText,
             navVisibility: allData.siteConfig.navVisibility || {},
         });
 
@@ -815,29 +873,57 @@ export default function AdminPage() {
                 <Accordion type="single" collapsible value={activeAccordion} onValueChange={setActiveAccordion}>
                     <AccordionItem value="site"><AccordionTrigger><div className="flex items-center gap-2 text-lg"><Settings /> Site & Navigation</div></AccordionTrigger>
                     <AccordionContent className="p-1 space-y-6">
-                        <Card><CardHeader><CardTitle>General Settings</CardTitle></CardHeader>
-                        <CardContent>
-                            <Form {...siteConfigForm}><form onSubmit={siteConfigForm.handleSubmit(async (values) => {
-                                const { twitter, instagram, facebook, footerText, conferenceDate, mapEmbedUrl, navVisibility } = values;
-                                const config = { conferenceDate, mapEmbedUrl, socialLinks: { twitter, instagram, facebook }, footerText, navVisibility };
-                                await handleFormSubmit(firebaseService.updateSiteConfig, "Site settings updated.", config, siteConfigForm)
+                         <Form {...siteConfigForm}><form id="site-config-form" onSubmit={siteConfigForm.handleSubmit(async (values) => {
+                                await handleFormSubmit(firebaseService.updateSiteConfig, "Site settings updated.", values, siteConfigForm)
                             })} className="space-y-4">
+                        <Card><CardHeader><CardTitle>General Settings</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                           
                                 <FormField control={siteConfigForm.control} name="conferenceDate" render={({ field }) => (<FormItem><FormLabel>Countdown Date</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Format: YYYY-MM-DDTHH:mm:ss</FormDescription></FormItem>)} />
                                 <FormField control={siteConfigForm.control} name="mapEmbedUrl" render={({ field }) => (<FormItem><FormLabel>Google Maps Embed URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
-                                <FormField control={siteConfigForm.control} name="twitter" render={({ field }) => (<FormItem><FormLabel>Twitter URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
-                                <FormField control={siteConfigForm.control} name="instagram" render={({ field }) => (<FormItem><FormLabel>Instagram URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
-                                <FormField control={siteConfigForm.control} name="facebook" render={({ field }) => (<FormItem><FormLabel>Facebook URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
                                 <FormField control={siteConfigForm.control} name="footerText" render={({ field }) => (<FormItem><FormLabel>Footer Text</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>)} />
-                                <Button type="submit">Save General</Button>
-                            </form></Form>
+                                <Button type="submit" form="site-config-form">Save General</Button>
                         </CardContent></Card>
+                        
+                         <Card><CardHeader><CardTitle>Social Media Links</CardTitle></CardHeader>
+                         <CardContent>
+                             <div className="space-y-4">
+                                {socialLinkFields.map((field, index) => (
+                                    <div key={field.id} className="flex items-end gap-2 p-2 border rounded-md">
+                                         <FormField
+                                            control={siteConfigForm.control}
+                                            name={`socialLinks.${index}.platform`}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Platform</FormLabel>
+                                                    <FormControl><Input {...field} readOnly className="font-semibold bg-muted" /></FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={siteConfigForm.control}
+                                            name={`socialLinks.${index}.url`}
+                                            render={({ field }) => (
+                                                <FormItem className="flex-grow">
+                                                    <FormLabel>URL</FormLabel>
+                                                    <FormControl><Input {...field} placeholder="https://..." /></FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <Button type="button" variant="destructive" size="icon" onClick={() => removeSocialLink(index)}><Trash2 className="h-4 w-4"/></Button>
+                                    </div>
+                                ))}
+                            </div>
+                            <AddSocialLinkForm
+                                onAdd={appendSocialLink}
+                                existingPlatforms={socialLinkFields.map(f => f.platform)}
+                            />
+                            <Button type="submit" form="site-config-form" className="mt-4">Save Social Links</Button>
+                         </CardContent></Card>
+                        
                         <Card><CardHeader><CardTitle>Navigation Visibility</CardTitle></CardHeader>
                         <CardContent>
-                             <Form {...siteConfigForm}><form onSubmit={siteConfigForm.handleSubmit(async (values) => { 
-                                const currentConfig = await firebaseService.getSiteConfig();
-                                await firebaseService.updateSiteConfig({ ...currentConfig, navVisibility: values.navVisibility }); 
-                                toast({title: "Nav Updated!"});
-                             })} className="space-y-2">
+                             <div className="space-y-2">
                                 {navLinksForAdmin.map((link) => (
                                     <FormField key={link.href} control={siteConfigForm.control} name={`navVisibility.${link.href}` as const} render={({ field }) => (
                                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
@@ -846,9 +932,10 @@ export default function AdminPage() {
                                         </FormItem>
                                     )} />
                                 ))}
-                                <Button type="submit" className="w-full">Save Navigation</Button>
-                            </form></Form>
+                                <Button type="submit" form="site-config-form" className="w-full">Save Navigation</Button>
+                             </div>
                         </CardContent></Card>
+                        </form></Form>
                     </AccordionContent></AccordionItem>
                     <AccordionItem value="import-export"><AccordionTrigger><div className="flex items-center gap-2 text-lg"><Download /> Import / Export</div></AccordionTrigger>
                     <AccordionContent className="p-1"><Card><CardContent className="pt-6 grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -856,6 +943,7 @@ export default function AdminPage() {
                             <h3 className="font-semibold flex items-center gap-2"><Library/> Committees</h3>
                             <Button onClick={() => handleExport(data.committees, 'committees.csv')} className="w-full">Export to CSV</Button>
                             <div className="border-t pt-2 mt-2"><h4 className="font-semibold mb-2">Import</h4>
+                                <FormDescription className="text-xs mb-2">CSV must have columns: name, chairName, chairBio, chairImageUrl, topics (use \n for multiple), backgroundGuideUrl.</FormDescription>
                                 <div className="flex gap-2"><Input id="committeesImportFile" type="file" accept=".csv" onChange={handleFileChange(setCommitteeImportFile)}/>
                                 <Button onClick={() => handleImport(committeeImportFile, firebaseService.importCommittees, 'committees')} disabled={!committeeImportFile || isImporting}><Upload/></Button></div>
                             </div>
@@ -864,6 +952,7 @@ export default function AdminPage() {
                             <h3 className="font-semibold flex items-center gap-2"><Globe/> Countries</h3>
                             <Button onClick={() => handleExport(data.countries, 'countries.csv')} className="w-full">Export to CSV</Button>
                             <div className="border-t pt-2 mt-2"><h4 className="font-semibold mb-2">Import</h4>
+                                <FormDescription className="text-xs mb-2">CSV must have columns: name, committee, status (Available or Assigned).</FormDescription>
                                 <div className="flex gap-2"><Input id="countriesImportFile" type="file" accept=".csv" onChange={handleFileChange(setCountryImportFile)}/>
                                 <Button onClick={() => handleImport(countryImportFile, firebaseService.importCountries, 'countries')} disabled={!countryImportFile || isImporting}><Upload/></Button></div>
                             </div>
@@ -872,6 +961,7 @@ export default function AdminPage() {
                             <h3 className="font-semibold flex items-center gap-2"><Users/> Secretariat</h3>
                             <Button onClick={() => handleExport(data.secretariat, 'secretariat.csv')} className="w-full">Export to CSV</Button>
                             <div className="border-t pt-2 mt-2"><h4 className="font-semibold mb-2">Import</h4>
+                                <FormDescription className="text-xs mb-2">CSV must have columns: name, role, bio, imageUrl, order.</FormDescription>
                                 <div className="flex gap-2"><Input id="secretariatImportFile" type="file" accept=".csv" onChange={handleFileChange(setSecretariatImportFile)}/>
                                 <Button onClick={() => handleImport(secretariatImportFile, firebaseService.importSecretariat, 'secretariat')} disabled={!secretariatImportFile || isImporting}><Upload/></Button></div>
                             </div>
@@ -880,6 +970,7 @@ export default function AdminPage() {
                             <h3 className="font-semibold flex items-center gap-2"><GalleryHorizontal/> Gallery</h3>
                             <Button onClick={() => handleExport(data.galleryImages, 'gallery.csv')} className="w-full">Export to CSV</Button>
                             <div className="border-t pt-2 mt-2"><h4 className="font-semibold mb-2">Import</h4>
+                                <FormDescription className="text-xs mb-2">CSV must have columns: title, imageUrl, order.</FormDescription>
                                 <div className="flex gap-2"><Input id="galleryImportFile" type="file" accept=".csv" onChange={handleFileChange(setGalleryImportFile)}/>
                                 <Button onClick={() => handleImport(galleryImportFile, firebaseService.importGallery, 'gallery')} disabled={!galleryImportFile || isImporting}><Upload/></Button></div>
                             </div>
@@ -942,3 +1033,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    

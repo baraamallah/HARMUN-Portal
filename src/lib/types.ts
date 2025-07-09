@@ -1,3 +1,4 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export type Committee = {
@@ -46,15 +47,14 @@ export type Country = {
   status: 'Available' | 'Assigned';
 };
 
-export type SocialLinks = {
-  twitter: string;
-  instagram: string;
-  facebook: string;
+export type SocialLink = {
+  platform: string;
+  url: string;
 };
 
 export type SiteConfig = {
   conferenceDate: string;
-  socialLinks: SocialLinks;
+  socialLinks: SocialLink[];
   footerText: string;
   mapEmbedUrl: string;
   navVisibility?: Record<string, boolean>;
@@ -127,3 +127,5 @@ export type Post = {
   type: 'sg-note' | 'news';
   createdAt: Timestamp;
 };
+
+    

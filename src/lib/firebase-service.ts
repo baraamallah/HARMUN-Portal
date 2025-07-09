@@ -1,3 +1,4 @@
+
 import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc, writeBatch, documentId, runTransaction } from 'firebase/firestore';
 import { db } from './firebase';
 import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, SecretariatMember, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, CodeOfConductItem, ConferenceHighlight, GalleryPageContent, GalleryImage } from './types';
@@ -48,7 +49,11 @@ export async function initializeDefaultData() {
             },
             [SITE_CONFIG_DOC_ID]: {
                 conferenceDate: '2025-01-30T09:00:00',
-                socialLinks: { twitter: "#", instagram: "#", facebook: "#" },
+                socialLinks: [
+                    { platform: 'Twitter', url: '#' },
+                    { platform: 'Instagram', url: '#' },
+                    { platform: 'Facebook', url: '#' },
+                ],
                 footerText: "This is a fictional event created for demonstration purposes.",
                 mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2925.733553224765!2d-71.1194179234839!3d42.37361573426569!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89e377427d73825b%3A0x5e567c1d7756919a!2sHarvard%20University!5e0!3m2!1sen!2sus!4v1709876543210!5m2!1sen!2sus",
                 navVisibility: { '/about': true, '/committees': true, '/news': true, '/sg-notes': true, '/registration': true, '/schedule': true, '/secretariat': true, '/documents': true, '/gallery': true },
@@ -180,7 +185,7 @@ export const updateDocumentsPageContent = (content: Partial<DocumentsPageContent
 export const getGalleryPageContent = () => getConfigDoc<GalleryPageContent>(GALLERY_PAGE_CONTENT_DOC_ID, {} as GalleryPageContent);
 export const updateGalleryPageContent = (content: Partial<GalleryPageContent>) => updateConfigDoc(GALLERY_PAGE_CONTENT_DOC_ID, content);
 
-export const getSiteConfig = () => getConfigDoc<SiteConfig>(SITE_CONFIG_DOC_ID, {} as SiteConfig);
+export const getSiteConfig = () => getConfigDoc<SiteConfig>(SITE_CONFIG_DOC_ID, { socialLinks: [] } as SiteConfig);
 export const updateSiteConfig = (config: Partial<SiteConfig>) => updateConfigDoc(SITE_CONFIG_DOC_ID, config);
 
 
@@ -400,3 +405,5 @@ async function clearCollection(collectionPath: string) {
     querySnapshot.docs.forEach(docSnapshot => batch.delete(docSnapshot.ref));
     await batch.commit();
 }
+
+    

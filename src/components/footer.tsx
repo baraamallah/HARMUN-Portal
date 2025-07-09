@@ -1,10 +1,22 @@
-import { Globe, Twitter, Instagram, Facebook } from 'lucide-react';
+
+import { Globe, Twitter, Instagram, Facebook, Linkedin, Youtube, type LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from './ui/button';
 import type { SiteConfig } from '@/lib/types';
 
+const platformIcons: Record<string, LucideIcon> = {
+  Twitter,
+  Instagram,
+  Facebook,
+  Linkedin,
+  Youtube,
+};
+
 export function AppFooter({ siteConfig }: { siteConfig: SiteConfig }) {
-  const { twitter, instagram, facebook } = siteConfig.socialLinks;
+  // Handle legacy socialLinks object format for backward compatibility
+  const socialLinksArray = Array.isArray(siteConfig.socialLinks)
+    ? siteConfig.socialLinks
+    : [];
 
   return (
     <footer className="border-t border-border">
@@ -21,27 +33,19 @@ export function AppFooter({ siteConfig }: { siteConfig: SiteConfig }) {
           </div>
 
           <div className="flex items-center space-x-2">
-            {twitter && twitter !== '#' && (
-              <Button variant="ghost" size="icon" asChild>
-                <Link href={twitter} aria-label="Twitter" target="_blank" rel="noopener noreferrer">
-                  <Twitter className="h-5 w-5" />
-                </Link>
-              </Button>
-            )}
-            {instagram && instagram !== '#' && (
-              <Button variant="ghost" size="icon" asChild>
-                <Link href={instagram} aria-label="Instagram" target="_blank" rel="noopener noreferrer">
-                  <Instagram className="h-5 w-5" />
-                </Link>
-              </Button>
-            )}
-            {facebook && facebook !== '#' && (
-              <Button variant="ghost" size="icon" asChild>
-                <Link href={facebook} aria-label="Facebook" target="_blank" rel="noopener noreferrer">
-                  <Facebook className="h-5 w-5" />
-                </Link>
-              </Button>
-            )}
+            {socialLinksArray.map(({ platform, url }) => {
+                const Icon = platformIcons[platform];
+                if (!Icon || !url || url === '#') {
+                    return null;
+                }
+                return (
+                    <Button variant="ghost" size="icon" asChild key={platform}>
+                        <Link href={url} aria-label={platform} target="_blank" rel="noopener noreferrer">
+                        <Icon className="h-5 w-5" />
+                        </Link>
+                    </Button>
+                );
+            })}
           </div>
         </div>
       </div>
