@@ -1,11 +1,12 @@
-import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Theme, HomePageContent, Post, Country } from './types';
+import type { Theme, HomePageContent, Post, Country, Committee } from './types';
 import { format } from 'date-fns';
 
 const CONFIG_COLLECTION = 'config';
 const POSTS_COLLECTION = 'posts';
 const COUNTRIES_COLLECTION = 'countries';
+const COMMITTEES_COLLECTION = 'committees';
 const THEME_DOC_ID = 'theme';
 const HOME_PAGE_CONTENT_DOC_ID = 'homePage';
 
@@ -103,10 +104,27 @@ export async function getCountries(): Promise<Country[]> {
 
 export async function updateCountryStatus(id: string, status: 'Available' | 'Assigned'): Promise<void> {
     const docRef = doc(db, COUNTRIES_COLLECTION, id);
-    await setDoc(docRef, { status }, { merge: true });
+    await updateDoc(docRef, { status });
 }
 
 export async function deleteCountry(id: string): Promise<void> {
     const docRef = doc(db, COUNTRIES_COLLECTION, id);
+    await deleteDoc(docRef);
+}
+
+// --- Committee Management ---
+export async function addCommittee(committee: Omit<Committee, 'id'>): Promise<string> {
+  const docRef = await addDoc(collection(db, COMMITTEES_COLLECTION), committee);
+  return docRef.id;
+}
+
+export async function getCommittees(): Promise<Committee[]> {
+    const q = query(collection(db, COMMITTEES_COLLECTION), orderBy('name'));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Committee));
+}
+
+export async function deleteCommittee(id: string): Promise<void> {
+    const docRef = doc(db, COMMITTEES_COLLECTION, id);
     await deleteDoc(docRef);
 }

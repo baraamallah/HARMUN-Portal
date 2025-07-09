@@ -19,10 +19,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Paintbrush, Type, PlusCircle, Newspaper, Users, FileText, Library, Image as ImageIcon, Globe, Trash2 } from "lucide-react";
-import { getTheme, updateTheme, getHomePageContent, updateHomePageContent, addPost, getAllPosts, formatTimestamp, getCountries, addCountry, updateCountryStatus, deleteCountry } from "@/lib/firebase-service";
+import { Paintbrush, Type, PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2 } from "lucide-react";
+import { getTheme, updateTheme, getHomePageContent, updateHomePageContent, addPost, getAllPosts, formatTimestamp, getCountries, addCountry, updateCountryStatus, deleteCountry, getCommittees, addCommittee, deleteCommittee } from "@/lib/firebase-service";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Post, Country } from "@/lib/types";
+import type { Post, Country, Committee } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +51,15 @@ const countryMatrixFormSchema = z.object({
     committee: z.string({ required_error: "Please select a committee." }),
 });
 
+const committeeFormSchema = z.object({
+    name: z.string().min(3, "Committee name is required."),
+    chairName: z.string().min(2, "Chair name is required."),
+    chairBio: z.string().min(10, "Chair bio must be at least 10 characters."),
+    chairImageUrl: z.string().url("A valid image URL for the chair is required."),
+    topics: z.string().min(5, "At least one topic is required."),
+    backgroundGuideUrl: z.string().url("A valid background guide URL is required."),
+});
+
 const committeesList = ['Security Council (SC)', 'World Health Organization (WHO)', 'Human Rights Council (HRC)', 'United Nations Environment Programme (UNEP)'];
 
 export default function AdminPage() {
@@ -58,6 +67,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState<Post[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
+  const [committees, setCommittees] = useState<Committee[]>([]);
 
   const themeForm = useForm<z.infer<typeof themeFormSchema>>({ resolver: zodResolver(themeFormSchema) });
   const contentForm = useForm<z.infer<typeof contentFormSchema>>({ resolver: zodResolver(contentFormSchema) });
@@ -69,20 +79,26 @@ export default function AdminPage() {
     resolver: zodResolver(countryMatrixFormSchema),
     defaultValues: { name: "" },
   });
+  const committeeForm = useForm<z.infer<typeof committeeFormSchema>>({
+    resolver: zodResolver(committeeFormSchema),
+    defaultValues: { name: "", chairName: "", chairBio: "", chairImageUrl: "", topics: "", backgroundGuideUrl: "" },
+  });
 
   const fetchAdminData = React.useCallback(async () => {
     try {
         setLoading(true);
-        const [theme, content, allPosts, allCountries] = await Promise.all([
+        const [theme, content, allPosts, allCountries, allCommittees] = await Promise.all([
             getTheme(),
             getHomePageContent(),
             getAllPosts(),
             getCountries(),
+            getCommittees(),
         ]);
         themeForm.reset(theme);
         contentForm.reset(content);
         setPosts(allPosts);
         setCountries(allCountries);
+        setCommittees(allCommittees);
     } catch (error) {
         console.error("Failed to fetch admin data:", error);
         toast({
@@ -182,6 +198,39 @@ export default function AdminPage() {
           }
       }
   }
+
+  async function onCommitteeSubmit(values: z.infer<typeof committeeFormSchema>) {
+    try {
+        const committeeData = {
+            name: values.name,
+            chair: {
+                name: values.chairName,
+                bio: values.chairBio,
+                imageUrl: values.chairImageUrl,
+            },
+            topics: values.topics.split('\n').filter(topic => topic.trim() !== ''),
+            backgroundGuideUrl: values.backgroundGuideUrl,
+        };
+        await addCommittee(committeeData);
+        toast({ title: "Committee Added!", description: `The ${values.name} committee has been created.` });
+        committeeForm.reset();
+        await fetchAdminData();
+    } catch (error) {
+        toast({ title: "Error Adding Committee", description: "Could not save the committee.", variant: "destructive" });
+    }
+  }
+
+  async function handleDeleteCommittee(id: string, name: string) {
+      if (confirm(`Are you sure you want to delete the ${name} committee? This is irreversible.`)) {
+          try {
+              await deleteCommittee(id);
+              toast({ title: "Committee Deleted", description: `The ${name} committee has been removed.` });
+              await fetchAdminData();
+          } catch (error) {
+              toast({ title: "Error", description: "Could not delete the committee.", variant: "destructive" });
+          }
+      }
+  }
   
   if (loading) {
     return (
@@ -198,7 +247,7 @@ export default function AdminPage() {
             <p className="text-muted-foreground">Manage your conference website content and settings here.</p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total Registrations</CardTitle>
@@ -227,6 +276,16 @@ export default function AdminPage() {
                 <CardContent>
                     <div className="text-2xl font-bold">{countries.length}</div>
                     <p className="text-xs text-muted-foreground">Available and assigned positions.</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Committees</CardTitle>
+                    <Library className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{committees.length}</div>
+                    <p className="text-xs text-muted-foreground">Number of active committees.</p>
                 </CardContent>
             </Card>
         </div>
@@ -262,6 +321,51 @@ export default function AdminPage() {
                 </CardContent>
             </Card>
         </div>
+        
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Library className="w-6 h-6" /> Committee Management</CardTitle>
+                <CardDescription>Add, remove, and manage conference committees.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Form {...committeeForm}>
+                    <form onSubmit={committeeForm.handleSubmit(onCommitteeSubmit)} className="space-y-6 mb-8 p-4 border rounded-lg">
+                        <h3 className="text-lg font-semibold border-b pb-2">Add New Committee</h3>
+                        <div className="grid md:grid-cols-2 gap-6">
+                             <FormField control={committeeForm.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Committee Name</FormLabel><FormControl><Input placeholder="e.g., Security Council" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                             <FormField control={committeeForm.control} name="chairName" render={({ field }) => ( <FormItem><FormLabel>Chair Name</FormLabel><FormControl><Input placeholder="e.g., Dr. Evelyn Reed" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        </div>
+                        <FormField control={committeeForm.control} name="chairBio" render={({ field }) => ( <FormItem><FormLabel>Chair Bio</FormLabel><FormControl><Textarea placeholder="Brief biography of the chair..." {...field} rows={3} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={committeeForm.control} name="chairImageUrl" render={({ field }) => ( <FormItem><FormLabel>Chair Image URL</FormLabel><FormControl><Input placeholder="https://placehold.co/400x400.png" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={committeeForm.control} name="topics" render={({ field }) => ( <FormItem><FormLabel>Topics</FormLabel><FormControl><Textarea placeholder="Enter each topic on a new line..." {...field} rows={3}/></FormControl><FormDescription>Separate each topic with a new line.</FormDescription><FormMessage /></FormItem> )} />
+                        <FormField control={committeeForm.control} name="backgroundGuideUrl" render={({ field }) => ( <FormItem><FormLabel>Background Guide URL</FormLabel><FormControl><Input placeholder="https://example.com/guide.pdf" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <Button type="submit" className="w-full" disabled={committeeForm.formState.isSubmitting}><PlusCircle className="mr-2" />{committeeForm.formState.isSubmitting ? "Adding..." : "Add Committee"}</Button>
+                    </form>
+                </Form>
+
+                <h3 className="text-lg font-semibold mt-6 mb-4">Existing Committees</h3>
+                <div className="border rounded-md max-h-96 overflow-y-auto">
+                    <Table>
+                        <TableHeader><TableRow><TableHead>Committee</TableHead><TableHead>Chair</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                        <TableBody>
+                            {committees.length > 0 ? committees.map(c => (
+                                <TableRow key={c.id}>
+                                    <TableCell className="font-medium">{c.name}</TableCell>
+                                    <TableCell>{c.chair.name}</TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteCommittee(c.id, c.name)}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            )) : (
+                                <TableRow><TableCell colSpan={3} className="text-center">No committees added yet.</TableCell></TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+            </CardContent>
+        </Card>
 
         <Card>
             <CardHeader>
@@ -278,7 +382,7 @@ export default function AdminPage() {
                             <FormItem className="flex-grow w-full sm:w-auto"><FormLabel>Committee</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Select a committee" /></SelectTrigger></FormControl>
-                                    <SelectContent>{committeesList.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                                    <SelectContent>{committees.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
                                 </Select>
                                 <FormMessage />
                             </FormItem>

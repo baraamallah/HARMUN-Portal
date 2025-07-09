@@ -1,9 +1,10 @@
 import type { Timestamp } from 'firebase/firestore';
 
 export type Committee = {
+  id: string; // Document ID from Firestore
   name: string;
   chair: {
-    name: string;
+    name:string;
     bio: string;
     imageUrl: string;
   };
