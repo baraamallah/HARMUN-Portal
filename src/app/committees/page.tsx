@@ -32,27 +32,38 @@ export default async function CommitteesPage() {
                       alt={`Photo of ${committee.chair.name}`}
                       width={100}
                       height={100}
-                      className="rounded-full"
+                      className="rounded-full object-cover"
                       data-ai-hint="person portrait"
                     />
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg flex items-center gap-2"><User className="w-5 h-5 text-primary" />{committee.chair.name} (Chair)</h3>
                     <p className="text-sm text-muted-foreground mt-1 mb-4">{committee.chair.bio}</p>
-                    <h4 className="font-semibold mb-2">Topics:</h4>
-                    <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                      {committee.topics.map((topic) => <li key={topic}>{topic}</li>)}
-                    </ul>
+                    {committee.topics.length > 0 && (
+                        <>
+                            <h4 className="font-semibold mb-2">Topics:</h4>
+                            <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                            {committee.topics.map((topic) => <li key={topic}>{topic}</li>)}
+                            </ul>
+                        </>
+                    )}
                   </div>
                 </div>
               </CardContent>
               <CardFooter>
-                <Button asChild className="w-full">
-                  <a href={committee.backgroundGuideUrl} target="_blank" rel="noopener noreferrer">
-                    <FileText className="mr-2 h-4 w-4" />
-                    Download Background Guide
-                  </a>
-                </Button>
+                 {committee.backgroundGuideUrl ? (
+                    <Button asChild className="w-full">
+                        <a href={committee.backgroundGuideUrl} target="_blank" rel="noopener noreferrer">
+                            <FileText className="mr-2 h-4 w-4" />
+                            Download Background Guide
+                        </a>
+                    </Button>
+                 ) : (
+                    <Button className="w-full" disabled>
+                        <FileText className="mr-2 h-4 w-4" />
+                        Background Guide Not Available
+                    </Button>
+                 )}
               </CardFooter>
             </Card>
           ))}

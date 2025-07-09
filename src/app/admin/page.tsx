@@ -66,10 +66,10 @@ const countryMatrixFormSchema = z.object({
 const committeeFormSchema = z.object({
     name: z.string().min(3, "Committee name is required."),
     chairName: z.string().min(2, "Chair name is required."),
-    chairBio: z.string().min(10, "Chair bio must be at least 10 characters."),
-    chairImageUrl: z.string().url("A valid image URL for the chair is required."),
-    topics: z.string().min(5, "At least one topic is required."),
-    backgroundGuideUrl: z.string().url("A valid background guide URL is required."),
+    chairBio: z.string().optional(),
+    chairImageUrl: z.string().url("Must be a valid URL or be left empty.").or(z.literal("")).optional(),
+    topics: z.string().optional(),
+    backgroundGuideUrl: z.string().url("Must be a valid URL or be left empty.").or(z.literal("")).optional(),
 });
 
 const navLinksForAdmin = [
@@ -287,11 +287,11 @@ export default function AdminPage() {
             name: values.name,
             chair: {
                 name: values.chairName,
-                bio: values.chairBio,
-                imageUrl: values.chairImageUrl,
+                bio: values.chairBio || "The chair has not provided a biography yet.",
+                imageUrl: values.chairImageUrl || "https://placehold.co/400x400.png",
             },
-            topics: values.topics.split('\n').filter(topic => topic.trim() !== ''),
-            backgroundGuideUrl: values.backgroundGuideUrl,
+            topics: (values.topics || "").split('\n').filter(topic => topic.trim() !== ''),
+            backgroundGuideUrl: values.backgroundGuideUrl || "",
         };
         await addCommittee(committeeData);
         toast({ title: "Committee Added!", description: `The ${values.name} committee has been created.` });
@@ -487,10 +487,10 @@ export default function AdminPage() {
                              <FormField control={committeeForm.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Committee Name</FormLabel><FormControl><Input placeholder="e.g., Security Council" {...field} /></FormControl><FormMessage /></FormItem> )} />
                              <FormField control={committeeForm.control} name="chairName" render={({ field }) => ( <FormItem><FormLabel>Chair Name</FormLabel><FormControl><Input placeholder="e.g., Dr. Evelyn Reed" {...field} /></FormControl><FormMessage /></FormItem> )} />
                         </div>
-                        <FormField control={committeeForm.control} name="chairBio" render={({ field }) => ( <FormItem><FormLabel>Chair Bio</FormLabel><FormControl><Textarea placeholder="Brief biography of the chair..." {...field} rows={3} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={committeeForm.control} name="chairImageUrl" render={({ field }) => ( <FormItem><FormLabel>Chair Image URL</FormLabel><FormControl><Input placeholder="https://placehold.co/400x400.png" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={committeeForm.control} name="topics" render={({ field }) => ( <FormItem><FormLabel>Topics</FormLabel><FormControl><Textarea placeholder="Enter each topic on a new line..." {...field} rows={3}/></FormControl><FormDescription>Separate each topic with a new line.</FormDescription><FormMessage /></FormItem> )} />
-                        <FormField control={committeeForm.control} name="backgroundGuideUrl" render={({ field }) => ( <FormItem><FormLabel>Background Guide URL</FormLabel><FormControl><Input placeholder="https://example.com/guide.pdf" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={committeeForm.control} name="chairBio" render={({ field }) => ( <FormItem><FormLabel>Chair Bio</FormLabel><FormControl><Textarea placeholder="Optional: Brief biography of the chair..." {...field} rows={3} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={committeeForm.control} name="chairImageUrl" render={({ field }) => ( <FormItem><FormLabel>Chair Image URL</FormLabel><FormControl><Input placeholder="Optional: https://placehold.co/400x400.png" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={committeeForm.control} name="topics" render={({ field }) => ( <FormItem><FormLabel>Topics</FormLabel><FormControl><Textarea placeholder="Optional: Enter each topic on a new line..." {...field} rows={3}/></FormControl><FormDescription>Separate each topic with a new line.</FormDescription><FormMessage /></FormItem> )} />
+                        <FormField control={committeeForm.control} name="backgroundGuideUrl" render={({ field }) => ( <FormItem><FormLabel>Background Guide URL</FormLabel><FormControl><Input placeholder="Optional: https://example.com/guide.pdf" {...field} /></FormControl><FormMessage /></FormItem> )} />
                         <Button type="submit" className="w-full" disabled={committeeForm.formState.isSubmitting}><PlusCircle className="mr-2" />{committeeForm.formState.isSubmitting ? "Adding..." : "Add Committee"}</Button>
                     </form>
                 </Form>
@@ -539,7 +539,7 @@ export default function AdminPage() {
                                 <FormMessage />
                             </FormItem>
                         )} />
-                        <Button type="submit" className="w-full sm:w-auto" disabled={countryMatrixForm.formState.isSubmitting}><PlusCircle className="mr-2 h-4 w-4" /> Add Country</Button>
+                        <Button type="submit" className="w-full sm:w-auto" disabled={!countryMatrixForm.formState.isValid || countryMatrixForm.formState.isSubmitting}><PlusCircle className="mr-2 h-4 w-4" /> Add Country</Button>
                     </form>
                 </Form>
                 <div className="border rounded-md max-h-96 overflow-y-auto">
