@@ -75,9 +75,10 @@ export default function GalleryPage() {
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                                     <p className="absolute bottom-0 left-0 p-4 text-white font-semibold">{image.title}</p>
+
                                 </div>
                             </DialogTrigger>
-                            <DialogContent className="max-w-4xl p-2 bg-transparent border-0 shadow-none">
+                            <DialogContent className="w-auto h-auto max-w-[90vw] max-h-[90vh] p-0 bg-transparent border-0 shadow-none flex items-center justify-center">
                                 <DialogTitle className="sr-only">{image.title}</DialogTitle>
                                 <DialogDescription className="sr-only">Enlarged view of the gallery image: {image.title}</DialogDescription>
                                 <Image
@@ -85,7 +86,7 @@ export default function GalleryPage() {
                                      alt={image.title}
                                      width={1200}
                                      height={800}
-                                     className="w-full h-auto rounded-md object-contain"
+                                     className="w-auto h-auto max-w-full max-h-full rounded-md object-contain"
                                      unoptimized
                                 />
                             </DialogContent>
