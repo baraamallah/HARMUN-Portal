@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -70,11 +71,11 @@ const scheduleEventSchema = z.object({
 function HighlightItemForm({ item, onSave, onDelete }: { item: T.ConferenceHighlight; onSave: (id: string, data: z.infer<typeof highlightItemSchema>) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
   const form = useForm<z.infer<typeof highlightItemSchema>>({
     resolver: zodResolver(highlightItemSchema),
-    defaultValues: { icon: item.icon, title: item.title, description: item.description },
+    defaultValues: item,
   });
 
   React.useEffect(() => {
-    form.reset({ icon: item.icon, title: item.title, description: item.description });
+    form.reset(item);
   }, [item, form]);
 
   return (
@@ -92,10 +93,10 @@ function HighlightItemForm({ item, onSave, onDelete }: { item: T.ConferenceHighl
 function CodeOfConductItemForm({ item, onSave, onDelete }: { item: T.CodeOfConductItem; onSave: (id: string, data: z.infer<typeof codeOfConductItemSchema>) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
     const form = useForm<z.infer<typeof codeOfConductItemSchema>>({
         resolver: zodResolver(codeOfConductItemSchema),
-        defaultValues: { title: item.title, content: item.content },
+        defaultValues: item,
     });
      React.useEffect(() => {
-        form.reset({ title: item.title, content: item.content });
+        form.reset(item);
     }, [item, form]);
 
     return (
@@ -112,10 +113,10 @@ function CodeOfConductItemForm({ item, onSave, onDelete }: { item: T.CodeOfCondu
 function SecretariatMemberForm({ member, onSave, onDelete }: { member: T.SecretariatMember; onSave: (id: string, data: Omit<T.SecretariatMember, 'id' | 'order'>) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
     const form = useForm<z.infer<typeof secretariatMemberSchema>>({
         resolver: zodResolver(secretariatMemberSchema),
-        defaultValues: { name: member.name, role: member.role, imageUrl: member.imageUrl, bio: member.bio },
+        defaultValues: member,
     });
     React.useEffect(() => {
-        form.reset({ name: member.name, role: member.role, imageUrl: member.imageUrl, bio: member.bio });
+        form.reset(member);
     }, [member, form]);
 
     return (
@@ -134,10 +135,10 @@ function SecretariatMemberForm({ member, onSave, onDelete }: { member: T.Secreta
 function ScheduleEventForm({ event, onSave, onDelete }: { event: T.ScheduleEvent; onSave: (id: string, data: z.infer<typeof scheduleEventSchema>) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
     const form = useForm<z.infer<typeof scheduleEventSchema>>({
         resolver: zodResolver(scheduleEventSchema),
-        defaultValues: { time: event.time, title: event.title, location: event.location, description: event.description },
+        defaultValues: event,
     });
     React.useEffect(() => {
-        form.reset({ time: event.time, title: event.title, location: event.location, description: event.description });
+        form.reset(event);
     }, [event, form]);
 
     return (
@@ -265,7 +266,10 @@ export default function AdminPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [activeAccordion, setActiveAccordion] = useState<string | undefined>();
-  const [data, setData] = useState<any>({});
+  const [data, setData] = useState<any>({
+    homeContent: {}, aboutContent: {}, registrationContent: {}, documentsContent: {}, siteConfig: {},
+    posts: [], countries: [], committees: [], secretariat: [], schedule: [], highlights: [], codeOfConduct: []
+  });
 
   const homeForm = useForm<z.infer<typeof homePageContentSchema>>({ resolver: zodResolver(homePageContentSchema) });
   const aboutForm = useForm<z.infer<typeof aboutPageContentSchema>>({ resolver: zodResolver(aboutPageContentSchema) });
@@ -399,6 +403,62 @@ export default function AdminPage() {
     document.body.removeChild(link);
     toast({ title: "Export Successful", description: `Downloaded ${filename}` });
   };
+  
+    // --- GENERIC CRUD HANDLERS ---
+    const handleAddItem = async <T,>(
+        addFunction: (item: Omit<T, 'id'>) => Promise<string>,
+        data: Omit<T, 'id'>,
+        collectionName: keyof typeof firebaseService,
+        stateKey: keyof typeof this.data
+    ) => {
+        try {
+            const newId = await addFunction(data as any);
+            const newItem = await firebaseService.getDocById(collectionName, newId);
+            setData(prev => ({ ...prev, [stateKey]: [...prev[stateKey], newItem] }));
+            toast({ title: "Success!", description: "Item added." });
+        } catch (error) {
+            toast({ title: "Error", description: `Could not add item.`, variant: "destructive" });
+        }
+    };
+    
+    const handleUpdateItem = async <T extends {id: string}>(
+        updateFunction: (id: string, data: Partial<T>) => Promise<void>,
+        id: string,
+        itemData: Partial<T>,
+        stateKey: keyof typeof this.data,
+        message: string
+    ) => {
+        try {
+            await updateFunction(id, itemData);
+            setData(prev => ({
+                ...prev,
+                [stateKey]: prev[stateKey].map((item: T) => item.id === id ? { ...item, ...itemData } : item),
+            }));
+            toast({ title: "Success!", description: message });
+        } catch (error) {
+            toast({ title: "Error", description: `Could not save item.`, variant: "destructive" });
+        }
+    };
+
+    const handleDeleteItem = async (
+        deleteFunction: (id: string) => Promise<void>,
+        id: string,
+        stateKey: keyof typeof this.data,
+        message: string
+    ) => {
+        if (!confirm('Are you sure you want to delete this item?')) return;
+        try {
+            await deleteFunction(id);
+            setData(prev => ({
+                ...prev,
+                [stateKey]: prev[stateKey].filter((item: {id: string}) => item.id !== id),
+            }));
+            toast({ title: "Success!", description: message });
+        } catch (error) {
+            toast({ title: "Error", description: `Could not delete item.`, variant: "destructive" });
+        }
+    };
+    // --- END GENERIC CRUD HANDLERS ---
 
   if (loading) {
     return <div className="space-y-8 p-8">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-64 w-full" />)}</div>
@@ -430,10 +490,11 @@ export default function AdminPage() {
                 <Card className="mt-6">
                     <CardHeader><CardTitle className="flex items-center gap-2"><Newspaper /> Create & Manage Posts</CardTitle></CardHeader>
                     <CardContent>
-                        <CreatePostForm onAdd={async (values) => {
-                            await firebaseService.addPost(values as any);
-                            toast({ title: "Post Created!" });
-                            fetchAllData();
+                        <CreatePostForm onAdd={async (postData) => {
+                             const newPostId = await firebaseService.addPost(postData);
+                             const newPost = await firebaseService.getDocById('posts', newPostId);
+                             setData(p => ({...p, posts: [newPost, ...p.posts]}));
+                             toast({title: "Post Created!"});
                         }} />
                          <h3 className="text-lg font-semibold mb-4">Published Posts</h3>
                         <div className="border rounded-md max-h-96 overflow-y-auto">
@@ -445,7 +506,7 @@ export default function AdminPage() {
                                             <TableCell>{post.title}</TableCell>
                                             <TableCell>{post.type}</TableCell>
                                             <TableCell>{firebaseService.formatTimestamp(post.createdAt)}</TableCell>
-                                            <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={async () => { if(confirm('Are you sure you want to delete this post?')) { await firebaseService.deletePost(post.id); fetchAllData(); }}}> <Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
+                                            <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleDeleteItem(firebaseService.deletePost, post.id, "posts", "Post deleted.")}> <Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -475,11 +536,16 @@ export default function AdminPage() {
                                     <HighlightItemForm
                                         key={item.id}
                                         item={item}
-                                        onSave={async (id, data) => { await firebaseService.updateHighlight(id, data); fetchAllData(); }}
-                                        onDelete={async (id) => { if(confirm('Are you sure you want to delete this highlight?')) { await firebaseService.deleteHighlight(id); fetchAllData(); } }}
+                                        onSave={(id, saveData) => handleUpdateItem(firebaseService.updateHighlight, id, saveData, "highlights", "Highlight updated.")}
+                                        onDelete={(id) => handleDeleteItem(firebaseService.deleteHighlight, id, "highlights", "Highlight deleted.")}
                                     />
                                 ))}
-                                <AddHighlightForm onAdd={async (d) => { await firebaseService.addHighlight(d); fetchAllData(); }} />
+                                <AddHighlightForm onAdd={async (addData) => {
+                                    const newId = await firebaseService.addHighlight(addData);
+                                    const newItem = await firebaseService.getDocById('highlights', newId);
+                                    setData(p => ({...p, highlights: [...p.highlights, newItem]}));
+                                    toast({title: "Highlight Added"});
+                                }} />
                             </CardContent></Card>
                         </AccordionContent>
                     </AccordionItem>
@@ -531,11 +597,16 @@ export default function AdminPage() {
                                     <CodeOfConductItemForm
                                         key={item.id}
                                         item={item}
-                                        onSave={async (id, data) => { await firebaseService.updateCodeOfConductItem(id, data); fetchAllData(); }}
-                                        onDelete={async (id) => { if(confirm('Are you sure you want to delete this rule?')) { await firebaseService.deleteCodeOfConductItem(id); fetchAllData(); } }}
+                                        onSave={(id, saveData) => handleUpdateItem(firebaseService.updateCodeOfConductItem, id, saveData, "codeOfConduct", "Rule updated.")}
+                                        onDelete={(id) => handleDeleteItem(firebaseService.deleteCodeOfConductItem, id, "codeOfConduct", "Rule deleted.")}
                                     />
                                 ))}
-                                <AddCodeOfConductForm onAdd={async (d) => { await firebaseService.addCodeOfConductItem(d); fetchAllData(); }} />
+                                <AddCodeOfConductForm onAdd={async (addData) => {
+                                    const newId = await firebaseService.addCodeOfConductItem(addData);
+                                    const newItem = await firebaseService.getDocById('codeOfConduct', newId);
+                                    setData(p => ({...p, codeOfConduct: [...p.codeOfConduct, newItem]}));
+                                    toast({title: "Rule Added"});
+                                }} />
                             </CardContent></Card>
                         </AccordionContent>
                     </AccordionItem>
@@ -549,14 +620,15 @@ export default function AdminPage() {
                         <Card><CardHeader><CardTitle>Add New Committee</CardTitle></CardHeader>
                         <CardContent>
                             <AddCommitteeForm onAdd={async(values) => {
-                                await firebaseService.addCommittee({
+                                const newId = await firebaseService.addCommittee({
                                     name: values.name,
                                     chair: { name: values.chairName, bio: values.chairBio || "", imageUrl: values.chairImageUrl || "" },
                                     topics: (values.topics || "").split('\n').filter(Boolean), 
                                     backgroundGuideUrl: values.backgroundGuideUrl || "",
                                 });
+                                const newCommittee = await firebaseService.getDocById('committees', newId);
+                                setData(p => ({...p, committees: [...p.committees, newCommittee]}));
                                 toast({ title: "Committee Added!" });
-                                fetchAllData();
                             }}/>
                         </CardContent></Card>
                         <Card><CardHeader><CardTitle>Existing Committees</CardTitle></CardHeader>
@@ -568,7 +640,7 @@ export default function AdminPage() {
                                         <TableRow key={c.id}>
                                             <TableCell>{c.name}</TableCell><TableCell>{c.chair.name}</TableCell>
                                             <TableCell className="text-right">
-                                                <Button variant="ghost" size="icon" onClick={async () => { if (confirm(`Delete ${c.name}?`)) { await firebaseService.deleteCommittee(c.id); fetchAllData(); }}}>
+                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(firebaseService.deleteCommittee, c.id, "committees", "Committee deleted.")}>
                                                     <Trash2 className="h-4 w-4 text-destructive" />
                                                 </Button>
                                             </TableCell>
@@ -581,8 +653,9 @@ export default function AdminPage() {
                     <AccordionItem value="countries"><AccordionTrigger><div className="flex items-center gap-2 text-lg"><Globe /> Country Matrix</div></AccordionTrigger>
                     <AccordionContent className="p-1"><Card><CardContent className="pt-6">
                         <AddCountryForm committees={data.committees} onAdd={async(values) => {
-                             await firebaseService.addCountry(values as any);
-                             fetchAllData();
+                             const newId = await firebaseService.addCountry(values as any);
+                             const newCountry = await firebaseService.getDocById('countries', newId);
+                             setData(p => ({...p, countries: [...p.countries, newCountry]}));
                         }} />
                          <div className="border rounded-md max-h-96 overflow-y-auto">
                             <Table><TableHeader><TableRow><TableHead>Country</TableHead><TableHead>Committee</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
@@ -592,8 +665,11 @@ export default function AdminPage() {
                                         <TableCell>{country.name}</TableCell><TableCell>{country.committee}</TableCell>
                                         <TableCell><Badge variant={country.status === 'Available' ? 'secondary' : 'default'}>{country.status}</Badge></TableCell>
                                         <TableCell className="text-right flex items-center justify-end gap-2">
-                                            <Switch checked={country.status === 'Assigned'} onCheckedChange={async () => { const newStatus = country.status === 'Available' ? 'Assigned' : 'Available'; await firebaseService.updateCountryStatus(country.id, newStatus); fetchAllData(); }} />
-                                            <Button variant="ghost" size="icon" onClick={async () => { if (confirm(`Delete ${country.name}?`)) { await firebaseService.deleteCountry(country.id); fetchAllData(); }}}> <Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                            <Switch checked={country.status === 'Assigned'} onCheckedChange={async () => { 
+                                                const newStatus = country.status === 'Available' ? 'Assigned' : 'Available'; 
+                                                handleUpdateItem(firebaseService.updateCountryStatus, country.id, {status: newStatus}, "countries", "Country status updated.");
+                                            }} />
+                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(firebaseService.deleteCountry, country.id, "countries", "Country deleted.")}> <Trash2 className="h-4 w-4 text-destructive" /></Button>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -609,16 +685,33 @@ export default function AdminPage() {
                              <ScheduleEventForm
                                 key={event.id}
                                 event={event}
-                                onSave={async (id, data) => { await firebaseService.updateScheduleEvent(id, { ...event, ...data }); fetchAllData(); }}
-                                onDelete={async (id) => { if(confirm('Are you sure you want to delete this event?')) { await firebaseService.deleteScheduleEvent(id); fetchAllData(); } }}
+                                onSave={async (id, saveData) => {
+                                    await firebaseService.updateScheduleEvent(id, { ...event, ...saveData });
+                                    setData(prev => ({ ...prev, schedule: prev.schedule.map(d => d.id === event.dayId ? {...d, events: d.events.map(e => e.id === id ? {...e, ...saveData} : e)} : d)}));
+                                    toast({title: "Event updated."});
+                                }}
+                                onDelete={async (id) => {
+                                    if(!confirm('Are you sure?')) return;
+                                    await firebaseService.deleteScheduleEvent(id);
+                                    setData(prev => ({ ...prev, schedule: prev.schedule.map(d => d.id === event.dayId ? {...d, events: d.events.filter(e => e.id !== id)} : d)}));
+                                    toast({title: "Event deleted."});
+                                }}
                              />
                            ))}
-                           <AddScheduleEventForm dayId={day.id} onAdd={async(d) => { await firebaseService.addScheduleEvent(d); fetchAllData(); }}/>
+                           <AddScheduleEventForm dayId={day.id} onAdd={async(eventData) => { 
+                                const newId = await firebaseService.addScheduleEvent(eventData);
+                                const newEvent = await firebaseService.getDocById('scheduleEvents', newId);
+                                setData(p => ({...p, schedule: p.schedule.map(d => d.id === eventData.dayId ? {...d, events: [...d.events, newEvent]} : d)}));
+                           }}/>
                         </CardContent></Card>
                        ))}
                        <Card><CardHeader><CardTitle>Add New Day</CardTitle></CardHeader>
                        <CardContent>
-                         <AddScheduleDayForm onAdd={async(d) => { await firebaseService.addScheduleDay(d); fetchAllData(); }} />
+                         <AddScheduleDayForm onAdd={async(dayData) => { 
+                            const newId = await firebaseService.addScheduleDay(dayData);
+                            const newDay = await firebaseService.getDocById('scheduleDays', newId);
+                            setData(p => ({...p, schedule: [...p.schedule, {...newDay, events: []}]}));
+                         }} />
                        </CardContent>
                        </Card>
                     </AccordionContent></AccordionItem>
@@ -633,11 +726,16 @@ export default function AdminPage() {
                             <SecretariatMemberForm
                                 key={member.id}
                                 member={member}
-                                onSave={async (id, data) => { await firebaseService.updateSecretariatMember(id, data); fetchAllData(); }}
-                                onDelete={async (id) => { if(confirm('Are you sure?')) { await firebaseService.deleteSecretariatMember(id); fetchAllData(); } }}
+                                onSave={(id, saveData) => handleUpdateItem(firebaseService.updateSecretariatMember, id, saveData, "secretariat", "Member updated.")}
+                                onDelete={(id) => handleDeleteItem(firebaseService.deleteSecretariatMember, id, "secretariat", "Member deleted.")}
                             />
                         ))}
-                        <AddSecretariatMemberForm onAdd={async(d) => { await firebaseService.addSecretariatMember(d); fetchAllData(); }} />
+                        <AddSecretariatMemberForm onAdd={async(addData) => {
+                            const newId = await firebaseService.addSecretariatMember(addData);
+                            const newItem = await firebaseService.getDocById('secretariat', newId);
+                            setData(p => ({...p, secretariat: [...p.secretariat, newItem]}));
+                            toast({title: "Member Added"});
+                        }} />
                     </CardContent>
                 </Card>
             </TabsContent>

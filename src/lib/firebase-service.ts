@@ -135,6 +135,15 @@ async function updateConfigDoc<T>(docId: string, data: Partial<T>): Promise<void
     await setDoc(docRef, data, { merge: true });
 }
 
+export async function getDocById(collectionName: string, id: string): Promise<any> {
+    const docRef = doc(db, collectionName, id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() };
+    }
+    throw new Error(`Document with id ${id} not found in ${collectionName}`);
+}
+
 // --- Specific Content Getters/Setters ---
 export const getHomePageContent = () => getConfigDoc<HomePageContent>(HOME_PAGE_CONTENT_DOC_ID, {} as HomePageContent);
 export const updateHomePageContent = (content: Partial<HomePageContent>) => updateConfigDoc(HOME_PAGE_CONTENT_DOC_ID, content);
@@ -270,7 +279,7 @@ export async function getCountries(): Promise<Country[]> {
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Country));
 }
-export const updateCountryStatus = (id: string, status: 'Available' | 'Assigned') => updateDoc(doc(db, COUNTRIES_COLLECTION, id), { status });
+export const updateCountryStatus = (id: string, data: { status: 'Available' | 'Assigned' }) => updateDoc(doc(db, COUNTRIES_COLLECTION, id), data);
 export const deleteCountry = (id: string) => deleteDoc(doc(db, COUNTRIES_COLLECTION, id));
 
 // --- Committees (Existing) ---
