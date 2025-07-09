@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { convertGoogleDriveLink } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Paintbrush, Type, PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, Share2, BookOpenText, Upload, Download, FileSpreadsheet } from "lucide-react";
 import { getTheme, updateTheme, getHomePageContent, updateHomePageContent, addPost, getAllPosts, formatTimestamp, getCountries, addCountry, updateCountryStatus, deleteCountry, getCommittees, addCommittee, deleteCommittee, getSiteConfig, updateSiteConfig, getAboutPageContent, updateAboutPageContent, defaultSiteConfig, importCommittees, importCountries } from "@/lib/firebase-service";
@@ -180,7 +181,11 @@ export default function AdminPage() {
 
   async function onContentSubmit(values: z.infer<typeof contentFormSchema>) {
     try {
-      await updateHomePageContent(values);
+      const processedValues = {
+        ...values,
+        heroImageUrl: convertGoogleDriveLink(values.heroImageUrl),
+      };
+      await updateHomePageContent(processedValues);
       toast({
         title: "Content Updated!",
         description: "Home page content has been saved successfully.",
@@ -196,7 +201,11 @@ export default function AdminPage() {
 
   async function onAboutContentSubmit(values: z.infer<typeof aboutContentFormSchema>) {
     try {
-      await updateAboutPageContent(values as AboutPageContent);
+      const processedValues = {
+          ...values,
+          imageUrl: convertGoogleDriveLink(values.imageUrl),
+      };
+      await updateAboutPageContent(processedValues as AboutPageContent);
       toast({
         title: "About Page Updated!",
         description: "Your changes to the about page have been saved.",
@@ -294,7 +303,7 @@ export default function AdminPage() {
             chair: {
                 name: values.chairName,
                 bio: values.chairBio || "The chair has not provided a biography yet.",
-                imageUrl: values.chairImageUrl || "https://placehold.co/400x400.png",
+                imageUrl: convertGoogleDriveLink(values.chairImageUrl || "https://placehold.co/400x400.png"),
             },
             topics: (values.topics || "").split('\n').filter(topic => topic.trim() !== ''),
             backgroundGuideUrl: values.backgroundGuideUrl || "",
@@ -391,7 +400,7 @@ export default function AdminPage() {
                     chair: {
                         name: row.chairName || "TBD",
                         bio: row.chairBio || "The chair has not provided a biography yet.",
-                        imageUrl: row.chairImageUrl || "https://placehold.co/400x400.png",
+                        imageUrl: convertGoogleDriveLink(row.chairImageUrl || "https://placehold.co/400x400.png"),
                     },
                     topics: (row.topics || "").split(';').map((t: string) => t.trim()).filter(Boolean),
                     backgroundGuideUrl: row.backgroundGuideUrl || "",
