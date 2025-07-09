@@ -1,4 +1,4 @@
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarInset, SidebarContent } from "@/components/ui/sidebar";
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarContent } from "@/components/ui/sidebar";
 import { Globe, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import { AppHeader } from "@/components/header";
