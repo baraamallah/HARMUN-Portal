@@ -4,9 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Countdown } from '@/components/countdown';
 import { Calendar, MapPin, Globe } from 'lucide-react';
 import Image from 'next/image';
+import { getHomePageContent } from '@/lib/firebase-service';
 
-export default function Home() {
+export default async function Home() {
   const conferenceDate = new Date('2025-01-30T09:00:00');
+  const content = await getHomePageContent();
 
   return (
     <div className="flex flex-col">
@@ -23,10 +25,10 @@ export default function Home() {
         />
         <div className="relative z-20 container mx-auto px-4">
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-headline font-bold mb-4 drop-shadow-lg animate-fade-in-down">
-            HARMUN 2025 Portal
+            {content.heroTitle}
           </h1>
           <p className="text-lg md:text-xl max-w-3xl mx-auto mb-8 drop-shadow-md animate-fade-in-up">
-            Engage in diplomacy, foster international cooperation, and shape the future. Welcome, delegates!
+            {content.heroSubtitle}
           </p>
           <div className="animate-fade-in-up animation-delay-300">
             <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">

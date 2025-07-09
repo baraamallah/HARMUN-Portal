@@ -28,3 +28,14 @@ export type Country = {
   committee: string;
   status: 'Available' | 'Assigned';
 };
+
+export type Theme = {
+  primaryColor: string;
+  backgroundColor: string;
+  accentColor: string;
+};
+
+export type HomePageContent = {
+  heroTitle: string;
+  heroSubtitle: string;
+};

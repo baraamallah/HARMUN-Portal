@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import React, { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,9 +20,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Paintbrush, Type } from "lucide-react";
-
-// For now, we are just creating the UI. In a real app, these values would
-// come from and be saved to a database like Firestore.
+import { getTheme, updateTheme, getHomePageContent, updateHomePageContent } from "@/lib/firebase-service";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const themeFormSchema = z.object({
   primaryColor: z.string().regex(/^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/, "Must be a valid HSL string (e.g., 227 66% 32%)"),
@@ -36,44 +36,105 @@ const contentFormSchema = z.object({
 
 export default function AdminPage() {
   const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
 
   const themeForm = useForm<z.infer<typeof themeFormSchema>>({
     resolver: zodResolver(themeFormSchema),
-    defaultValues: {
-      // These default values would be fetched from the database
-      primaryColor: "227 66% 32%",
-      backgroundColor: "210 17% 98%",
-      accentColor: "47 96% 52%",
-    },
   });
 
   const contentForm = useForm<z.infer<typeof contentFormSchema>>({
     resolver: zodResolver(contentFormSchema),
-    defaultValues: {
-      // These default values would be fetched from the database
-      heroTitle: "HARMUN 2025 Portal",
-      heroSubtitle: "Engage in diplomacy, foster international cooperation, and shape the future. Welcome, delegates!",
-    },
   });
 
-  function onThemeSubmit(values: z.infer<typeof themeFormSchema>) {
-    console.log("Theme values:", values);
-    // In a real app, you'd save these values to your database
-    // and then trigger a refresh or a mechanism to update the CSS variables.
-    toast({
-      title: "Theme Updated!",
-      description: "Color settings have been saved.",
-    });
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [theme, content] = await Promise.all([
+          getTheme(),
+          getHomePageContent()
+        ]);
+        themeForm.reset(theme);
+        contentForm.reset(content);
+      } catch (error) {
+        console.error("Failed to fetch admin data:", error);
+        toast({
+          title: "Error",
+          description: "Could not load settings from the database.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [themeForm, contentForm, toast]);
+
+  async function onThemeSubmit(values: z.infer<typeof themeFormSchema>) {
+    try {
+      await updateTheme(values);
+      toast({
+        title: "Theme Updated!",
+        description: "Your color settings have been saved. Refresh the page to see them applied.",
+      });
+    } catch (error) {
+       toast({
+        title: "Error Saving Theme",
+        description: "Could not save theme settings to the database.",
+        variant: "destructive",
+      });
+    }
   }
 
-  function onContentSubmit(values: z.infer<typeof contentFormSchema>) {
-    console.log("Content values:", values);
-    // In a real app, you'd save these values to your database.
-    // The home page would then fetch this content to display it.
-    toast({
-      title: "Content Updated!",
-      description: "Home page content has been saved.",
-    });
+  async function onContentSubmit(values: z.infer<typeof contentFormSchema>) {
+    try {
+      await updateHomePageContent(values);
+      toast({
+        title: "Content Updated!",
+        description: "Home page content has been saved successfully.",
+      });
+    } catch (error) {
+       toast({
+        title: "Error Saving Content",
+        description: "Could not save content to the database.",
+        variant: "destructive",
+      });
+    }
+  }
+  
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div className="text-left">
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <p className="text-muted-foreground">Manage your conference website content and settings here.</p>
+        </div>
+        <div className="grid lg:grid-cols-2 gap-8 items-start">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Paintbrush className="w-6 h-6" /> Theme Customization</CardTitle>
+              <CardDescription>Loading theme settings...</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
+              <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
+              <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
+              <Skeleton className="h-10 w-full" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Type className="w-6 h-6" /> Home Page Content</CardTitle>
+              <CardDescription>Loading content...</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
+              <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-20 w-full" /></div>
+              <Skeleton className="h-10 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
   }
 
   return (
