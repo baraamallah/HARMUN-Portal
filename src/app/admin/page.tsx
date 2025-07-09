@@ -252,7 +252,7 @@ export default function AdminPage() {
                                             <TableCell>{post.title}</TableCell>
                                             <TableCell>{post.type}</TableCell>
                                             <TableCell>{firebaseService.formatTimestamp(post.createdAt)}</TableCell>
-                                            <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={async () => { if(confirm('Delete?')) { await firebaseService.deleteDoc(collection(db, 'posts'), post.id); fetchAllData(); }}}> <Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
+                                            <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={async () => { if(confirm('Are you sure you want to delete this post?')) { await firebaseService.deletePost(post.id); fetchAllData(); }}}> <Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -286,7 +286,7 @@ export default function AdminPage() {
                                         <FormField control={genericForm.control} name={`highlights[${index}].description`} defaultValue={item.description} render={({ field }) => <FormItem className="flex-grow"><FormLabel>Description</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
                                         </Form>
                                         <Button size="sm" onClick={genericForm.handleSubmit(async (d) => { await firebaseService.updateHighlight(item.id, d.highlights[index]); fetchAllData(); })}>Save</Button>
-                                        <Button size="sm" variant="destructive" onClick={async () => { await firebaseService.deleteHighlight(item.id); fetchAllData(); }}>Delete</Button>
+                                        <Button size="sm" variant="destructive" onClick={async () => { if(confirm('Are you sure you want to delete this highlight?')) { await firebaseService.deleteHighlight(item.id); fetchAllData(); } }}>Delete</Button>
                                     </div>
                                 ))}
                                 <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addHighlight(d); fetchAllData(); genericForm.reset({icon: '', title: '', description: ''});})} className="flex gap-2 items-end p-2 border-t mt-4">
@@ -350,7 +350,7 @@ export default function AdminPage() {
                                         </Form>
                                         <div className="flex flex-col gap-1">
                                         <Button size="sm" onClick={genericForm.handleSubmit(async (d) => { await firebaseService.updateCodeOfConductItem(item.id, d.coc[index]); fetchAllData(); })}>Save</Button>
-                                        <Button size="sm" variant="destructive" onClick={async () => { await firebaseService.deleteCodeOfConductItem(item.id); fetchAllData(); }}>Delete</Button>
+                                        <Button size="sm" variant="destructive" onClick={async () => { if(confirm('Are you sure you want to delete this rule?')) { await firebaseService.deleteCodeOfConductItem(item.id); fetchAllData(); } }}>Delete</Button>
                                         </div>
                                     </div>
                                 ))}
@@ -448,7 +448,7 @@ export default function AdminPage() {
                                     <FormField control={genericForm.control} name={`event${event.id}.location`} defaultValue={event.location} render={({ field }) => <FormItem><FormLabel>Location</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
                                  </Form>
                                  <Button size="sm" onClick={genericForm.handleSubmit(async (d) => { await firebaseService.updateScheduleEvent(event.id, { ...d[`event${event.id}`] }); fetchAllData(); })}>Save</Button>
-                                 <Button size="sm" variant="destructive" onClick={async () => { await firebaseService.deleteScheduleEvent(event.id); fetchAllData(); }}>Del</Button>
+                                 <Button size="sm" variant="destructive" onClick={async () => { if(confirm('Are you sure you want to delete this event?')) { await firebaseService.deleteScheduleEvent(event.id); fetchAllData(); } }}>Del</Button>
                             </div>
                            ))}
                             <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addScheduleEvent({...(d.newEvents[day.id] as any), dayId: day.id}); fetchAllData();})} className="flex gap-2 items-end p-2 border-t mt-4">
@@ -486,7 +486,7 @@ export default function AdminPage() {
                                 </Form>
                                 <div className="flex flex-col gap-1">
                                 <Button size="sm" onClick={genericForm.handleSubmit(async (d) => { await firebaseService.updateSecretariatMember(member.id, d.sm[index]); fetchAllData(); })}>Save</Button>
-                                <Button size="sm" variant="destructive" onClick={async () => { await firebaseService.deleteSecretariatMember(member.id); fetchAllData(); }}>Delete</Button>
+                                <Button size="sm" variant="destructive" onClick={async () => { if(confirm('Are you sure you want to delete this member?')) { await firebaseService.deleteSecretariatMember(member.id); fetchAllData(); } }}>Delete</Button>
                                 </div>
                             </div>
                         ))}

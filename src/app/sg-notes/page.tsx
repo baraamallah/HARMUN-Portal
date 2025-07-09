@@ -9,7 +9,7 @@ export default async function SGNotesPage() {
 
   return (
     <div className="container mx-auto px-4 py-12 md:py-20">
-      <div className="text-center mb-12">
+      <div className="text-center mb-12 animate-fade-in-up">
         <h1 className="text-4xl md:text-5xl font-bold font-headline text-foreground">A Note from the Secretary-General</h1>
         <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
           Insights, updates, and messages from the leader of HARMUN 2025.
@@ -18,8 +18,8 @@ export default async function SGNotesPage() {
 
       {sgNotes.length > 0 ? (
         <div className="space-y-8 max-w-4xl mx-auto">
-          {sgNotes.map((post: Post) => (
-            <Card key={post.id}>
+          {sgNotes.map((post, index) => (
+            <Card key={post.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
               <CardHeader>
                  <div className="flex items-center gap-4 mb-4">
                     <Avatar className="w-16 h-16 border">
@@ -42,7 +42,7 @@ export default async function SGNotesPage() {
           ))}
         </div>
       ) : (
-        <div className="text-center text-muted-foreground py-16">
+        <div className="text-center text-muted-foreground py-16 animate-fade-in-up">
           <p>No notes have been posted yet. Please check back later!</p>
         </div>
       )}

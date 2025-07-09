@@ -55,7 +55,7 @@ export default async function Home() {
       </section>
 
       {/* Countdown Section */}
-      <section className="bg-transparent py-16">
+      <section className="bg-transparent py-16 animate-fade-in-up" style={{ animationDelay: '500ms' }}>
         <div className="container mx-auto text-center">
           <h2 className="text-3xl font-bold mb-2 font-headline text-foreground">Conference Countdown</h2>
           <p className="text-muted-foreground mb-8">The next session is just around the corner.</p>
@@ -67,8 +67,8 @@ export default async function Home() {
       <section className="bg-transparent py-20">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-3 gap-8 text-center">
-            {highlights.map((highlight) => (
-               <Card key={highlight.id}>
+            {highlights.map((highlight, index) => (
+               <Card key={highlight.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
                 <CardHeader>
                   <div className="mx-auto bg-primary text-primary-foreground rounded-full w-16 h-16 flex items-center justify-center mb-4">
                     <Icon name={highlight.icon} className="w-8 h-8" />
@@ -80,7 +80,7 @@ export default async function Home() {
                 </CardContent>
               </Card>
             ))}
-             <Card>
+             <Card className="animate-fade-in-up" style={{ animationDelay: `${highlights.length * 150}ms` }}>
               <CardHeader>
                 <div className="mx-auto bg-primary text-primary-foreground rounded-full w-16 h-16 flex items-center justify-center mb-4">
                   <MapPin className="w-8 h-8" />

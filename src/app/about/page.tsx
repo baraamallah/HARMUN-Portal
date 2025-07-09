@@ -9,14 +9,14 @@ export default async function AboutPage() {
   return (
     <div className="bg-transparent">
         <div className="container mx-auto px-4 py-12 md:py-20">
-        <div className="text-center mb-16">
+        <div className="text-center mb-16 animate-fade-in-up">
             <h1 className="text-4xl md:text-5xl font-bold font-headline text-foreground">{content.title}</h1>
             <p className="mt-4 text-lg text-muted-foreground max-w-3xl mx-auto">
             {content.subtitle}
             </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-12 items-center mb-20">
+        <div className="grid md:grid-cols-2 gap-12 items-center mb-20 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
             <div className="relative h-80 rounded-lg overflow-hidden shadow-xl">
                 <Image
                     src={content.imageUrl}
@@ -39,7 +39,7 @@ export default async function AboutPage() {
             </div>
         </div>
 
-        <Card>
+        <Card className="animate-fade-in-up" style={{ animationDelay: '400ms' }}>
             <CardHeader>
             <CardTitle className="text-3xl font-bold font-headline text-foreground flex items-center gap-3"><Landmark className="w-8 h-8 text-primary" /> {content.storyTitle}</CardTitle>
             </CardHeader>

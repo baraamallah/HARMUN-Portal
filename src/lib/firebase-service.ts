@@ -235,6 +235,8 @@ export async function getAllPosts(): Promise<Post[]> {
 export async function getPosts(type: 'sg-note' | 'news'): Promise<Post[]> {
   return (await getAllPosts()).filter(post => post.type === type);
 }
+export const deletePost = (id: string) => deleteCollectionDoc(POSTS_COLLECTION, id);
+
 export function formatTimestamp(timestamp: any, dateFormat: string = 'PPP'): string {
     if (!timestamp) return "";
     if (timestamp && typeof timestamp.toDate === 'function') {
