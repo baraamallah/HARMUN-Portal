@@ -34,7 +34,7 @@ export default async function Home() {
           <p className="text-lg md:text-xl max-w-3xl mx-auto mb-8 text-primary-foreground/80 drop-shadow-md animate-fade-in-up">
             {content.heroSubtitle}
           </p>
-          <div className="animate-fade-in-up animation-delay-300">
+          <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
             <Button asChild size="lg">
               <Link href="/registration">Register Now</Link>
             </Button>
