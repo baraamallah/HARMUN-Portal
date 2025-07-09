@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import * as z from "zod";
 import React, { useEffect, useState } from "react";
 import Papa from "papaparse";
@@ -25,8 +25,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import * as icons from "lucide-react";
 import {
-    PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, Share2, BookOpenText, Upload, Download, FileSpreadsheet, CalendarDays,
-    Settings, Clapperboard, Home, FileBadge, UserSquare, Shield, GripVertical, LucideIcon, HelpCircle
+    PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, BookOpenText, Upload, Download, FileSpreadsheet, CalendarDays,
+    Settings, Home, FileBadge, UserSquare, Shield, HelpCircle, type LucideIcon
 } from "lucide-react";
 import * as firebaseService from "@/lib/firebase-service";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -42,12 +42,108 @@ const Icon = ({ name, ...props }: { name: string } & React.ComponentProps<Lucide
   return <LucideIcon {...props} />;
 };
 
+// Schemas for individual item forms
+const highlightItemSchema = z.object({
+  icon: z.string().min(1, "Icon name is required."),
+  title: z.string().min(3, "Title is required."),
+  description: z.string().min(5, "Description is required."),
+});
+
+const codeOfConductItemSchema = z.object({
+  title: z.string().min(3, "Title is required."),
+  content: z.string().min(10, "Content is required."),
+});
+
+const secretariatMemberSchema = z.object({
+  name: z.string().min(2, "Name is required."),
+  role: z.string().min(2, "Role is required."),
+  imageUrl: z.string().url("Must be a valid URL.").or(z.literal("")),
+  bio: z.string(),
+});
+
+const scheduleEventSchema = z.object({
+    time: z.string().min(1, "Time is required."),
+    title: z.string().min(3, "Title is required."),
+    location: z.string(),
+    description: z.string().optional(),
+});
+
+
+// Reusable Form Components for list items
+function HighlightItemForm({ item, onSave, onDelete }: { item: T.ConferenceHighlight; onSave: (id: string, data: T.ConferenceHighlight) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
+  const form = useForm<z.infer<typeof highlightItemSchema>>({
+    resolver: zodResolver(highlightItemSchema),
+    defaultValues: { icon: item.icon, title: item.title, description: item.description },
+  });
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit((data) => onSave(item.id, {...item, ...data}))} className="flex flex-wrap md:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
+        <FormField control={form.control} name="icon" render={({ field }) => <FormItem><FormLabel>Icon</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+        <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+        <FormField control={form.control} name="description" render={({ field }) => <FormItem className="flex-grow w-full md:w-auto"><FormLabel>Description</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+        <div className="flex gap-1 pt-6"><Button type="submit" size="sm">Save</Button><Button size="sm" variant="destructive" type="button" onClick={() => onDelete(item.id)}>Delete</Button></div>
+      </form>
+    </Form>
+  );
+}
+
+function CodeOfConductItemForm({ item, onSave, onDelete }: { item: T.CodeOfConductItem; onSave: (id: string, data: T.CodeOfConductItem) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
+    const form = useForm<z.infer<typeof codeOfConductItemSchema>>({
+        resolver: zodResolver(codeOfConductItemSchema),
+        defaultValues: { title: item.title, content: item.content },
+    });
+    return (
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit((data) => onSave(item.id, {...item, ...data}))} className="flex flex-wrap md:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
+                <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                <FormField control={form.control} name="content" render={({ field }) => <FormItem className="flex-grow w-full md:w-auto"><FormLabel>Content</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl><FormMessage /></FormItem>} />
+                <div className="flex gap-1 pt-6"><Button type="submit" size="sm">Save</Button><Button size="sm" variant="destructive" type="button" onClick={() => onDelete(item.id)}>Delete</Button></div>
+            </form>
+        </Form>
+    );
+}
+
+function SecretariatMemberForm({ member, onSave, onDelete }: { member: T.SecretariatMember; onSave: (id: string, data: T.SecretariatMember) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
+    const form = useForm<z.infer<typeof secretariatMemberSchema>>({
+        resolver: zodResolver(secretariatMemberSchema),
+        defaultValues: { name: member.name, role: member.role, imageUrl: member.imageUrl, bio: member.bio },
+    });
+    return (
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit((data) => onSave(member.id, {...member, ...data}))} className="flex flex-wrap lg:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
+                <FormField control={form.control} name="name" render={({ field }) => <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                <FormField control={form.control} name="role" render={({ field }) => <FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                <FormField control={form.control} name="bio" render={({ field }) => <FormItem className="flex-grow w-full lg:w-auto"><FormLabel>Bio</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl><FormMessage /></FormItem>} />
+                <div className="flex gap-1 pt-6"><Button type="submit" size="sm">Save</Button><Button size="sm" variant="destructive" type="button" onClick={() => onDelete(member.id)}>Delete</Button></div>
+            </form>
+        </Form>
+    );
+}
+
+function ScheduleEventForm({ event, onSave, onDelete }: { event: T.ScheduleEvent; onSave: (id: string, data: T.ScheduleEvent) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
+    const form = useForm<z.infer<typeof scheduleEventSchema>>({
+        resolver: zodResolver(scheduleEventSchema),
+        defaultValues: { time: event.time, title: event.title, location: event.location, description: event.description },
+    });
+    return (
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit((data) => onSave(event.id, {...event, ...data}))} className="flex flex-wrap md:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
+                <FormField control={form.control} name="time" render={({ field }) => <FormItem><FormLabel>Time</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                <FormField control={form.control} name="title" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                <FormField control={form.control} name="location" render={({ field }) => <FormItem><FormLabel>Location</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                <div className="flex gap-1 pt-6"><Button type="submit" size="sm">Save</Button><Button size="sm" variant="destructive" type="button" onClick={() => onDelete(event.id)}>Del</Button></div>
+            </form>
+        </Form>
+    );
+}
+
+// Schemas for main page forms
 const homePageContentSchema = z.object({
     heroTitle: z.string().min(5),
     heroSubtitle: z.string().min(10),
     heroImageUrl: z.string().url(),
 });
-const highlightSchema = z.object({ id: z.string(), icon: z.string().min(1), title: z.string().min(3), description: z.string().min(5), order: z.number() });
 const aboutPageContentSchema = z.object({
     title: z.string().min(5), subtitle: z.string().min(10), imageUrl: z.string().url(),
     whatIsTitle: z.string().min(5), whatIsPara1: z.string().min(20), whatIsPara2: z.string().min(20),
@@ -59,16 +155,6 @@ const documentsPageContentSchema = z.object({
     uploadTitle: z.string().min(5), uploadDescription: z.string().min(10),
     codeOfConductTitle: z.string().min(5), codeOfConductDescription: z.string().min(10),
 });
-const codeOfConductItemSchema = z.object({ id: z.string(), title: z.string().min(3), content: z.string().min(10), order: z.number() });
-const secretariatMemberSchema = z.object({ id: z.string(), name: z.string().min(2), role: z.string().min(2), bio: z.string(), imageUrl: z.string().url().or(z.literal("")), order: z.number() });
-const postSchema = z.object({ title: z.string().min(5), content: z.string().min(20), type: z.enum(['sg-note', 'news']) });
-const countryMatrixSchema = z.object({ name: z.string().min(2), committee: z.string().min(1) });
-const committeeSchema = z.object({
-    name: z.string().min(3), chairName: z.string().min(2), chairBio: z.string().optional(),
-    chairImageUrl: z.string().url().or(z.literal("")).optional(), topics: z.string().optional(), backgroundGuideUrl: z.string().url().or(z.literal("")).optional(),
-});
-const scheduleDaySchema = z.object({ id: z.string(), title: z.string().min(3), date: z.string().min(5), order: z.number() });
-const scheduleEventSchema = z.object({ id: z.string(), dayId: z.string(), time: z.string().min(1), title: z.string().min(3), description: z.string(), location: z.string(), order: z.number() });
 
 const navLinksForAdmin = [
   { href: '/about', label: 'About' }, { href: '/committees', label: 'Committees' }, { href: '/news', label: 'News' },
@@ -90,12 +176,12 @@ export default function AdminPage() {
   const [activeAccordion, setActiveAccordion] = useState<string | undefined>();
   const [data, setData] = useState<any>({});
 
-  const homeForm = useForm<z.infer<typeof homePageContentSchema>>();
-  const aboutForm = useForm<z.infer<typeof aboutPageContentSchema>>();
-  const registrationForm = useForm<z.infer<typeof registrationPageContentSchema>>();
-  const documentsForm = useForm<z.infer<typeof documentsPageContentSchema>>();
-  const siteConfigForm = useForm<z.infer<typeof siteConfigSchema>>();
-  const genericForm = useForm(); // For one-off forms
+  const homeForm = useForm<z.infer<typeof homePageContentSchema>>({ resolver: zodResolver(homePageContentSchema) });
+  const aboutForm = useForm<z.infer<typeof aboutPageContentSchema>>({ resolver: zodResolver(aboutPageContentSchema) });
+  const registrationForm = useForm<z.infer<typeof registrationPageContentSchema>>({ resolver: zodResolver(registrationPageContentSchema) });
+  const documentsForm = useForm<z.infer<typeof documentsPageContentSchema>>({ resolver: zodResolver(documentsPageContentSchema) });
+  const siteConfigForm = useForm<z.infer<typeof siteConfigSchema>>({ resolver: zodResolver(siteConfigSchema) });
+  const genericForm = useForm(); // For one-off 'add new' forms
 
   const fetchAllData = React.useCallback(async () => {
     try {
@@ -121,7 +207,7 @@ export default function AdminPage() {
         documentsForm.reset(allData.documentsContent);
         siteConfigForm.reset({
             ...allData.siteConfig, ...allData.siteConfig.socialLinks, footerText: allData.siteConfig.footerText,
-            navVisibility: allData.siteConfig.navVisibility,
+            navVisibility: allData.siteConfig.navVisibility || {},
         });
 
     } catch (error) {
@@ -134,20 +220,20 @@ export default function AdminPage() {
 
   useEffect(() => { fetchAllData(); }, [fetchAllData]);
 
-  // Generic submit handler
-  const handleFormSubmit = async (updateFunction: (data: any) => Promise<void>, successMessage: string, data: any, form?: any) => {
+  // Generic submit handler for main page forms
+  const handleFormSubmit = async (updateFunction: (data: any) => Promise<void>, successMessage: string, data: any, form: any) => {
     try {
         await updateFunction(data);
         toast({ title: "Success!", description: successMessage });
-        if (form) form.reset(data);
+        form.reset(data); // Re-sync form with saved data
     } catch (error) {
         toast({ title: "Error", description: `Could not save data. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
     }
   };
-
-  const handleFileChange = (setter: React.Dispatch<React.SetStateAction<File | null>>) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files.length > 0) setter(event.target.files[0]); else setter(null);
-  };
+  
+    const handleFileChange = (setter: React.Dispatch<React.SetStateAction<File | null>>) => (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.files && event.target.files.length > 0) setter(event.target.files[0]); else setter(null);
+    };
   
   const [committeeImportFile, setCommitteeImportFile] = useState<File | null>(null);
   const [countryImportFile, setCountryImportFile] = useState<File | null>(null);
@@ -270,29 +356,26 @@ export default function AdminPage() {
                             <Card><CardHeader><CardTitle>Hero Section</CardTitle></CardHeader>
                             <CardContent>
                                 <Form {...homeForm}><form onSubmit={homeForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateHomePageContent, "Home page content updated.", d, homeForm))} className="space-y-4">
-                                    <FormField control={homeForm.control} name="heroTitle" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                                    <FormField control={homeForm.control} name="heroSubtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>} />
-                                    <FormField control={homeForm.control} name="heroImageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                    <FormField control={homeForm.control} name="heroTitle" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                                    <FormField control={homeForm.control} name="heroSubtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
+                                    <FormField control={homeForm.control} name="heroImageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                                     <Button type="submit">Save Hero</Button>
                                 </form></Form>
                             </CardContent></Card>
                             <Card><CardHeader><CardTitle>Highlights Section</CardTitle></CardHeader>
                             <CardContent>
-                                {data.highlights?.map((item: T.ConferenceHighlight, index: number) => (
-                                    <div key={item.id} className="flex gap-2 items-end p-2 border rounded-md mb-2">
-                                        <Form {...genericForm}>
-                                        <FormField control={genericForm.control} name={`highlights[${index}].icon`} defaultValue={item.icon} render={({ field }) => <FormItem><FormLabel>Icon</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                                        <FormField control={genericForm.control} name={`highlights[${index}].title`} defaultValue={item.title} render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                                        <FormField control={genericForm.control} name={`highlights[${index}].description`} defaultValue={item.description} render={({ field }) => <FormItem className="flex-grow"><FormLabel>Description</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                                        </Form>
-                                        <Button size="sm" onClick={genericForm.handleSubmit(async (d) => { await firebaseService.updateHighlight(item.id, d.highlights[index]); fetchAllData(); })}>Save</Button>
-                                        <Button size="sm" variant="destructive" onClick={async () => { if(confirm('Are you sure you want to delete this highlight?')) { await firebaseService.deleteHighlight(item.id); fetchAllData(); } }}>Delete</Button>
-                                    </div>
+                                {data.highlights?.map((item: T.ConferenceHighlight) => (
+                                    <HighlightItemForm
+                                        key={item.id}
+                                        item={item}
+                                        onSave={async (id, data) => { await firebaseService.updateHighlight(id, data); fetchAllData(); }}
+                                        onDelete={async (id) => { if(confirm('Are you sure you want to delete this highlight?')) { await firebaseService.deleteHighlight(id); fetchAllData(); } }}
+                                    />
                                 ))}
-                                <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addHighlight(d); fetchAllData(); genericForm.reset({icon: '', title: '', description: ''});})} className="flex gap-2 items-end p-2 border-t mt-4">
-                                    <FormField control={genericForm.control} name="icon" render={({ field }) => <FormItem><FormLabel>Icon</FormLabel><FormControl><Input {...field} placeholder="e.g. Calendar" /></FormControl></FormItem>} />
-                                    <FormField control={genericForm.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                                    <FormField control={genericForm.control} name="description" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Description</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addHighlight(d.newHighlight); fetchAllData(); genericForm.reset({newHighlight: {icon: '', title: '', description: ''}});})} className="flex flex-wrap md:flex-nowrap gap-2 items-end p-2 border-t mt-4">
+                                    <FormField control={genericForm.control} name="newHighlight.icon" render={({ field }) => <FormItem><FormLabel>Icon</FormLabel><FormControl><Input {...field} placeholder="e.g. Calendar" /></FormControl></FormItem>} />
+                                    <FormField control={genericForm.control} name="newHighlight.title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                    <FormField control={genericForm.control} name="newHighlight.description" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Description</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
                                     <Button type="submit" size="sm">Add Highlight</Button>
                                 </form></Form>
                             </CardContent></Card>
@@ -302,15 +385,15 @@ export default function AdminPage() {
                         <AccordionTrigger><div className="flex items-center gap-2 text-lg"><FileBadge /> About Page</div></AccordionTrigger>
                         <AccordionContent className="p-1"><Card><CardContent className="pt-6">
                             <Form {...aboutForm}><form onSubmit={aboutForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateAboutPageContent, "About page content updated.", d, aboutForm))} className="space-y-4">
-                                <FormField control={aboutForm.control} name="title" render={({ field }) => (<FormItem><FormLabel>Page Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
-                                <FormField control={aboutForm.control} name="subtitle" render={({ field }) => (<FormItem><FormLabel>Page Subtitle</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl></FormItem>)} />
-                                <FormField control={aboutForm.control} name="imageUrl" render={({ field }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} /> <hr/>
-                                <FormField control={aboutForm.control} name="whatIsTitle" render={({ field }) => (<FormItem><FormLabel>Section 1: Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
-                                <FormField control={aboutForm.control} name="whatIsPara1" render={({ field }) => (<FormItem><FormLabel>Section 1: Paragraph 1</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl></FormItem>)} />
-                                <FormField control={aboutForm.control} name="whatIsPara2" render={({ field }) => (<FormItem><FormLabel>Section 1: Paragraph 2</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl></FormItem>)} /> <hr/>
-                                <FormField control={aboutForm.control} name="storyTitle" render={({ field }) => (<FormItem><FormLabel>Section 2: Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
-                                <FormField control={aboutForm.control} name="storyPara1" render={({ field }) => (<FormItem><FormLabel>Section 2: Paragraph 1</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl></FormItem>)} />
-                                <FormField control={aboutForm.control} name="storyPara2" render={({ field }) => (<FormItem><FormLabel>Section 2: Paragraph 2</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl></FormItem>)} />
+                                <FormField control={aboutForm.control} name="title" render={({ field }) => (<FormItem><FormLabel>Page Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={aboutForm.control} name="subtitle" render={({ field }) => (<FormItem><FormLabel>Page Subtitle</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={aboutForm.control} name="imageUrl" render={({ field }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} /> <hr/>
+                                <FormField control={aboutForm.control} name="whatIsTitle" render={({ field }) => (<FormItem><FormLabel>Section 1: Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={aboutForm.control} name="whatIsPara1" render={({ field }) => (<FormItem><FormLabel>Section 1: Paragraph 1</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={aboutForm.control} name="whatIsPara2" render={({ field }) => (<FormItem><FormLabel>Section 1: Paragraph 2</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} /> <hr/>
+                                <FormField control={aboutForm.control} name="storyTitle" render={({ field }) => (<FormItem><FormLabel>Section 2: Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={aboutForm.control} name="storyPara1" render={({ field }) => (<FormItem><FormLabel>Section 2: Paragraph 1</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={aboutForm.control} name="storyPara2" render={({ field }) => (<FormItem><FormLabel>Section 2: Paragraph 2</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
                                 <Button type="submit">Save About Page</Button>
                             </form></Form>
                         </CardContent></Card></AccordionContent>
@@ -319,8 +402,8 @@ export default function AdminPage() {
                         <AccordionTrigger><div className="flex items-center gap-2 text-lg"><UserSquare /> Registration Page</div></AccordionTrigger>
                         <AccordionContent className="p-1"><Card><CardContent className="pt-6">
                             <Form {...registrationForm}><form onSubmit={registrationForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateRegistrationPageContent, "Registration page updated.", d, registrationForm))} className="space-y-4">
-                                <FormField control={registrationForm.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                                <FormField control={registrationForm.control} name="subtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>} />
+                                <FormField control={registrationForm.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                                <FormField control={registrationForm.control} name="subtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
                                 <Button type="submit">Save</Button>
                             </form></Form>
                         </CardContent></Card></AccordionContent>
@@ -331,32 +414,28 @@ export default function AdminPage() {
                              <Card><CardHeader><CardTitle>Page Content</CardTitle></CardHeader>
                             <CardContent>
                                 <Form {...documentsForm}><form onSubmit={documentsForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateDocumentsPageContent, "Documents page updated.", d, documentsForm))} className="space-y-4">
-                                    <FormField control={documentsForm.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                                    <FormField control={documentsForm.control} name="subtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>} />
-                                    <FormField control={documentsForm.control} name="uploadTitle" render={({ field }) => <FormItem><FormLabel>Upload Box Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                                    <FormField control={documentsForm.control} name="uploadDescription" render={({ field }) => <FormItem><FormLabel>Upload Box Description</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>} />
-                                    <FormField control={documentsForm.control} name="codeOfConductTitle" render={({ field }) => <FormItem><FormLabel>Code of Conduct Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                                    <FormField control={documentsForm.control} name="codeOfConductDescription" render={({ field }) => <FormItem><FormLabel>CoC Description</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>} />
+                                    <FormField control={documentsForm.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                                    <FormField control={documentsForm.control} name="subtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
+                                    <FormField control={documentsForm.control} name="uploadTitle" render={({ field }) => <FormItem><FormLabel>Upload Box Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                                    <FormField control={documentsForm.control} name="uploadDescription" render={({ field }) => <FormItem><FormLabel>Upload Box Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
+                                    <FormField control={documentsForm.control} name="codeOfConductTitle" render={({ field }) => <FormItem><FormLabel>Code of Conduct Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                                    <FormField control={documentsForm.control} name="codeOfConductDescription" render={({ field }) => <FormItem><FormLabel>CoC Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
                                     <Button type="submit">Save Content</Button>
                                 </form></Form>
                             </CardContent></Card>
                             <Card><CardHeader><CardTitle>Code of Conduct Items</CardTitle></CardHeader>
                             <CardContent>
-                                {data.codeOfConduct?.map((item: T.CodeOfConductItem, index: number) => (
-                                    <div key={item.id} className="flex gap-2 items-end p-2 border rounded-md mb-2">
-                                        <Form {...genericForm}>
-                                        <FormField control={genericForm.control} name={`coc[${index}].title`} defaultValue={item.title} render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                                        <FormField control={genericForm.control} name={`coc[${index}].content`} defaultValue={item.content} render={({ field }) => <FormItem className="flex-grow"><FormLabel>Content</FormLabel><FormControl><Textarea {...field} rows={2}/></FormControl></FormItem>} />
-                                        </Form>
-                                        <div className="flex flex-col gap-1">
-                                        <Button size="sm" onClick={genericForm.handleSubmit(async (d) => { await firebaseService.updateCodeOfConductItem(item.id, d.coc[index]); fetchAllData(); })}>Save</Button>
-                                        <Button size="sm" variant="destructive" onClick={async () => { if(confirm('Are you sure you want to delete this rule?')) { await firebaseService.deleteCodeOfConductItem(item.id); fetchAllData(); } }}>Delete</Button>
-                                        </div>
-                                    </div>
+                                {data.codeOfConduct?.map((item: T.CodeOfConductItem) => (
+                                    <CodeOfConductItemForm
+                                        key={item.id}
+                                        item={item}
+                                        onSave={async (id, data) => { await firebaseService.updateCodeOfConductItem(id, data); fetchAllData(); }}
+                                        onDelete={async (id) => { if(confirm('Are you sure you want to delete this rule?')) { await firebaseService.deleteCodeOfConductItem(id); fetchAllData(); } }}
+                                    />
                                 ))}
-                                <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addCodeOfConductItem(d); fetchAllData(); genericForm.reset({title: '', content: ''});})} className="flex gap-2 items-end p-2 border-t mt-4">
-                                    <FormField control={genericForm.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                                    <FormField control={genericForm.control} name="content" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Content</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl></FormItem>} />
+                                <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addCodeOfConductItem(d.newCoc); fetchAllData(); genericForm.reset({newCoc: {title: '', content: ''}});})} className="flex flex-wrap md:flex-nowrap gap-2 items-end p-2 border-t mt-4">
+                                    <FormField control={genericForm.control} name="newCoc.title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                                    <FormField control={genericForm.control} name="newCoc.content" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Content</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl></FormItem>} />
                                     <Button type="submit" size="sm">Add Rule</Button>
                                 </form></Form>
                             </CardContent></Card>
@@ -414,9 +493,9 @@ export default function AdminPage() {
                     </AccordionContent></AccordionItem>
                     <AccordionItem value="countries"><AccordionTrigger><div className="flex items-center gap-2 text-lg"><Globe /> Country Matrix</div></AccordionTrigger>
                     <AccordionContent className="p-1"><Card><CardContent className="pt-6">
-                        <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (values) => { await firebaseService.addCountry({ ...values, status: 'Available' } as any); fetchAllData(); genericForm.reset({name: ''}); })} className="flex items-end gap-2 mb-4">
-                            <FormField control={genericForm.control} name="name" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Country Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                            <FormField control={genericForm.control} name="committee" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Committee</FormLabel><Select onValueChange={field.onChange}><FormControl><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger></FormControl><SelectContent>{data.committees?.map((c:T.Committee) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select></FormItem>} />
+                        <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (values) => { await firebaseService.addCountry({ ...values.newCountry, status: 'Available' } as any); fetchAllData(); genericForm.reset({newCountry: {name: '', committee: ''}}); })} className="flex items-end gap-2 mb-4">
+                            <FormField control={genericForm.control} name="newCountry.name" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Country Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+                            <FormField control={genericForm.control} name="newCountry.committee" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Committee</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger></FormControl><SelectContent>{data.committees?.map((c:T.Committee) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select></FormItem>} />
                             <Button type="submit"><PlusCircle className="mr-2 h-4 w-4" /> Add</Button>
                         </form></Form>
                          <div className="border rounded-md max-h-96 overflow-y-auto">
@@ -440,18 +519,15 @@ export default function AdminPage() {
                        {data.schedule?.map((day: T.ScheduleDay) => (
                         <Card key={day.id}><CardHeader><CardTitle>{day.title} - {day.date}</CardTitle></CardHeader>
                         <CardContent>
-                           {day.events.map((event, index) => (
-                             <div key={event.id} className="flex gap-2 items-end p-2 border rounded-md mb-2">
-                                 <Form {...genericForm}>
-                                    <FormField control={genericForm.control} name={`event${event.id}.time`} defaultValue={event.time} render={({ field }) => <FormItem><FormLabel>Time</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                                    <FormField control={genericForm.control} name={`event${event.id}.title`} defaultValue={event.title} render={({ field }) => <FormItem className="flex-grow"><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                                    <FormField control={genericForm.control} name={`event${event.id}.location`} defaultValue={event.location} render={({ field }) => <FormItem><FormLabel>Location</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                                 </Form>
-                                 <Button size="sm" onClick={genericForm.handleSubmit(async (d) => { await firebaseService.updateScheduleEvent(event.id, { ...d[`event${event.id}`] }); fetchAllData(); })}>Save</Button>
-                                 <Button size="sm" variant="destructive" onClick={async () => { if(confirm('Are you sure you want to delete this event?')) { await firebaseService.deleteScheduleEvent(event.id); fetchAllData(); } }}>Del</Button>
-                            </div>
+                           {day.events.map((event) => (
+                             <ScheduleEventForm
+                                key={event.id}
+                                event={event}
+                                onSave={async (id, data) => { await firebaseService.updateScheduleEvent(id, data); fetchAllData(); }}
+                                onDelete={async (id) => { if(confirm('Are you sure you want to delete this event?')) { await firebaseService.deleteScheduleEvent(id); fetchAllData(); } }}
+                             />
                            ))}
-                            <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addScheduleEvent({...(d.newEvents[day.id] as any), dayId: day.id}); fetchAllData();})} className="flex gap-2 items-end p-2 border-t mt-4">
+                            <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addScheduleEvent({...(d.newEvents[day.id] as any), dayId: day.id}); fetchAllData(); genericForm.reset({ newEvents: { ...genericForm.getValues().newEvents, [day.id]: {} } });})} className="flex flex-wrap md:flex-nowrap gap-2 items-end p-2 border-t mt-4">
                                 <FormField control={genericForm.control} name={`newEvents[${day.id}].time`} render={({ field }) => <FormItem><FormLabel>Time</FormLabel><FormControl><Input placeholder="e.g. 9:00 AM" {...field} /></FormControl></FormItem>} />
                                 <FormField control={genericForm.control} name={`newEvents[${day.id}].title`} render={({ field }) => <FormItem className="flex-grow"><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
                                 <FormField control={genericForm.control} name={`newEvents[${day.id}].location`} render={({ field }) => <FormItem><FormLabel>Location</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
@@ -461,7 +537,7 @@ export default function AdminPage() {
                        ))}
                        <Card><CardHeader><CardTitle>Add New Day</CardTitle></CardHeader>
                        <CardContent>
-                         <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addScheduleDay(d.newDay); fetchAllData();})} className="flex gap-2 items-end">
+                         <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addScheduleDay(d.newDay); fetchAllData(); genericForm.reset({newDay: {title: '', date: ''}});})} className="flex gap-2 items-end">
                             <FormField control={genericForm.control} name="newDay.title" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Day Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
                             <FormField control={genericForm.control} name="newDay.date" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Date</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
                             <Button type="submit" size="sm">Add Day</Button>
@@ -476,25 +552,19 @@ export default function AdminPage() {
                 <Card>
                     <CardHeader><CardTitle>Secretariat Members</CardTitle></CardHeader>
                     <CardContent>
-                         {data.secretariat?.map((member: T.SecretariatMember, index: number) => (
-                            <div key={member.id} className="flex gap-2 items-end p-2 border rounded-md mb-2">
-                                <Form {...genericForm}>
-                                <FormField control={genericForm.control} name={`sm[${index}].name`} defaultValue={member.name} render={({ field }) => <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                                <FormField control={genericForm.control} name={`sm[${index}].role`} defaultValue={member.role} render={({ field }) => <FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                                <FormField control={genericForm.control} name={`sm[${index}].imageUrl`} defaultValue={member.imageUrl} render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                                <FormField control={genericForm.control} name={`sm[${index}].bio`} defaultValue={member.bio} render={({ field }) => <FormItem className="flex-grow"><FormLabel>Bio</FormLabel><FormControl><Textarea {...field} rows={2}/></FormControl></FormItem>} />
-                                </Form>
-                                <div className="flex flex-col gap-1">
-                                <Button size="sm" onClick={genericForm.handleSubmit(async (d) => { await firebaseService.updateSecretariatMember(member.id, d.sm[index]); fetchAllData(); })}>Save</Button>
-                                <Button size="sm" variant="destructive" onClick={async () => { if(confirm('Are you sure you want to delete this member?')) { await firebaseService.deleteSecretariatMember(member.id); fetchAllData(); } }}>Delete</Button>
-                                </div>
-                            </div>
+                        {data.secretariat?.map((member: T.SecretariatMember) => (
+                            <SecretariatMemberForm
+                                key={member.id}
+                                member={member}
+                                onSave={async (id, data) => { await firebaseService.updateSecretariatMember(id, data); fetchAllData(); }}
+                                onDelete={async (id) => { if(confirm('Are you sure?')) { await firebaseService.deleteSecretariatMember(id); fetchAllData(); } }}
+                            />
                         ))}
-                        <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addSecretariatMember(d.newMember); fetchAllData(); genericForm.reset({newMember: {name: '', role: '', imageUrl: '', bio: ''}});})} className="flex gap-2 items-end p-2 border-t mt-4">
+                        <Form {...genericForm}><form onSubmit={genericForm.handleSubmit(async (d) => {await firebaseService.addSecretariatMember(d.newMember); fetchAllData(); genericForm.reset({newMember: {name: '', role: '', imageUrl: '', bio: ''}});})} className="flex flex-wrap lg:flex-nowrap gap-2 items-end p-2 border-t mt-4">
                             <FormField control={genericForm.control} name="newMember.name" render={({ field }) => <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
                              <FormField control={genericForm.control} name="newMember.role" render={({ field }) => <FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
                             <FormField control={genericForm.control} name="newMember.imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-                            <FormField control={genericForm.control} name="newMember.bio" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Bio</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl></FormItem>} />
+                            <FormField control={genericForm.control} name="newMember.bio" render={({ field }) => <FormItem className="flex-grow w-full lg:w-auto"><FormLabel>Bio</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl></FormItem>} />
                             <Button type="submit" size="sm">Add Member</Button>
                         </form></Form>
                     </CardContent>
@@ -523,7 +593,11 @@ export default function AdminPage() {
                         </CardContent></Card>
                         <Card><CardHeader><CardTitle>Navigation Visibility</CardTitle></CardHeader>
                         <CardContent>
-                            <Form {...siteConfigForm}><form onSubmit={siteConfigForm.handleSubmit(async (values) => { await firebaseService.updateSiteConfig({ navVisibility: values.navVisibility }); toast({title: "Nav Updated!"}) })} className="space-y-2">
+                             <Form {...siteConfigForm}><form onSubmit={siteConfigForm.handleSubmit(async (values) => { 
+                                const currentConfig = await firebaseService.getSiteConfig();
+                                await firebaseService.updateSiteConfig({ ...currentConfig, navVisibility: values.navVisibility }); 
+                                toast({title: "Nav Updated!"});
+                             })} className="space-y-2">
                                 {navLinksForAdmin.map((link) => (
                                     <FormField key={link.href} control={siteConfigForm.control} name={`navVisibility.${link.href}` as const} render={({ field }) => (
                                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
