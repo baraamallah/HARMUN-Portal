@@ -981,7 +981,7 @@ export default function AdminPage() {
                             <h3 className="font-semibold flex items-center gap-2"><Library/> Committees</h3>
                             <Button onClick={() => handleExport(data.committees, 'committees.csv')} className="w-full">Export to CSV</Button>
                             <div className="border-t pt-2 mt-2"><h4 className="font-semibold mb-2">Import</h4>
-                                <FormDescription className="text-xs mb-2">CSV must have columns: name, chairName, chairBio, chairImageUrl, topics (use \n for multiple), backgroundGuideUrl.</FormDescription>
+                                <p className="text-xs text-muted-foreground mb-2">CSV must have columns: name, chairName, chairBio, chairImageUrl, topics (use \n for multiple), backgroundGuideUrl.</p>
                                 <div className="flex gap-2"><Input id="committeesImportFile" type="file" accept=".csv" onChange={handleFileChange(setCommitteeImportFile)}/>
                                 <Button onClick={() => handleImport(committeeImportFile, firebaseService.importCommittees, 'committees')} disabled={!committeeImportFile || isImporting}><Upload/></Button></div>
                             </div>
@@ -990,7 +990,7 @@ export default function AdminPage() {
                             <h3 className="font-semibold flex items-center gap-2"><Globe/> Countries</h3>
                             <Button onClick={() => handleExport(data.countries, 'countries.csv')} className="w-full">Export to CSV</Button>
                             <div className="border-t pt-2 mt-2"><h4 className="font-semibold mb-2">Import</h4>
-                                <FormDescription className="text-xs mb-2">CSV must have columns: name, committee, status (Available or Assigned).</FormDescription>
+                                <p className="text-xs text-muted-foreground mb-2">CSV must have columns: name, committee, status (Available or Assigned).</p>
                                 <div className="flex gap-2"><Input id="countriesImportFile" type="file" accept=".csv" onChange={handleFileChange(setCountryImportFile)}/>
                                 <Button onClick={() => handleImport(countryImportFile, firebaseService.importCountries, 'countries')} disabled={!countryImportFile || isImporting}><Upload/></Button></div>
                             </div>
@@ -999,7 +999,7 @@ export default function AdminPage() {
                             <h3 className="font-semibold flex items-center gap-2"><Users/> Secretariat</h3>
                             <Button onClick={() => handleExport(data.secretariat, 'secretariat.csv')} className="w-full">Export to CSV</Button>
                             <div className="border-t pt-2 mt-2"><h4 className="font-semibold mb-2">Import</h4>
-                                <FormDescription className="text-xs mb-2">CSV must have columns: name, role, bio, imageUrl, order.</FormDescription>
+                                <p className="text-xs text-muted-foreground mb-2">CSV must have columns: name, role, bio, imageUrl, order.</p>
                                 <div className="flex gap-2"><Input id="secretariatImportFile" type="file" accept=".csv" onChange={handleFileChange(setSecretariatImportFile)}/>
                                 <Button onClick={() => handleImport(secretariatImportFile, firebaseService.importSecretariat, 'secretariat')} disabled={!secretariatImportFile || isImporting}><Upload/></Button></div>
                             </div>
@@ -1008,7 +1008,7 @@ export default function AdminPage() {
                             <h3 className="font-semibold flex items-center gap-2"><GalleryHorizontal/> Gallery</h3>
                             <Button onClick={() => handleExport(data.galleryImages, 'gallery.csv')} className="w-full">Export to CSV</Button>
                             <div className="border-t pt-2 mt-2"><h4 className="font-semibold mb-2">Import</h4>
-                                <FormDescription className="text-xs mb-2">CSV must have columns: title, imageUrl, order.</FormDescription>
+                                <p className="text-xs text-muted-foreground mb-2">CSV must have columns: title, imageUrl, order.</p>
                                 <div className="flex gap-2"><Input id="galleryImportFile" type="file" accept=".csv" onChange={handleFileChange(setGalleryImportFile)}/>
                                 <Button onClick={() => handleImport(galleryImportFile, firebaseService.importGallery, 'gallery')} disabled={!galleryImportFile || isImporting}><Upload/></Button></div>
                             </div>
@@ -1071,5 +1071,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    
