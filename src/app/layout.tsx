@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { getSiteConfig } from '@/lib/firebase-service';
 import type { SiteConfig } from '@/lib/types';
 import { AuthProvider } from '@/context/auth-context';
+import { Analytics } from '@vercel/analytics/react';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,6 +52,7 @@ export default async function RootLayout({
           </div>
           <Toaster />
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
