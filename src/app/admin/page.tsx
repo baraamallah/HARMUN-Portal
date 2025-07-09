@@ -17,6 +17,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -319,59 +320,49 @@ function AddGalleryImageForm({ onAdd }: { onAdd: (data: any) => Promise<void> })
 
 const availablePlatforms = ['Twitter', 'Instagram', 'Facebook', 'LinkedIn', 'YouTube'];
 function AddSocialLinkForm({ onAdd, existingPlatforms }: { onAdd: (link: T.SocialLink) => void; existingPlatforms: string[] }) {
-    const form = useForm<z.infer<typeof socialLinkItemSchema>>({
-        resolver: zodResolver(socialLinkItemSchema),
-        defaultValues: { platform: '', url: '' },
-    });
+    const { toast } = useToast();
+    const [platform, setPlatform] = React.useState('');
+    const [url, setUrl] = React.useState('');
 
     const filteredPlatforms = availablePlatforms.filter(p => !existingPlatforms.includes(p));
 
-    const handleAdd = (values: z.infer<typeof socialLinkItemSchema>) => {
-        onAdd(values);
-        form.reset();
+    const handleAdd = (event: React.FormEvent) => {
+        event.preventDefault();
+        const result = socialLinkItemSchema.safeParse({ platform, url });
+        if (!result.success) {
+            const firstError = result.error.errors[0];
+            if (firstError) {
+                toast({ title: 'Invalid Input', description: firstError.message, variant: 'destructive' });
+            }
+            return;
+        }
+
+        onAdd(result.data);
+        setPlatform('');
+        setUrl('');
     };
 
     return (
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleAdd)} className="p-2 border-t mt-4">
-                <h4 className="font-semibold mb-2">Add New Social Link</h4>
-                <div className="flex flex-wrap md:flex-nowrap gap-2 items-end">
-                    <FormField
-                        control={form.control}
-                        name="platform"
-                        render={({ field }) => (
-                            <FormItem className="w-full md:w-auto">
-                                <FormLabel>Platform</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {filteredPlatforms.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                     />
-                     <FormField
-                        control={form.control}
-                        name="url"
-                        render={({ field }) => (
-                             <FormItem className="flex-grow">
-                                <FormLabel>URL</FormLabel>
-                                <FormControl>
-                                    <Input {...field} placeholder="https://..." />
-                                </FormControl>
-                                <FormMessage />
-                             </FormItem>
-                        )}
-                     />
-                    <Button type="submit" disabled={filteredPlatforms.length === 0}>Add</Button>
+        <form onSubmit={handleAdd} className="p-2 border-t mt-4">
+            <h4 className="font-semibold mb-2">Add New Social Link</h4>
+            <div className="flex flex-wrap md:flex-nowrap gap-2 items-end">
+                 <div className="w-full md:w-auto space-y-2">
+                     <Label htmlFor="platform-select">Platform</Label>
+                    <Select onValueChange={setPlatform} value={platform}>
+                        <SelectTrigger id="platform-select"><SelectValue placeholder="Select..." /></SelectTrigger>
+                        <SelectContent>
+                            {filteredPlatforms.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
                 </div>
-                 {filteredPlatforms.length === 0 && <p className="text-xs text-muted-foreground mt-2">All available platforms have been added.</p>}
-            </form>
-        </Form>
+                 <div className="flex-grow space-y-2">
+                    <Label htmlFor="platform-url">URL</Label>
+                    <Input id="platform-url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." />
+                 </div>
+                <Button type="submit" disabled={filteredPlatforms.length === 0}>Add</Button>
+            </div>
+             {filteredPlatforms.length === 0 && <p className="text-xs text-muted-foreground mt-2">All available platforms have been added.</p>}
+        </form>
     );
 }
 
@@ -396,7 +387,7 @@ export default function AdminPage() {
   const navVisibilityForm = useForm<z.infer<typeof navVisibilitySchema>>({ resolver: zodResolver(navVisibilitySchema) });
   const changePasswordForm = useForm<z.infer<typeof changePasswordSchema>>({ resolver: zodResolver(changePasswordSchema), defaultValues: {currentPassword: "", newPassword: "", confirmPassword: ""}});
 
-  const { fields: socialLinkFields, append: appendSocialLink, remove: removeSocialLink } = useFieldArray({
+  const { fields: socialLinkFields, append: appendSocialLink, remove: removeSocialLink, replace: replaceSocialLinks } = useFieldArray({
     control: socialLinksForm.control,
     name: "socialLinks",
   });
@@ -426,7 +417,7 @@ export default function AdminPage() {
         documentsForm.reset(allData.documentsContent);
         galleryForm.reset(allData.galleryContent);
         generalSettingsForm.reset(allData.siteConfig);
-        socialLinksForm.reset({ socialLinks: allData.siteConfig.socialLinks || [] });
+        replaceSocialLinks(allData.siteConfig.socialLinks || []);
         navVisibilityForm.reset({ navVisibility: allData.siteConfig.navVisibility || {} });
 
     } catch (error) {
@@ -435,15 +426,15 @@ export default function AdminPage() {
     } finally {
         setLoading(false);
     }
-  }, [toast, homeForm, aboutForm, registrationForm, documentsForm, galleryForm, generalSettingsForm, socialLinksForm, navVisibilityForm]);
+  }, [toast, homeForm, aboutForm, registrationForm, documentsForm, galleryForm, generalSettingsForm, replaceSocialLinks, navVisibilityForm]);
 
   useEffect(() => { fetchAllData(); }, [fetchAllData]);
 
-  const handleFormSubmit = async (updateFunction: (data: any) => Promise<void>, successMessage: string, data: any, form: any) => {
+  const handleFormSubmit = async (updateFunction: (data: any) => Promise<void>, successMessage: string, data: any, form?: any) => {
     try {
         await updateFunction(data);
         toast({ title: "Success!", description: successMessage });
-        form.reset(data); 
+        if(form) form.reset(data); 
     } catch (error) {
         toast({ title: "Error", description: `Could not save data. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
     }
@@ -568,14 +559,13 @@ export default function AdminPage() {
 
     const handleAddItem = async <T extends {id: string}>(
         addFunction: (data: any) => Promise<string>,
-        getFunction: (id: string) => Promise<any>,
         addData: any,
         stateKey: keyof typeof data,
         message: string
     ) => {
         try {
             const newId = await addFunction(addData);
-            const newItem = await getFunction(newId);
+            const newItem = await firebaseService.getDocById(stateKey as string, newId);
             setData(prev => ({
                 ...prev,
                 [stateKey]: [...prev[stateKey], newItem],
@@ -632,7 +622,7 @@ export default function AdminPage() {
                 <Card className="mt-6">
                     <CardHeader><CardTitle className="flex items-center gap-2"><Newspaper /> Create & Manage Posts</CardTitle></CardHeader>
                     <CardContent>
-                        <CreatePostForm onAdd={(postData) => handleAddItem(firebaseService.addPost, (id) => firebaseService.getDocById('posts', id), postData, "posts", "Post created!")} />
+                        <CreatePostForm onAdd={(postData) => handleAddItem(firebaseService.addPost, postData, "posts", "Post created!")} />
                          <h3 className="text-lg font-semibold mb-4">Published Posts</h3>
                         <div className="border rounded-md max-h-96 overflow-y-auto">
                             <Table>
@@ -677,7 +667,7 @@ export default function AdminPage() {
                                         onDelete={(id) => handleDeleteItem(firebaseService.deleteHighlight, id, "highlights", "Highlight deleted.")}
                                     />
                                 ))}
-                                <AddHighlightForm onAdd={(addData) => handleAddItem(firebaseService.addHighlight, (id) => firebaseService.getDocById('highlights', id), addData, "highlights", "Highlight added!")} />
+                                <AddHighlightForm onAdd={(addData) => handleAddItem(firebaseService.addHighlight, addData, "highlights", "Highlight added!")} />
                             </CardContent></Card>
                         </AccordionContent>
                     </AccordionItem>
@@ -733,7 +723,7 @@ export default function AdminPage() {
                                         onDelete={(id) => handleDeleteItem(firebaseService.deleteCodeOfConductItem, id, "codeOfConduct", "Rule deleted.")}
                                     />
                                 ))}
-                                <AddCodeOfConductForm onAdd={(addData) => handleAddItem(firebaseService.addCodeOfConductItem, (id) => firebaseService.getDocById('codeOfConduct', id), addData, "codeOfConduct", "Rule added!")} />
+                                <AddCodeOfConductForm onAdd={(addData) => handleAddItem(firebaseService.addCodeOfConductItem, addData, "codeOfConduct", "Rule added!")} />
                             </CardContent></Card>
                         </AccordionContent>
                     </AccordionItem>
@@ -749,7 +739,6 @@ export default function AdminPage() {
                             <AddCommitteeForm onAdd={async(values) => {
                                 await handleAddItem(
                                     (data) => firebaseService.addCommittee(data),
-                                    (id) => firebaseService.getDocById('committees', id),
                                     {
                                         name: values.name,
                                         chair: { name: values.chairName, bio: values.chairBio || "", imageUrl: values.chairImageUrl || "" },
@@ -782,7 +771,7 @@ export default function AdminPage() {
                     </AccordionContent></AccordionItem>
                     <AccordionItem value="countries"><AccordionTrigger><div className="flex items-center gap-2 text-lg"><Globe /> Country Matrix</div></AccordionTrigger>
                     <AccordionContent className="p-1"><Card><CardContent className="pt-6">
-                        <AddCountryForm committees={data.committees} onAdd={(values) => handleAddItem(firebaseService.addCountry, (id) => firebaseService.getDocById('countries', id), values, "countries", "Country Added!")} />
+                        <AddCountryForm committees={data.committees} onAdd={(values) => handleAddItem(firebaseService.addCountry, values, "countries", "Country Added!")} />
                          <div className="border rounded-md max-h-96 overflow-y-auto">
                             <Table><TableHeader><TableRow><TableHead>Country</TableHead><TableHead>Committee</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
                             <TableBody>
@@ -856,7 +845,7 @@ export default function AdminPage() {
                                 onDelete={(id) => handleDeleteItem(firebaseService.deleteSecretariatMember, id, "secretariat", "Member deleted.")}
                             />
                         ))}
-                        <AddSecretariatMemberForm onAdd={(addData) => handleAddItem(firebaseService.addSecretariatMember, (id) => firebaseService.getDocById('secretariat', id), addData, "secretariat", "Member added!")} />
+                        <AddSecretariatMemberForm onAdd={(addData) => handleAddItem(firebaseService.addSecretariatMember, addData, "secretariat", "Member added!")} />
                     </CardContent>
                 </Card>
             </TabsContent>
@@ -887,7 +876,7 @@ export default function AdminPage() {
                                         onDelete={(id) => handleDeleteItem(firebaseService.deleteGalleryImage, id, "galleryImages", "Image deleted.")}
                                     />
                                 ))}
-                                <AddGalleryImageForm onAdd={(addData) => handleAddItem(firebaseService.addGalleryImage, (id) => firebaseService.getDocById('galleryImages', id), addData, "galleryImages", "Image added!")} />
+                                <AddGalleryImageForm onAdd={(addData) => handleAddItem(firebaseService.addGalleryImage, addData, "galleryImages", "Image added!")} />
                             </CardContent></Card>
                         </AccordionContent>
                     </AccordionItem>
@@ -917,7 +906,11 @@ export default function AdminPage() {
                          <CardContent>
                              <Form {...socialLinksForm}>
                                 <form onSubmit={socialLinksForm.handleSubmit(async (values) => {
-                                    await handleFormSubmit(firebaseService.updateSiteConfig, "Social links updated.", values, socialLinksForm);
+                                    await handleFormSubmit(firebaseService.updateSiteConfig, "Social links updated.", values);
+                                    // Manually refetch siteConfig to update the footer, etc.
+                                    const siteConfig = await firebaseService.getSiteConfig();
+                                    setData((p: any) => ({...p, siteConfig}));
+
                                 })} className="space-y-4">
                                     {socialLinkFields.map((field, index) => (
                                         <div key={field.id} className="flex items-end gap-2 p-2 border rounded-md">
@@ -1068,9 +1061,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    
-
-    
-
-    
