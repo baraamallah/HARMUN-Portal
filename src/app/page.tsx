@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Countdown } from '@/components/countdown';
-import { Calendar, MapPin, Globe } from 'lucide-react';
+import { Calendar, MapPin } from 'lucide-react';
 import Image from 'next/image';
 import { getHomePageContent, getSiteConfig } from '@/lib/firebase-service';
 
@@ -80,12 +80,18 @@ export default async function Home() {
             <Card className="hover:shadow-xl transition-shadow duration-300">
               <CardHeader>
                 <div className="mx-auto bg-primary text-primary-foreground rounded-full w-16 h-16 flex items-center justify-center mb-4">
-                  <Globe className="w-8 h-8" />
+                  <MapPin className="w-8 h-8" />
                 </div>
-                <CardTitle className="font-headline">Theme</CardTitle>
+                <CardTitle className="font-headline">Venue Map</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-lg">Innovating Global Governance</p>
+                <iframe 
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d13295.621718905126!2d35.37829399108886!3d33.58180460940153!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x151efaac9c5cdf6f%3A0x73a55ec5ecdc2fc2!2sRafic%20Hariri%20High%20School!5e0!3m2!1sen!2slb!4v1752039583301!5m2!1sen!2slb" 
+                    className="w-full h-48 border-0 rounded-md"
+                    allowFullScreen={true}
+                    loading="lazy" 
+                    referrerPolicy="no-referrer-when-downgrade">
+                </iframe>
               </CardContent>
             </Card>
           </div>
