@@ -1,10 +1,11 @@
-import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Theme, HomePageContent, Post } from './types';
+import type { Theme, HomePageContent, Post, Country } from './types';
 import { format } from 'date-fns';
 
 const CONFIG_COLLECTION = 'config';
 const POSTS_COLLECTION = 'posts';
+const COUNTRIES_COLLECTION = 'countries';
 const THEME_DOC_ID = 'theme';
 const HOME_PAGE_CONTENT_DOC_ID = 'homePage';
 
@@ -86,4 +87,26 @@ export function formatTimestamp(timestamp: any, dateFormat: string = 'PPP'): str
     } catch(e) {
       return "Invalid Date";
     }
+}
+
+// --- Country Matrix Management ---
+export async function addCountry(country: Omit<Country, 'id'>): Promise<string> {
+  const docRef = await addDoc(collection(db, COUNTRIES_COLLECTION), country);
+  return docRef.id;
+}
+
+export async function getCountries(): Promise<Country[]> {
+    const q = query(collection(db, COUNTRIES_COLLECTION), orderBy('committee'), orderBy('name'));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Country));
+}
+
+export async function updateCountryStatus(id: string, status: 'Available' | 'Assigned'): Promise<void> {
+    const docRef = doc(db, COUNTRIES_COLLECTION, id);
+    await setDoc(docRef, { status }, { merge: true });
+}
+
+export async function deleteCountry(id: string): Promise<void> {
+    const docRef = doc(db, COUNTRIES_COLLECTION, id);
+    await deleteDoc(docRef);
 }

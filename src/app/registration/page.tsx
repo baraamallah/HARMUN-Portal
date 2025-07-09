@@ -3,12 +3,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import React, { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -26,6 +26,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Country } from "@/lib/types";
+import { getCountries } from "@/lib/firebase-service";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
@@ -37,22 +39,12 @@ const formSchema = z.object({
 });
 
 const committees = ['Security Council (SC)', 'World Health Organization (WHO)', 'Human Rights Council (HRC)', 'United Nations Environment Programme (UNEP)'];
-const countries: Country[] = [
-    { name: 'United States', committee: 'SC', status: 'Assigned' },
-    { name: 'China', committee: 'SC', status: 'Assigned' },
-    { name: 'France', committee: 'SC', status: 'Available' },
-    { name: 'United Kingdom', committee: 'SC', status: 'Available' },
-    { name: 'Russia', committee: 'SC', status: 'Assigned' },
-    { name: 'Germany', committee: 'WHO', status: 'Available' },
-    { name: 'Japan', committee: 'WHO', status: 'Available' },
-    { name: 'Brazil', committee: 'HRC', status: 'Assigned' },
-    { name: 'India', committee: 'HRC', status: 'Available' },
-    { name: 'Kenya', committee: 'UNEP', status: 'Available' },
-];
-
 
 export default function RegistrationPage() {
   const { toast } = useToast();
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [loadingMatrix, setLoadingMatrix] = useState(true);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -61,6 +53,25 @@ export default function RegistrationPage() {
       school: "",
     },
   });
+
+  useEffect(() => {
+    async function fetchCountries() {
+        try {
+            const fetchedCountries = await getCountries();
+            setCountries(fetchedCountries);
+        } catch (error) {
+            console.error("Failed to fetch countries:", error);
+            toast({
+                title: "Error",
+                description: "Could not load the country matrix.",
+                variant: "destructive",
+            });
+        } finally {
+            setLoadingMatrix(false);
+        }
+    }
+    fetchCountries();
+  }, [toast]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
@@ -183,13 +194,27 @@ export default function RegistrationPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {countries.map((country) => (
-                                    <TableRow key={`${country.name}-${country.committee}`}>
-                                        <TableCell className="font-medium">{country.name}</TableCell>
-                                        <TableCell>{country.committee}</TableCell>
-                                        <TableCell className={country.status === 'Available' ? 'text-green-600' : 'text-red-600'}>{country.status}</TableCell>
+                                {loadingMatrix ? (
+                                    Array.from({ length: 10 }).map((_, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                                            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                                            <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : countries.length > 0 ? (
+                                    countries.map((country) => (
+                                        <TableRow key={country.id}>
+                                            <TableCell className="font-medium">{country.name}</TableCell>
+                                            <TableCell>{country.committee}</TableCell>
+                                            <TableCell className={country.status === 'Available' ? 'text-green-600' : 'text-red-600'}>{country.status}</TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={3} className="text-center">No countries assigned yet.</TableCell>
                                     </TableRow>
-                                ))}
+                                )}
                             </TableBody>
                         </Table>
                     </div>

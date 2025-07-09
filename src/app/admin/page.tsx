@@ -19,12 +19,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Paintbrush, Type, PlusCircle, Newspaper, Users, FileText, Library, Image as ImageIcon } from "lucide-react";
-import { getTheme, updateTheme, getHomePageContent, updateHomePageContent, addPost, getAllPosts, formatTimestamp } from "@/lib/firebase-service";
+import { Paintbrush, Type, PlusCircle, Newspaper, Users, FileText, Library, Image as ImageIcon, Globe, Trash2 } from "lucide-react";
+import { getTheme, updateTheme, getHomePageContent, updateHomePageContent, addPost, getAllPosts, formatTimestamp, getCountries, addCountry, updateCountryStatus, deleteCountry } from "@/lib/firebase-service";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Post } from "@/lib/types";
+import type { Post, Country } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 
 const themeFormSchema = z.object({
   primaryColor: z.string().regex(/^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/, "Must be a valid HSL string (e.g., 227 66% 32%)"),
@@ -44,10 +46,18 @@ const postFormSchema = z.object({
     type: z.enum(['sg-note', 'news'], { required_error: "You must select a post type." }),
 });
 
+const countryMatrixFormSchema = z.object({
+    name: z.string().min(2, "Country name is required."),
+    committee: z.string({ required_error: "Please select a committee." }),
+});
+
+const committeesList = ['Security Council (SC)', 'World Health Organization (WHO)', 'Human Rights Council (HRC)', 'United Nations Environment Programme (UNEP)'];
+
 export default function AdminPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [countries, setCountries] = useState<Country[]>([]);
 
   const themeForm = useForm<z.infer<typeof themeFormSchema>>({ resolver: zodResolver(themeFormSchema) });
   const contentForm = useForm<z.infer<typeof contentFormSchema>>({ resolver: zodResolver(contentFormSchema) });
@@ -55,40 +65,39 @@ export default function AdminPage() {
     resolver: zodResolver(postFormSchema),
     defaultValues: { title: "", content: "" },
   });
+  const countryMatrixForm = useForm<z.infer<typeof countryMatrixFormSchema>>({
+    resolver: zodResolver(countryMatrixFormSchema),
+    defaultValues: { name: "" },
+  });
 
-  const fetchPosts = React.useCallback(async () => {
+  const fetchAdminData = React.useCallback(async () => {
     try {
-        const allPosts = await getAllPosts();
-        setPosts(allPosts);
-    } catch (error) {
-        console.error("Failed to fetch posts:", error);
-        toast({ title: "Error", description: "Could not load posts.", variant: "destructive" });
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [theme, content] = await Promise.all([
-          getTheme(),
-          getHomePageContent(),
-          fetchPosts(),
+        setLoading(true);
+        const [theme, content, allPosts, allCountries] = await Promise.all([
+            getTheme(),
+            getHomePageContent(),
+            getAllPosts(),
+            getCountries(),
         ]);
         themeForm.reset(theme);
         contentForm.reset(content);
-      } catch (error) {
+        setPosts(allPosts);
+        setCountries(allCountries);
+    } catch (error) {
         console.error("Failed to fetch admin data:", error);
         toast({
-          title: "Error",
-          description: "Could not load settings from the database.",
-          variant: "destructive",
+            title: "Error",
+            description: "Could not load data from the database.",
+            variant: "destructive",
         });
-      } finally {
+    } finally {
         setLoading(false);
-      }
     }
-    fetchData();
-  }, [themeForm, contentForm, toast, fetchPosts]);
+  }, [toast, themeForm, contentForm]);
+
+  useEffect(() => {
+    fetchAdminData();
+  }, [fetchAdminData]);
 
   async function onThemeSubmit(values: z.infer<typeof themeFormSchema>) {
     try {
@@ -130,7 +139,7 @@ export default function AdminPage() {
             description: "Your new post has been published.",
         });
         postForm.reset();
-        await fetchPosts(); // Refresh the list of posts
+        await fetchAdminData();
     } catch (error) {
         toast({
             title: "Error Creating Post",
@@ -139,11 +148,45 @@ export default function AdminPage() {
         });
     }
   }
+
+  async function onCountrySubmit(values: z.infer<typeof countryMatrixFormSchema>) {
+    try {
+        await addCountry({ ...values, status: 'Available' });
+        toast({ title: "Country Added", description: `${values.name} has been added to the matrix.` });
+        countryMatrixForm.reset();
+        await fetchAdminData();
+    } catch (error) {
+        toast({ title: "Error", description: "Could not add country.", variant: "destructive" });
+    }
+  }
+
+  async function handleStatusChange(id: string, currentStatus: 'Available' | 'Assigned') {
+      const newStatus = currentStatus === 'Available' ? 'Assigned' : 'Available';
+      try {
+          await updateCountryStatus(id, newStatus);
+          toast({ title: "Status Updated", description: `Status changed to ${newStatus}.` });
+          await fetchAdminData();
+      } catch (error) {
+          toast({ title: "Error", description: "Could not update status.", variant: "destructive" });
+      }
+  }
+
+  async function handleDeleteCountry(id: string, name: string) {
+      if (confirm(`Are you sure you want to delete ${name}? This action cannot be undone.`)) {
+          try {
+              await deleteCountry(id);
+              toast({ title: "Country Deleted", description: `${name} has been removed from the matrix.` });
+              await fetchAdminData();
+          } catch (error) {
+              toast({ title: "Error", description: "Could not delete country.", variant: "destructive" });
+          }
+      }
+  }
   
   if (loading) {
     return (
       <div className="space-y-8">
-        {/* Loading skeletons... */}
+        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-64 w-full" />)}
       </div>
     )
   }
@@ -176,14 +219,14 @@ export default function AdminPage() {
                     <p className="text-xs text-muted-foreground">Across News and SG Notes.</p>
                 </CardContent>
             </Card>
-            <Card>
+             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Committees</CardTitle>
-                    <Library className="h-4 w-4 text-muted-foreground" />
+                    <CardTitle className="text-sm font-medium">Countries in Matrix</CardTitle>
+                    <Globe className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">4</div>
-                    <p className="text-xs text-muted-foreground">As listed on the committees page.</p>
+                    <div className="text-2xl font-bold">{countries.length}</div>
+                    <p className="text-xs text-muted-foreground">Available and assigned positions.</p>
                 </CardContent>
             </Card>
         </div>
@@ -219,6 +262,62 @@ export default function AdminPage() {
                 </CardContent>
             </Card>
         </div>
+
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Globe className="w-6 h-6" /> Country Matrix Management</CardTitle>
+                <CardDescription>Add, remove, and manage country assignments for committees.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Form {...countryMatrixForm}>
+                    <form onSubmit={countryMatrixForm.handleSubmit(onCountrySubmit)} className="flex flex-col sm:flex-row sm:items-end gap-4 mb-6">
+                        <FormField control={countryMatrixForm.control} name="name" render={({ field }) => (
+                            <FormItem className="flex-grow w-full sm:w-auto"><FormLabel>Country Name</FormLabel><FormControl><Input placeholder="e.g., Canada" {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={countryMatrixForm.control} name="committee" render={({ field }) => (
+                            <FormItem className="flex-grow w-full sm:w-auto"><FormLabel>Committee</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a committee" /></SelectTrigger></FormControl>
+                                    <SelectContent>{committeesList.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <Button type="submit" className="w-full sm:w-auto"><PlusCircle className="mr-2 h-4 w-4" /> Add Country</Button>
+                    </form>
+                </Form>
+                <div className="border rounded-md max-h-96 overflow-y-auto">
+                    <Table>
+                        <TableHeader><TableRow><TableHead>Country</TableHead><TableHead>Committee</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                        <TableBody>
+                            {countries.length > 0 ? countries.map(country => (
+                                <TableRow key={country.id}>
+                                    <TableCell className="font-medium">{country.name}</TableCell>
+                                    <TableCell>{country.committee}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={country.status === 'Available' ? 'secondary' : 'default'}>{country.status}</Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right space-x-2 flex items-center justify-end">
+                                        <div className="flex items-center gap-2">
+                                            <Switch
+                                                checked={country.status === 'Assigned'}
+                                                onCheckedChange={() => handleStatusChange(country.id, country.status)}
+                                                aria-label={`Set ${country.name} to ${country.status === 'Available' ? 'Assigned' : 'Available'}`}
+                                            />
+                                        </div>
+                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteCountry(country.id, country.name)}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            )) : (
+                                <TableRow><TableCell colSpan={4} className="text-center">No countries added yet.</TableCell></TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+            </CardContent>
+        </Card>
 
         <Card className="lg:col-span-2">
             <CardHeader>

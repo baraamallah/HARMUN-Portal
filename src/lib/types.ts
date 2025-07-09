@@ -26,6 +26,7 @@ export type ScheduleEvent = {
 };
 
 export type Country = {
+  id: string; // Document ID from Firestore
   name: string;
   committee: string;
   status: 'Available' | 'Assigned';
