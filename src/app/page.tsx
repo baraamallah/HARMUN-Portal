@@ -18,9 +18,8 @@ export default async function Home() {
         <Image
           src={content.heroImageUrl}
           alt="Conference hall"
-          layout="fill"
-          objectFit="cover"
-          className="z-0"
+          fill
+          className="z-0 object-cover"
           data-ai-hint="conference hall"
           priority
         />

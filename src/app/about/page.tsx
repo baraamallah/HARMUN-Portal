@@ -18,8 +18,8 @@ export default function AboutPage() {
                 <Image
                     src="https://placehold.co/600x400.png"
                     alt="Students engaged in a debate"
-                    layout="fill"
-                    objectFit="cover"
+                    fill
+                    className="object-cover"
                     data-ai-hint="students debate"
                 />
             </div>
