@@ -1,8 +1,10 @@
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Theme, HomePageContent } from './types';
+import type { Theme, HomePageContent, Post } from './types';
+import { format } from 'date-fns';
 
 const CONFIG_COLLECTION = 'config';
+const POSTS_COLLECTION = 'posts';
 const THEME_DOC_ID = 'theme';
 const HOME_PAGE_CONTENT_DOC_ID = 'homePage';
 
@@ -50,4 +52,42 @@ export async function getHomePageContent(): Promise<HomePageContent> {
 export async function updateHomePageContent(content: HomePageContent): Promise<void> {
   const docRef = doc(db, CONFIG_COLLECTION, HOME_PAGE_CONTENT_DOC_ID);
   await setDoc(docRef, content, { merge: true });
+}
+
+// --- Post Management ---
+export async function addPost(post: Omit<Post, 'id' | 'createdAt'>): Promise<string> {
+  const docRef = await addDoc(collection(db, POSTS_COLLECTION), {
+    ...post,
+    createdAt: serverTimestamp(),
+  });
+  return docRef.id;
+}
+
+export async function getAllPosts(): Promise<Post[]> {
+  const q = query(collection(db, POSTS_COLLECTION), orderBy('createdAt', 'desc'));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+}
+
+export async function getPosts(type: 'sg-note' | 'news'): Promise<Post[]> {
+  const q = query(
+    collection(db, POSTS_COLLECTION),
+    where('type', '==', type),
+    orderBy('createdAt', 'desc')
+  );
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+}
+
+export function formatTimestamp(timestamp: any, dateFormat: string = 'PPP'): string {
+    if (timestamp && typeof timestamp.toDate === 'function') {
+        return format(timestamp.toDate(), dateFormat);
+    }
+    // Fallback for cases where it might not be a Firestore timestamp
+    try {
+      const date = new Date(timestamp);
+      return format(date, dateFormat);
+    } catch(e) {
+      return "Invalid Date";
+    }
 }

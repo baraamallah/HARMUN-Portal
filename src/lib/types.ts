@@ -1,3 +1,5 @@
+import type { Timestamp } from 'firebase/firestore';
+
 export type Committee = {
   name: string;
   chair: {
@@ -38,4 +40,12 @@ export type Theme = {
 export type HomePageContent = {
   heroTitle: string;
   heroSubtitle: string;
+};
+
+export type Post = {
+  id: string;
+  title: string;
+  content: string;
+  type: 'sg-note' | 'news';
+  createdAt: Timestamp;
 };
