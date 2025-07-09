@@ -25,13 +25,23 @@ const defaultHomePageContent: HomePageContent = {
   heroImageUrl: "https://placehold.co/1920x1080.png",
 };
 
-const defaultSiteConfig: SiteConfig = {
+export const defaultSiteConfig: SiteConfig = {
     socialLinks: {
         twitter: "#",
         instagram: "#",
         facebook: "#",
     },
     footerText: "This is a fictional event created for demonstration purposes.",
+    navVisibility: {
+        '/about': true,
+        '/committees': true,
+        '/news': true,
+        '/sg-notes': true,
+        '/registration': true,
+        '/schedule': true,
+        '/secretariat': true,
+        '/documents': true,
+    },
 };
 
 const defaultAboutPageContent: AboutPageContent = {
@@ -103,7 +113,20 @@ export async function getSiteConfig(): Promise<SiteConfig> {
     const docRef = doc(db, CONFIG_COLLECTION, SITE_CONFIG_DOC_ID);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return { ...defaultSiteConfig, ...docSnap.data() } as SiteConfig;
+      const dbConfig = docSnap.data();
+      // Deep merge to ensure defaults are kept for missing properties
+      return {
+        ...defaultSiteConfig,
+        ...dbConfig,
+        socialLinks: {
+          ...defaultSiteConfig.socialLinks,
+          ...(dbConfig.socialLinks || {}),
+        },
+        navVisibility: {
+          ...defaultSiteConfig.navVisibility,
+          ...(dbConfig.navVisibility || {}),
+        },
+      };
     }
     return defaultSiteConfig;
   } catch (error) {
@@ -112,7 +135,7 @@ export async function getSiteConfig(): Promise<SiteConfig> {
   }
 }
 
-export async function updateSiteConfig(config: SiteConfig): Promise<void> {
+export async function updateSiteConfig(config: Partial<SiteConfig>): Promise<void> {
   const docRef = doc(db, CONFIG_COLLECTION, SITE_CONFIG_DOC_ID);
   await setDoc(docRef, config, { merge: true });
 }

@@ -42,6 +42,7 @@ export type SocialLinks = {
 export type SiteConfig = {
   socialLinks: SocialLinks;
   footerText: string;
+  navVisibility?: Record<string, boolean>;
 };
 
 export type Theme = {

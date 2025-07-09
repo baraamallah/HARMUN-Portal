@@ -19,8 +19,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Paintbrush, Type, PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, Share2, BookOpenText } from "lucide-react";
-import { getTheme, updateTheme, getHomePageContent, updateHomePageContent, addPost, getAllPosts, formatTimestamp, getCountries, addCountry, updateCountryStatus, deleteCountry, getCommittees, addCommittee, deleteCommittee, getSiteConfig, updateSiteConfig, getAboutPageContent, updateAboutPageContent } from "@/lib/firebase-service";
+import { Paintbrush, Type, PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, Share2, BookOpenText, List } from "lucide-react";
+import { getTheme, updateTheme, getHomePageContent, updateHomePageContent, addPost, getAllPosts, formatTimestamp, getCountries, addCountry, updateCountryStatus, deleteCountry, getCommittees, addCommittee, deleteCommittee, getSiteConfig, updateSiteConfig, getAboutPageContent, updateAboutPageContent, defaultSiteConfig } from "@/lib/firebase-service";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Post, Country, Committee, SiteConfig, HomePageContent, AboutPageContent } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -72,11 +72,25 @@ const committeeFormSchema = z.object({
     backgroundGuideUrl: z.string().url("A valid background guide URL is required."),
 });
 
+const navLinksForAdmin = [
+  { href: '/about', label: 'About' },
+  { href: '/committees', label: 'Committees' },
+  { href: '/news', label: 'News' },
+  { href: '/sg-notes', label: 'SG Notes' },
+  { href: '/registration', label: 'Registration' },
+  { href: '/schedule', label: 'Schedule' },
+  { href: '/secretariat', label: 'Secretariat' },
+  { href: '/documents', label: 'Documents' },
+];
+
 const siteConfigFormSchema = z.object({
   twitter: z.string().url("Must be a valid URL.").or(z.literal("")).or(z.literal("#")),
   instagram: z.string().url("Must be a valid URL.").or(z.literal("")).or(z.literal("#")),
   facebook: z.string().url("Must be a valid URL.").or(z.literal("")).or(z.literal("#")),
   footerText: z.string().min(5, "Footer text must be at least 5 characters."),
+  navVisibility: z.object(
+    Object.fromEntries(navLinksForAdmin.map(link => [link.href, z.boolean()]))
+  ),
 });
 
 export default function AdminPage() {
@@ -118,8 +132,11 @@ export default function AdminPage() {
         themeForm.reset(theme);
         contentForm.reset(content);
         aboutContentForm.reset(aboutContent);
-        const socialLinks = siteConfig.socialLinks || { twitter: '', instagram: '', facebook: '' };
-        siteConfigForm.reset({ ...socialLinks, footerText: siteConfig.footerText });
+        siteConfigForm.reset({
+            ...siteConfig.socialLinks,
+            footerText: siteConfig.footerText,
+            navVisibility: siteConfig.navVisibility || defaultSiteConfig.navVisibility,
+        });
         setPosts(allPosts);
         setCountries(allCountries);
         setCommittees(allCommittees);
@@ -196,6 +213,7 @@ export default function AdminPage() {
                 facebook: values.facebook,
             },
             footerText: values.footerText,
+            navVisibility: values.navVisibility,
         };
       await updateSiteConfig(config);
       toast({
@@ -413,7 +431,7 @@ export default function AdminPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Share2 className="w-6 h-6" /> Site-wide Settings</CardTitle>
-                    <CardDescription>Manage social media links and other global settings.</CardDescription>
+                    <CardDescription>Manage social media links, footer text, and navigation visibility.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...siteConfigForm}>
@@ -422,6 +440,32 @@ export default function AdminPage() {
                             <FormField control={siteConfigForm.control} name="instagram" render={({ field }) => (<FormItem><FormLabel>Instagram URL</FormLabel><FormControl><Input placeholder="https://instagram.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={siteConfigForm.control} name="facebook" render={({ field }) => (<FormItem><FormLabel>Facebook URL</FormLabel><FormControl><Input placeholder="https://facebook.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={siteConfigForm.control} name="footerText" render={({ field }) => (<FormItem><FormLabel>Footer Text</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>)} />
+                            
+                            <div>
+                                <h3 className="text-md font-semibold pt-4 border-t mb-2">Navigation Visibility</h3>
+                                <p className="text-sm text-muted-foreground mb-4">Toggle which pages appear in the main navigation bar.</p>
+                                <div className="space-y-2">
+                                    {navLinksForAdmin.map((link) => (
+                                        <FormField
+                                            key={link.href}
+                                            control={siteConfigForm.control}
+                                            name={`navVisibility.${link.href}` as const}
+                                            render={({ field }) => (
+                                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                                                    <FormLabel>{link.label}</FormLabel>
+                                                    <FormControl>
+                                                        <Switch
+                                                            checked={field.value}
+                                                            onCheckedChange={field.onChange}
+                                                        />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                            
                             <Button type="submit" className="w-full">Save Settings</Button>
                         </form>
                     </Form>

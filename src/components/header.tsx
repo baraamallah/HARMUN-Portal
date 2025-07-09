@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Menu, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { SiteConfig } from '@/lib/types';
 
 const navLinks = [
   { href: '/about', label: 'About' },
@@ -19,9 +20,13 @@ const navLinks = [
   { href: '/documents', label: 'Documents' },
 ];
 
-export function AppHeader() {
+export function AppHeader({ siteConfig }: { siteConfig: SiteConfig }) {
   const [isSheetOpen, setSheetOpen] = useState(false);
   const pathname = usePathname();
+
+  const visibleNavLinks = navLinks.filter(
+    link => siteConfig.navVisibility?.[link.href] !== false
+  );
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -31,7 +36,7 @@ export function AppHeader() {
           <span>HARMUN '25</span>
         </Link>
         <nav className="hidden md:flex items-center gap-4 text-sm font-medium">
-          {navLinks.map((link) => (
+          {visibleNavLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -62,7 +67,7 @@ export function AppHeader() {
                   <Globe className="h-7 w-7" />
                   <span>HARMUN '25</span>
                 </Link>
-                {navLinks.map((link) => (
+                {visibleNavLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}

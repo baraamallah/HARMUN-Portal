@@ -3,8 +3,8 @@ import './globals.css';
 import { AppHeader } from '@/components/header';
 import { AppFooter } from '@/components/footer';
 import { Toaster } from "@/components/ui/toaster";
-import { getTheme } from '@/lib/firebase-service';
-import type { Theme } from '@/lib/types';
+import { getTheme, getSiteConfig } from '@/lib/firebase-service';
+import type { Theme, SiteConfig } from '@/lib/types';
 
 export const metadata: Metadata = {
   title: 'HARMUN 2025 Portal',
@@ -31,6 +31,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const theme = await getTheme();
+  const siteConfig = await getSiteConfig();
 
   return (
     <html lang="en" className="!scroll-smooth">
@@ -42,9 +43,9 @@ export default async function RootLayout({
       </head>
       <body className="font-body antialiased">
         <div className="flex min-h-screen flex-col">
-          <AppHeader />
+          <AppHeader siteConfig={siteConfig} />
           <main className="flex-grow">{children}</main>
-          <AppFooter />
+          <AppFooter siteConfig={siteConfig} />
         </div>
         <Toaster />
       </body>

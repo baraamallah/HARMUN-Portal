@@ -1,10 +1,9 @@
 import { Globe, Twitter, Instagram, Facebook } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from './ui/button';
-import { getSiteConfig } from '@/lib/firebase-service';
+import type { SiteConfig } from '@/lib/types';
 
-export async function AppFooter() {
-  const siteConfig = await getSiteConfig();
+export function AppFooter({ siteConfig }: { siteConfig: SiteConfig }) {
   const { twitter, instagram, facebook } = siteConfig.socialLinks;
 
   return (
