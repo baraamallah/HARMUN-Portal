@@ -9,11 +9,17 @@ export function AppFooter({ siteConfig }: { siteConfig: SiteConfig }) {
   return (
     <footer className="bg-secondary border-t">
       <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row justify-between items-center">
-          <div className="flex items-center gap-2 font-bold text-xl text-primary font-headline mb-4 md:mb-0">
+        <div className="flex flex-col items-center gap-6">
+          <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary font-headline">
             <Globe className="h-7 w-7" />
             <span>HARMUN 2025</span>
+          </Link>
+
+          <div className="text-center text-sm text-muted-foreground">
+            <p>&copy; {new Date().getFullYear()} HARMUN. All Rights Reserved.</p>
+            <p>{siteConfig.footerText}</p>
           </div>
+
           <div className="flex items-center space-x-2">
             {twitter && twitter !== '#' && (
               <Button variant="ghost" size="icon" asChild>
@@ -37,10 +43,6 @@ export function AppFooter({ siteConfig }: { siteConfig: SiteConfig }) {
               </Button>
             )}
           </div>
-        </div>
-        <div className="mt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} HARMUN. All Rights Reserved.</p>
-          <p>{siteConfig.footerText}</p>
         </div>
       </div>
     </footer>
