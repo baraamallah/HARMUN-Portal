@@ -33,6 +33,17 @@ export type Country = {
   status: 'Available' | 'Assigned';
 };
 
+export type SocialLinks = {
+  twitter: string;
+  instagram: string;
+  facebook: string;
+};
+
+export type SiteConfig = {
+  socialLinks: SocialLinks;
+  footerText: string;
+};
+
 export type Theme = {
   primaryColor: string;
   backgroundColor: string;

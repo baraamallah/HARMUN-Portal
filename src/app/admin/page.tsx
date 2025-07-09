@@ -19,10 +19,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Paintbrush, Type, PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2 } from "lucide-react";
-import { getTheme, updateTheme, getHomePageContent, updateHomePageContent, addPost, getAllPosts, formatTimestamp, getCountries, addCountry, updateCountryStatus, deleteCountry, getCommittees, addCommittee, deleteCommittee } from "@/lib/firebase-service";
+import { Paintbrush, Type, PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, Share2 } from "lucide-react";
+import { getTheme, updateTheme, getHomePageContent, updateHomePageContent, addPost, getAllPosts, formatTimestamp, getCountries, addCountry, updateCountryStatus, deleteCountry, getCommittees, addCommittee, deleteCommittee, getSiteConfig, updateSiteConfig } from "@/lib/firebase-service";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Post, Country, Committee } from "@/lib/types";
+import type { Post, Country, Committee, SiteConfig } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -60,7 +60,12 @@ const committeeFormSchema = z.object({
     backgroundGuideUrl: z.string().url("A valid background guide URL is required."),
 });
 
-const committeesList = ['Security Council (SC)', 'World Health Organization (WHO)', 'Human Rights Council (HRC)', 'United Nations Environment Programme (UNEP)'];
+const siteConfigFormSchema = z.object({
+  twitter: z.string().url("Must be a valid URL.").or(z.literal("")).or(z.literal("#")),
+  instagram: z.string().url("Must be a valid URL.").or(z.literal("")).or(z.literal("#")),
+  facebook: z.string().url("Must be a valid URL.").or(z.literal("")).or(z.literal("#")),
+  footerText: z.string().min(5, "Footer text must be at least 5 characters."),
+});
 
 export default function AdminPage() {
   const { toast } = useToast();
@@ -71,6 +76,7 @@ export default function AdminPage() {
 
   const themeForm = useForm<z.infer<typeof themeFormSchema>>({ resolver: zodResolver(themeFormSchema) });
   const contentForm = useForm<z.infer<typeof contentFormSchema>>({ resolver: zodResolver(contentFormSchema) });
+  const siteConfigForm = useForm<z.infer<typeof siteConfigFormSchema>>({ resolver: zodResolver(siteConfigFormSchema) });
   const postForm = useForm<z.infer<typeof postFormSchema>>({
     resolver: zodResolver(postFormSchema),
     defaultValues: { title: "", content: "" },
@@ -87,15 +93,18 @@ export default function AdminPage() {
   const fetchAdminData = React.useCallback(async () => {
     try {
         setLoading(true);
-        const [theme, content, allPosts, allCountries, allCommittees] = await Promise.all([
+        const [theme, content, allPosts, allCountries, allCommittees, siteConfig] = await Promise.all([
             getTheme(),
             getHomePageContent(),
             getAllPosts(),
             getCountries(),
             getCommittees(),
+            getSiteConfig(),
         ]);
         themeForm.reset(theme);
         contentForm.reset(content);
+        const socialLinks = siteConfig.socialLinks || { twitter: '', instagram: '', facebook: '' };
+        siteConfigForm.reset({ ...socialLinks, footerText: siteConfig.footerText });
         setPosts(allPosts);
         setCountries(allCountries);
         setCommittees(allCommittees);
@@ -109,7 +118,7 @@ export default function AdminPage() {
     } finally {
         setLoading(false);
     }
-  }, [toast, themeForm, contentForm]);
+  }, [toast, themeForm, contentForm, siteConfigForm]);
 
   useEffect(() => {
     fetchAdminData();
@@ -142,6 +151,30 @@ export default function AdminPage() {
        toast({
         title: "Error Saving Content",
         description: "Could not save content to the database.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  async function onSiteConfigSubmit(values: z.infer<typeof siteConfigFormSchema>) {
+    try {
+        const config: SiteConfig = {
+            socialLinks: {
+                twitter: values.twitter,
+                instagram: values.instagram,
+                facebook: values.facebook,
+            },
+            footerText: values.footerText,
+        };
+      await updateSiteConfig(config);
+      toast({
+        title: "Site Settings Updated!",
+        description: "Your site-wide settings have been saved.",
+      });
+    } catch (error) {
+       toast({
+        title: "Error Saving Settings",
+        description: "Could not save settings to the database.",
         variant: "destructive",
       });
     }
@@ -324,6 +357,24 @@ export default function AdminPage() {
         
         <Card>
             <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Share2 className="w-6 h-6" /> Site-wide Settings</CardTitle>
+                <CardDescription>Manage social media links and other global settings.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Form {...siteConfigForm}>
+                    <form onSubmit={siteConfigForm.handleSubmit(onSiteConfigSubmit)} className="space-y-6">
+                        <FormField control={siteConfigForm.control} name="twitter" render={({ field }) => (<FormItem><FormLabel>Twitter URL</FormLabel><FormControl><Input placeholder="https://twitter.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={siteConfigForm.control} name="instagram" render={({ field }) => (<FormItem><FormLabel>Instagram URL</FormLabel><FormControl><Input placeholder="https://instagram.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={siteConfigForm.control} name="facebook" render={({ field }) => (<FormItem><FormLabel>Facebook URL</FormLabel><FormControl><Input placeholder="https://facebook.com/harmun" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={siteConfigForm.control} name="footerText" render={({ field }) => (<FormItem><FormLabel>Footer Text</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>)} />
+                        <Button type="submit" className="w-full">Save Settings</Button>
+                    </form>
+                </Form>
+            </CardContent>
+        </Card>
+
+        <Card>
+            <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Library className="w-6 h-6" /> Committee Management</CardTitle>
                 <CardDescription>Add, remove, and manage conference committees.</CardDescription>
             </CardHeader>
@@ -423,7 +474,7 @@ export default function AdminPage() {
             </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2">
+        <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Newspaper className="w-6 h-6" /> Create & Manage Posts</CardTitle>
                 <CardDescription>Publish news articles or notes from the Secretary-General.</CardDescription>

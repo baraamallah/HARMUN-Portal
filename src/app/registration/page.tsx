@@ -25,8 +25,8 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { Country } from "@/lib/types";
-import { getCountries } from "@/lib/firebase-service";
+import type { Country, Committee } from "@/lib/types";
+import { getCountries, getCommittees } from "@/lib/firebase-service";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const formSchema = z.object({
@@ -38,12 +38,11 @@ const formSchema = z.object({
   committee3: z.string({ required_error: "Please select a committee preference." }),
 });
 
-const committees = ['Security Council (SC)', 'World Health Organization (WHO)', 'Human Rights Council (HRC)', 'United Nations Environment Programme (UNEP)'];
-
 export default function RegistrationPage() {
   const { toast } = useToast();
   const [countries, setCountries] = useState<Country[]>([]);
-  const [loadingMatrix, setLoadingMatrix] = useState(true);
+  const [committees, setCommittees] = useState<Committee[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -55,22 +54,26 @@ export default function RegistrationPage() {
   });
 
   useEffect(() => {
-    async function fetchCountries() {
+    async function fetchData() {
         try {
-            const fetchedCountries = await getCountries();
+            const [fetchedCountries, fetchedCommittees] = await Promise.all([
+                getCountries(),
+                getCommittees(),
+            ]);
             setCountries(fetchedCountries);
+            setCommittees(fetchedCommittees);
         } catch (error) {
-            console.error("Failed to fetch countries:", error);
+            console.error("Failed to fetch page data:", error);
             toast({
                 title: "Error",
-                description: "Could not load the country matrix.",
+                description: "Could not load page data.",
                 variant: "destructive",
             });
         } finally {
-            setLoadingMatrix(false);
+            setLoading(false);
         }
     }
-    fetchCountries();
+    fetchData();
   }, [toast]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
@@ -139,7 +142,7 @@ export default function RegistrationPage() {
                         <FormLabel>First Choice</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl><SelectTrigger><SelectValue placeholder="Select a committee" /></SelectTrigger></FormControl>
-                          <SelectContent>{committees.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                          <SelectContent>{committees.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
@@ -153,7 +156,7 @@ export default function RegistrationPage() {
                         <FormLabel>Second Choice</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl><SelectTrigger><SelectValue placeholder="Select a committee" /></SelectTrigger></FormControl>
-                          <SelectContent>{committees.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                          <SelectContent>{committees.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
@@ -167,7 +170,7 @@ export default function RegistrationPage() {
                         <FormLabel>Third Choice</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl><SelectTrigger><SelectValue placeholder="Select a committee" /></SelectTrigger></FormControl>
-                          <SelectContent>{committees.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                          <SelectContent>{committees.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
@@ -194,7 +197,7 @@ export default function RegistrationPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {loadingMatrix ? (
+                                {loading ? (
                                     Array.from({ length: 10 }).map((_, i) => (
                                         <TableRow key={i}>
                                             <TableCell><Skeleton className="h-5 w-24" /></TableCell>

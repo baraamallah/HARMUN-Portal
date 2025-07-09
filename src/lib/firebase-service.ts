@@ -1,6 +1,6 @@
 import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Theme, HomePageContent, Post, Country, Committee } from './types';
+import type { Theme, HomePageContent, Post, Country, Committee, SiteConfig } from './types';
 import { format } from 'date-fns';
 
 const CONFIG_COLLECTION = 'config';
@@ -9,6 +9,7 @@ const COUNTRIES_COLLECTION = 'countries';
 const COMMITTEES_COLLECTION = 'committees';
 const THEME_DOC_ID = 'theme';
 const HOME_PAGE_CONTENT_DOC_ID = 'homePage';
+const SITE_CONFIG_DOC_ID = 'siteConfig';
 
 // Default values
 const defaultTheme: Theme = {
@@ -21,6 +22,15 @@ const defaultHomePageContent: HomePageContent = {
   heroTitle: "HARMUN 2025 Portal",
   heroSubtitle: "Engage in diplomacy, foster international cooperation, and shape the future. Welcome, delegates!",
   heroImageUrl: "https://placehold.co/1920x1080.png",
+};
+
+const defaultSiteConfig: SiteConfig = {
+    socialLinks: {
+        twitter: "#",
+        instagram: "#",
+        facebook: "#",
+    },
+    footerText: "This is a fictional event created for demonstration purposes.",
 };
 
 // --- Theme Management ---
@@ -55,6 +65,26 @@ export async function getHomePageContent(): Promise<HomePageContent> {
 export async function updateHomePageContent(content: HomePageContent): Promise<void> {
   const docRef = doc(db, CONFIG_COLLECTION, HOME_PAGE_CONTENT_DOC_ID);
   await setDoc(docRef, content, { merge: true });
+}
+
+// --- Site Config Management ---
+export async function getSiteConfig(): Promise<SiteConfig> {
+  try {
+    const docRef = doc(db, CONFIG_COLLECTION, SITE_CONFIG_DOC_ID);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { ...defaultSiteConfig, ...docSnap.data() } as SiteConfig;
+    }
+    return defaultSiteConfig;
+  } catch (error) {
+    console.error("Error fetching site config, returning default:", error);
+    return defaultSiteConfig;
+  }
+}
+
+export async function updateSiteConfig(config: SiteConfig): Promise<void> {
+  const docRef = doc(db, CONFIG_COLLECTION, SITE_CONFIG_DOC_ID);
+  await setDoc(docRef, config, { merge: true });
 }
 
 // --- Post Management ---
