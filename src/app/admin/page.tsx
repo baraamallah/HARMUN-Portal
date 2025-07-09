@@ -77,6 +77,11 @@ const galleryImageSchema = z.object({
     imageUrl: z.string().url("Must be a valid URL.").min(1, "Image URL is required."),
 });
 
+const socialLinkItemSchema = z.object({
+  platform: z.string({ required_error: "Please select a platform."}).min(1, "Please select a platform."),
+  url: z.string().url("Please enter a valid URL."),
+});
+
 
 // Reusable Form Components for list items
 function HighlightItemForm({ item, onSave, onDelete }: { item: T.ConferenceHighlight; onSave: (id: string, data: z.infer<typeof highlightItemSchema>) => void; onDelete: (id: string) => void }) {
@@ -307,44 +312,59 @@ function AddGalleryImageForm({ onAdd }: { onAdd: (data: any) => Promise<void> })
 
 const availablePlatforms = ['Twitter', 'Instagram', 'Facebook', 'LinkedIn', 'YouTube'];
 function AddSocialLinkForm({ onAdd, existingPlatforms }: { onAdd: (link: T.SocialLink) => void; existingPlatforms: string[] }) {
-    const [platform, setPlatform] = useState('');
-    const [url, setUrl] = useState('');
+    const form = useForm<z.infer<typeof socialLinkItemSchema>>({
+        resolver: zodResolver(socialLinkItemSchema),
+        defaultValues: { platform: '', url: '' },
+    });
 
     const filteredPlatforms = availablePlatforms.filter(p => !existingPlatforms.includes(p));
 
-    const handleAdd = () => {
-        if (platform && url) {
-            onAdd({ platform, url });
-            setPlatform('');
-            setUrl('');
-        }
+    const handleAdd = (values: z.infer<typeof socialLinkItemSchema>) => {
+        onAdd(values);
+        form.reset();
     };
 
     return (
-        <div className="p-2 border-t mt-4">
-            <h4 className="font-semibold mb-2">Add New Social Link</h4>
-            <div className="flex flex-wrap md:flex-nowrap gap-2 items-end">
-                 <FormItem className="w-full md:w-auto">
-                    <FormLabel>Platform</FormLabel>
-                    <Select onValueChange={setPlatform} value={platform}>
-                        <FormControl>
-                            <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            {filteredPlatforms.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                 </FormItem>
-                 <FormItem className="flex-grow">
-                    <FormLabel>URL</FormLabel>
-                    <FormControl>
-                        <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." />
-                    </FormControl>
-                 </FormItem>
-                <Button type="button" onClick={handleAdd} disabled={!platform || !url || filteredPlatforms.length === 0}>Add</Button>
-            </div>
-             {filteredPlatforms.length === 0 && <p className="text-xs text-muted-foreground mt-2">All available platforms have been added.</p>}
-        </div>
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleAdd)} className="p-2 border-t mt-4">
+                <h4 className="font-semibold mb-2">Add New Social Link</h4>
+                <div className="flex flex-wrap md:flex-nowrap gap-2 items-end">
+                    <FormField
+                        control={form.control}
+                        name="platform"
+                        render={({ field }) => (
+                            <FormItem className="w-full md:w-auto">
+                                <FormLabel>Platform</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {filteredPlatforms.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                     />
+                     <FormField
+                        control={form.control}
+                        name="url"
+                        render={({ field }) => (
+                             <FormItem className="flex-grow">
+                                <FormLabel>URL</FormLabel>
+                                <FormControl>
+                                    <Input {...field} placeholder="https://..." />
+                                </FormControl>
+                                <FormMessage />
+                             </FormItem>
+                        )}
+                     />
+                    <Button type="submit" disabled={filteredPlatforms.length === 0}>Add</Button>
+                </div>
+                 {filteredPlatforms.length === 0 && <p className="text-xs text-muted-foreground mt-2">All available platforms have been added.</p>}
+            </form>
+        </Form>
     );
 }
 
@@ -1033,5 +1053,7 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    
 
     
