@@ -7,6 +7,7 @@ import { getGalleryPageContent, getGalleryImages } from '@/lib/firebase-service'
 import type { GalleryPageContent, GalleryImage } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { convertGoogleDriveLink } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,7 +66,7 @@ export default function GalleryPage() {
                             <DialogTrigger asChild>
                                 <div className="break-inside-avoid relative group overflow-hidden rounded-lg cursor-pointer animate-fade-in-up" style={{ animationDelay: `${index * 100}ms`}}>
                                     <Image
-                                        src={image.imageUrl}
+                                        src={convertGoogleDriveLink(image.imageUrl)}
                                         alt={image.title}
                                         width={500}
                                         height={500}
@@ -82,7 +83,7 @@ export default function GalleryPage() {
                                 <DialogTitle className="sr-only">{image.title}</DialogTitle>
                                 <DialogDescription className="sr-only">Enlarged view of the gallery image: {image.title}</DialogDescription>
                                 <Image
-                                     src={image.imageUrl}
+                                     src={convertGoogleDriveLink(image.imageUrl)}
                                      alt={image.title}
                                      width={1200}
                                      height={800}

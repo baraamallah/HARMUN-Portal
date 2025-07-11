@@ -7,6 +7,7 @@ import * as icons from 'lucide-react';
 import Image from 'next/image';
 import { getHomePageContent, getSiteConfig, getHighlights } from '@/lib/firebase-service';
 import type { ConferenceHighlight } from '@/lib/types';
+import { convertGoogleDriveLink } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +35,7 @@ export default async function Home() {
       <section className="relative h-[60vh] md:h-[80vh] w-full flex items-center justify-center text-center text-white overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
         <Image
-          src={content.heroImageUrl}
+          src={convertGoogleDriveLink(content.heroImageUrl)}
           alt="Conference hall"
           fill
           className="z-0 object-cover"

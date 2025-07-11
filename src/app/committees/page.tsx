@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { getCommittees } from '@/lib/firebase-service';
 import type { Committee } from '@/lib/types';
 import { FileText, User } from 'lucide-react';
+import { convertGoogleDriveLink } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +31,7 @@ export default async function CommitteesPage() {
                 <div className="flex items-start gap-6">
                   <div className="flex-shrink-0">
                     <Image
-                      src={committee.chair.imageUrl}
+                      src={convertGoogleDriveLink(committee.chair.imageUrl)}
                       alt={`Photo of ${committee.chair.name}`}
                       width={100}
                       height={100}

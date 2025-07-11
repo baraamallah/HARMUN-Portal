@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getSecretariat } from '@/lib/firebase-service';
+import { convertGoogleDriveLink } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,7 @@ export default async function SecretariatPage() {
               <Card key={member.id} className="text-center animate-fade-in-up transition-all duration-300 hover:border-primary hover:-translate-y-1" style={{ animationDelay: `${index * 150}ms` }}>
                 <CardHeader className="items-center">
                   <Avatar className="w-32 h-32 mb-4 border-4 border-primary/20">
-                    <AvatarImage src={member.imageUrl} alt={`Photo of ${member.name}`} data-ai-hint="person portrait" />
+                    <AvatarImage src={convertGoogleDriveLink(member.imageUrl)} alt={`Photo of ${member.name}`} data-ai-hint="person portrait" />
                     <AvatarFallback>{member.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                   </Avatar>
                   <CardTitle className="text-xl font-headline">{member.name}</CardTitle>
