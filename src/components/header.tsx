@@ -1,10 +1,11 @@
+
 "use client";
 
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Menu, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SiteConfig } from '@/lib/types';
@@ -63,31 +64,33 @@ export function AppHeader({ siteConfig }: { siteConfig: SiteConfig }) {
             <SheetTrigger asChild>
               <Button variant="outline" size="icon">
                 <Menu className="h-6 w-6" />
+                <span className="sr-only">Open menu</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="bg-background">
-              <div className="flex flex-col gap-6 p-6">
-                <Link href="/" className="flex items-center gap-2 font-bold text-xl text-foreground font-headline mb-4" onClick={() => setSheetOpen(false)}>
-                  <Globe className="h-7 w-7 text-primary" />
-                  <span>HARMUN '25</span>
-                </Link>
-                {visibleNavLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setSheetOpen(false)}
-                    className={cn(
-                      'text-lg font-medium transition-colors hover:text-primary',
-                      pathname === link.href ? 'text-foreground' : 'text-muted-foreground'
-                    )}
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-                <Button asChild className="mt-4">
-                  <Link href="/registration" onClick={() => setSheetOpen(false)}>Register Now</Link>
-                </Button>
-              </div>
+                <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                <div className="flex flex-col gap-6 p-6">
+                    <Link href="/" className="flex items-center gap-2 font-bold text-xl text-foreground font-headline mb-4" onClick={() => setSheetOpen(false)}>
+                    <Globe className="h-7 w-7 text-primary" />
+                    <span>HARMUN '25</span>
+                    </Link>
+                    {visibleNavLinks.map((link) => (
+                    <Link
+                        key={link.href}
+                        href={link.href}
+                        onClick={() => setSheetOpen(false)}
+                        className={cn(
+                        'text-lg font-medium transition-colors hover:text-primary',
+                        pathname === link.href ? 'text-foreground' : 'text-muted-foreground'
+                        )}
+                    >
+                        {link.label}
+                    </Link>
+                    ))}
+                    <Button asChild className="mt-4">
+                    <Link href="/registration" onClick={() => setSheetOpen(false)}>Register Now</Link>
+                    </Button>
+                </div>
             </SheetContent>
           </Sheet>
         </div>
