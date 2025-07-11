@@ -78,7 +78,7 @@ export default function GalleryPage() {
 
                                 </div>
                             </DialogTrigger>
-                            <DialogContent className="w-auto h-auto max-w-[90vw] max-h-[90vh] p-0 bg-transparent border-0 shadow-none flex items-center justify-center">
+                            <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 bg-transparent border-0 shadow-none flex items-center justify-center">
                                 <DialogTitle className="sr-only">{image.title}</DialogTitle>
                                 <DialogDescription className="sr-only">Enlarged view of the gallery image: {image.title}</DialogDescription>
                                 <Image

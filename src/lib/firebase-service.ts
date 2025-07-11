@@ -154,7 +154,9 @@ export async function getDocById(collectionName: string, id: string): Promise<an
     const docRef = doc(db, collectionName, id);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() };
+        const data = docSnap.data();
+        if (data.imageUrl) data.imageUrl = convertGoogleDriveLink(data.imageUrl);
+        return { id: docSnap.id, ...data };
     }
     throw new Error(`Document with id ${id} not found in ${collectionName}`);
 }
@@ -194,7 +196,17 @@ async function getCollection<T>(collectionName: string, orderByField: string = '
     await initializeDefaultData();
     const q = query(collection(db, collectionName), orderBy(orderByField));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
+    const results = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        if (data.imageUrl) {
+            data.imageUrl = convertGoogleDriveLink(data.imageUrl);
+        }
+         if (data.chair && data.chair.imageUrl) {
+            data.chair.imageUrl = convertGoogleDriveLink(data.chair.imageUrl);
+        }
+        return { id: doc.id, ...data } as T;
+    });
+    return results;
 }
 
 async function addCollectionDoc<T extends {order?: number}>(collectionName: string, data: Omit<T, 'id'>): Promise<string> {
@@ -341,7 +353,12 @@ export const addCommittee = (committee: Omit<Committee, 'id'>) => {
 export async function getCommittees(): Promise<Committee[]> {
     const q = query(collection(db, COMMITTEES_COLLECTION), orderBy('name'));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Committee));
+    const committees = querySnapshot.docs.map(doc => {
+        const data = doc.data() as Committee;
+        data.chair.imageUrl = convertGoogleDriveLink(data.chair.imageUrl);
+        return { id: doc.id, ...data };
+    });
+    return committees;
 }
 export const deleteCommittee = (id: string) => deleteDoc(doc(db, COMMITTEES_COLLECTION, id));
 
