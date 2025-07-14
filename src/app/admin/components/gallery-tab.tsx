@@ -38,7 +38,7 @@ function GalleryItemForm({ item, onSave, onDelete }: { item: T.GalleryItem; onSa
 
     const handleConvertUrl = () => {
         const url = form.getValues("url");
-        form.setValue("url", convertGoogleDriveLink(url));
+        form.setValue("url", convertGoogleDriveLink(url), { shouldValidate: true });
     }
 
     return (
@@ -104,7 +104,7 @@ function AddGalleryItemForm({ onAdd }: { onAdd: (data: any, form: any) => Promis
 
     const handleConvertUrl = () => {
         const url = form.getValues("url");
-        form.setValue("url", convertGoogleDriveLink(url));
+        form.setValue("url", convertGoogleDriveLink(url), { shouldValidate: true });
     }
 
     return <Form {...form}><form onSubmit={form.handleSubmit((d) => onAdd(d, form))} className="space-y-4 p-2 border-t mt-4">

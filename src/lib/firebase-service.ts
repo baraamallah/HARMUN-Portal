@@ -165,17 +165,11 @@ export async function getDocById(collectionName: string, id: string): Promise<an
 // --- Specific Content Getters/Setters ---
 export const getHomePageContent = () => getConfigDoc<HomePageContent>(HOME_PAGE_CONTENT_DOC_ID, {} as HomePageContent);
 export const updateHomePageContent = (content: Partial<HomePageContent>) => {
-    if (content.heroImageUrl) {
-        content.heroImageUrl = convertGoogleDriveLink(content.heroImageUrl);
-    }
     return updateConfigDoc(HOME_PAGE_CONTENT_DOC_ID, content);
 };
 
 export const getAboutPageContent = () => getConfigDoc<AboutPageContent>(ABOUT_PAGE_CONTENT_DOC_ID, {} as AboutPageContent);
 export const updateAboutPageContent = (content: Partial<AboutPageContent>) => {
-    if (content.imageUrl) {
-        content.imageUrl = convertGoogleDriveLink(content.imageUrl);
-    }
     return updateConfigDoc(ABOUT_PAGE_CONTENT_DOC_ID, content);
 };
 
@@ -235,18 +229,10 @@ async function deleteCollectionDoc(collectionName: string, id: string): Promise<
 // --- Specific Collection Functions ---
 export const getSecretariat = () => getCollection<SecretariatMember>(SECRETARIAT_COLLECTION);
 export const addSecretariatMember = (member: Omit<SecretariatMember, 'id' | 'order'>) => {
-    const processedMember = {
-        ...member,
-        imageUrl: convertGoogleDriveLink(member.imageUrl),
-    };
-    return addCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, processedMember);
+    return addCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, member);
 }
 export const updateSecretariatMember = (id: string, member: Omit<SecretariatMember, 'id' | 'order'>) => {
-    const processedMember = {
-        ...member,
-        imageUrl: convertGoogleDriveLink(member.imageUrl),
-    };
-    return updateCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, id, processedMember);
+    return updateCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, id, member);
 }
 export const deleteSecretariatMember = (id: string) => deleteCollectionDoc(SECRETARIAT_COLLECTION, id);
 
@@ -262,7 +248,7 @@ export const deleteCodeOfConductItem = (id: string) => deleteCollectionDoc(CODE_
 
 
 // --- Gallery ---
-function processGalleryItemData(data: { url: string } & Omit<T.GalleryItem, 'id' | 'imageUrl' | 'videoUrl'>) {
+function processGalleryItemData(data: { url: string } & Omit<GalleryItem, 'id' | 'imageUrl' | 'videoUrl'>) {
     const { url, type, ...rest } = data;
     const processedData: any = { ...rest, type };
     if (type === 'image') {
@@ -346,14 +332,7 @@ export const deleteCountry = (id: string) => deleteDoc(doc(db, COUNTRIES_COLLECT
 
 // --- Committees (Existing) ---
 export const addCommittee = (committee: Omit<Committee, 'id'>) => {
-    const processedCommittee = {
-        ...committee,
-        chair: {
-            ...committee.chair,
-            imageUrl: convertGoogleDriveLink(committee.chair.imageUrl)
-        }
-    };
-    return addDoc(collection(db, COMMITTEES_COLLECTION), processedCommittee).then(ref => ref.id);
+    return addDoc(collection(db, COMMITTEES_COLLECTION), committee).then(ref => ref.id);
 }
 export async function getCommittees(): Promise<Committee[]> {
     const q = query(collection(db, COMMITTEES_COLLECTION), orderBy('name'));

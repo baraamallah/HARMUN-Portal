@@ -20,6 +20,21 @@ type FetchedState = {
     [key: string]: boolean;
 };
 
+// Helper to convert any image URLs in an object
+const convertImageUrls = (data: any): any => {
+    const convertedData = { ...data };
+    for (const key in convertedData) {
+        if (typeof convertedData[key] === 'string' && (key.toLowerCase().includes('imageurl') || (key === 'url' && convertedData.type === 'image'))) {
+            convertedData[key] = convertGoogleDriveLink(convertedData[key]);
+        }
+        if (key === 'chair' && typeof convertedData[key] === 'object' && convertedData[key] !== null) {
+            convertedData[key].imageUrl = convertGoogleDriveLink(convertedData[key].imageUrl);
+        }
+    }
+    return convertedData;
+};
+
+
 export default function AdminPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -96,27 +111,19 @@ export default function AdminPage() {
     form?: any
   ) => {
       try {
-          const convertedData = { ...itemData };
-           if ('imageUrl' in convertedData && typeof convertedData.imageUrl === 'string') {
-              (convertedData as any).imageUrl = convertGoogleDriveLink(convertedData.imageUrl);
-          }
-           if (form) {
-             const formValues = { ...form.getValues() };
-             Object.keys(formValues).forEach(key => {
-                if (key.toLowerCase().includes('imageurl') || (key === 'url' && formValues.type === 'image')) {
-                    if (typeof formValues[key] === 'string') {
-                        formValues[key] = convertGoogleDriveLink(formValues[key]);
-                    }
-                }
-             });
-             form.reset(formValues);
-          }
-
+          const convertedData = convertImageUrls(itemData);
           await updateFunction(id, convertedData);
+          
           setData(prev => ({
               ...prev,
               [stateKey]: prev[stateKey].map((item: T) => item.id === id ? { ...item, ...convertedData } : item),
           }));
+          
+          if (form) {
+             const updatedFormValues = convertImageUrls(form.getValues());
+             form.reset(updatedFormValues);
+          }
+
           toast({ title: "Success!", description: message });
       } catch (error) {
           toast({ title: "Error", description: `Could not save item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
@@ -150,13 +157,7 @@ export default function AdminPage() {
       form?: any
   ) => {
       try {
-          const convertedData = {...addData};
-          if ('imageUrl' in convertedData && typeof convertedData.imageUrl === 'string') {
-              convertedData.imageUrl = convertGoogleDriveLink(convertedData.imageUrl);
-          }
-           if (convertedData.type === 'image' && 'url' in convertedData && typeof convertedData.url === 'string') {
-              convertedData.url = convertGoogleDriveLink(convertedData.url);
-          }
+          const convertedData = convertImageUrls(addData);
           const newId = await addFunction(convertedData);
           const newItem = await firebaseService.getDocById(stateKey as string, newId);
           setData(prev => ({
@@ -172,12 +173,7 @@ export default function AdminPage() {
 
   const handleFormSubmit = async (updateFunction: (data: any) => Promise<void>, successMessage: string, data: any, form: any) => {
     try {
-        const convertedData = { ...data };
-        for (const key in convertedData) {
-            if (key.toLowerCase().includes('imageurl') && typeof convertedData[key] === 'string') {
-                convertedData[key] = convertGoogleDriveLink(convertedData[key]);
-            }
-        }
+        const convertedData = convertImageUrls(data);
         await updateFunction(convertedData);
         toast({ title: "Success!", description: successMessage });
         form.reset(convertedData);
@@ -249,7 +245,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    
-
-    

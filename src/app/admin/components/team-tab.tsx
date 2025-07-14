@@ -32,7 +32,7 @@ function SecretariatMemberForm({ member, onSave, onDelete }: { member: T.Secreta
 
     const handleConvertUrl = () => {
         const url = form.getValues("imageUrl");
-        form.setValue("imageUrl", convertGoogleDriveLink(url));
+        form.setValue("imageUrl", convertGoogleDriveLink(url), { shouldValidate: true });
     }
     
     return (
@@ -54,7 +54,7 @@ function AddSecretariatMemberForm({ onAdd }: { onAdd: (data: any, form: any) => 
 
     const handleConvertUrl = () => {
         const url = form.getValues("imageUrl");
-        form.setValue("imageUrl", convertGoogleDriveLink(url));
+        form.setValue("imageUrl", convertGoogleDriveLink(url), { shouldValidate: true });
     }
     
     return <Form {...form}><form onSubmit={form.handleSubmit((d) => onAdd(d, form))} className="flex flex-wrap lg:flex-nowrap gap-2 items-end p-2 border-t mt-4">

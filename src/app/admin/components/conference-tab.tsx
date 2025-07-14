@@ -79,7 +79,7 @@ function AddCommitteeForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
     const form = useForm({ defaultValues: { name: '', chairName: '', chairBio: '', chairImageUrl: '', topics: '', backgroundGuideUrl: '' } });
     const handleConvertUrl = () => {
         const url = form.getValues("chairImageUrl");
-        form.setValue("chairImageUrl", convertGoogleDriveLink(url));
+        form.setValue("chairImageUrl", convertGoogleDriveLink(url), { shouldValidate: true });
     }
     return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd(d); form.reset(); })} className="space-y-4">
         <div className="grid md:grid-cols-2 gap-4">

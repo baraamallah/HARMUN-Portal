@@ -118,7 +118,7 @@ export default function PagesTab({ data, handleAddItem, handleUpdateItem, handle
 
     const createUrlConverter = (form: any, fieldName: string) => () => {
         const url = form.getValues(fieldName);
-        form.setValue(fieldName, convertGoogleDriveLink(url));
+        form.setValue(fieldName, convertGoogleDriveLink(url), { shouldValidate: true });
     }
 
     return (
