@@ -32,7 +32,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { convertGoogleDriveLink } from "@/lib/utils";
 
 const galleryPageContentSchema = z.object({ title: z.string().min(5), subtitle: z.string().min(10) });
 
@@ -72,11 +71,6 @@ function GalleryItemForm({ item, onSave, onDelete }: { item: T.GalleryItem; onSa
     });
     const itemType = form.watch("type");
     React.useEffect(() => { form.reset({ ...item, columnSpan: String(item.columnSpan || 1) as '1' | '2', url: item.imageUrl || item.videoUrl || '' }); }, [item, form]);
-
-    const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const converted = convertGoogleDriveLink(e.target.value);
-        form.setValue('url', converted);
-    };
 
     return (
         <Form {...form}>
@@ -131,7 +125,7 @@ function GalleryItemForm({ item, onSave, onDelete }: { item: T.GalleryItem; onSa
                  <FormField control={form.control} name="url" render={({ field }) => (
                     <FormItem>
                         <FormLabel>{itemType === 'video' ? "Video URL" : "Image URL"}</FormLabel>
-                        <FormControl><Input {...field} onChange={handleUrlChange} /></FormControl>
+                        <FormControl><Input {...field} /></FormControl>
                         <FormMessage />
                     </FormItem>
                 )} />
@@ -148,11 +142,6 @@ function AddGalleryItemForm({ onAdd }: { onAdd: (data: any, form: any) => Promis
         defaultValues: { title: '', url: '', type: 'image', display: '4:3', columnSpan: '1' } 
     });
     const itemType = form.watch("type");
-
-    const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const converted = convertGoogleDriveLink(e.target.value);
-        form.setValue('url', converted);
-    };
 
     return <Form {...form}><form onSubmit={form.handleSubmit((d) => onAdd(d, form))} className="space-y-4 p-4 border-t mt-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
@@ -205,8 +194,8 @@ function AddGalleryItemForm({ onAdd }: { onAdd: (data: any, form: any) => Promis
         <FormField control={form.control} name="url" render={({ field }) => (
             <FormItem>
                 <FormLabel>{itemType === 'video' ? "Video URL" : "Image URL"}</FormLabel>
-                <FormControl><Input {...field} onChange={handleUrlChange} /></FormControl>
-                <FormDescription>Provide a direct URL for the image or video.</FormDescription>
+                <FormControl><Input {...field} /></FormControl>
+                <FormDescription>Provide a direct URL or Google Drive share link.</FormDescription>
                 <FormMessage />
             </FormItem>
         )} />

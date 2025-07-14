@@ -1,3 +1,4 @@
+
 import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc, writeBatch, documentId, runTransaction } from 'firebase/firestore';
 import { db } from './firebase';
 import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, SecretariatMember, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, DownloadableDocument, ConferenceHighlight, GalleryPageContent, GalleryItem } from './types';
@@ -33,10 +34,10 @@ async function initializeDefaultData() {
 
     const siteConfigRef = doc(db, CONFIG_COLLECTION, SITE_CONFIG_DOC_ID);
     const siteConfigSnap = await getDoc(siteConfigRef);
-    isInitialized = true;
 
     // If site config already exists, assume DB is initialized and exit.
     if (siteConfigSnap.exists()) {
+        isInitialized = true;
         return;
     }
 
@@ -125,6 +126,7 @@ async function initializeDefaultData() {
         }
     }
     await batch.commit();
+    isInitialized = true;
 }
 
 // Initialize data once when the server starts.
@@ -147,9 +149,18 @@ async function getConfigDoc<T>(docId: string, defaultConfig: T): Promise<T> {
   }
 }
 
-async function updateConfigDoc<T>(docId: string, data: Partial<T>): Promise<void> {
+async function updateConfigDoc<T extends Record<string, any>>(docId: string, data: Partial<T>): Promise<void> {
     const docRef = doc(db, CONFIG_COLLECTION, docId);
-    await setDoc(docRef, data, { merge: true });
+    const updateData = { ...data };
+    
+    // Convert any Google Drive links before saving
+    for (const key in updateData) {
+        if (key.toLowerCase().includes('imageurl') && typeof updateData[key] === 'string') {
+            updateData[key] = convertGoogleDriveLink(updateData[key] as string);
+        }
+    }
+    
+    await setDoc(docRef, updateData, { merge: true });
 }
 
 export async function getDocById(collectionName: string, id: string): Promise<any> {
@@ -195,13 +206,15 @@ async function getCollection<T>(collectionName: string, orderByField: string = '
 
 async function addCollectionDoc<T extends {order?: number}>(collectionName: string, data: Omit<T, 'id'>): Promise<string> {
     const collRef = collection(db, collectionName);
+    const addData: any = { ...data };
+
     // If order is not provided, calculate the next order number
-    if (data.order === undefined || data.order === null) {
+    if (addData.order === undefined || addData.order === null) {
         const snapshot = await getDocs(query(collRef, orderBy('order', 'desc')));
         const lastOrder = snapshot.docs.length > 0 ? (snapshot.docs[0].data().order || 0) : 0;
-        data.order = lastOrder + 1;
+        addData.order = lastOrder + 1;
     }
-    const docRef = await addDoc(collRef, data);
+    const docRef = await addDoc(collRef, addData);
     return docRef.id;
 }
 
@@ -217,8 +230,14 @@ async function deleteCollectionDoc(collectionName: string, id: string): Promise<
 
 // --- Specific Collection Functions ---
 export const getSecretariat = () => getCollection<SecretariatMember>(SECRETARIAT_COLLECTION);
-export const addSecretariatMember = (member: Omit<SecretariatMember, 'id' | 'order'>) => addCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, member);
-export const updateSecretariatMember = (id: string, member: Omit<SecretariatMember, 'id' | 'order'>) => updateCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, id, member);
+export const addSecretariatMember = (member: Omit<SecretariatMember, 'id' | 'order'>) => {
+    const payload = { ...member, imageUrl: convertGoogleDriveLink(member.imageUrl) };
+    return addCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, payload);
+}
+export const updateSecretariatMember = (id: string, member: Omit<SecretariatMember, 'id' | 'order'>) => {
+    const payload = { ...member, imageUrl: convertGoogleDriveLink(member.imageUrl) };
+    return updateCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, id, payload);
+}
 export const deleteSecretariatMember = (id: string) => deleteCollectionDoc(SECRETARIAT_COLLECTION, id);
 
 export const getHighlights = () => getCollection<ConferenceHighlight>(HIGHLIGHTS_COLLECTION);
@@ -235,13 +254,14 @@ export const deleteDownloadableDocument = (id: string) => deleteCollectionDoc(DO
 // --- Gallery ---
 function processGalleryItemDataForSave(data: any) {
     const { url, type, columnSpan, ...rest } = data;
+    const convertedUrl = convertGoogleDriveLink(url);
     const processedData: any = { ...rest, type, columnSpan: parseInt(columnSpan, 10) };
     if (type === 'image') {
-        processedData.imageUrl = url;
+        processedData.imageUrl = convertedUrl;
         processedData.videoUrl = null;
     } else {
         processedData.imageUrl = null;
-        processedData.videoUrl = url;
+        processedData.videoUrl = convertedUrl;
     }
     return processedData;
 }
@@ -324,7 +344,14 @@ export const deleteCountry = (id: string) => deleteDoc(doc(db, COUNTRIES_COLLECT
 
 // --- Committees (Existing) ---
 export const addCommittee = (committee: Omit<Committee, 'id'>) => {
-    return addDoc(collection(db, COMMITTEES_COLLECTION), committee).then(ref => ref.id);
+    const payload = {
+        ...committee,
+        chair: {
+            ...committee.chair,
+            imageUrl: convertGoogleDriveLink(committee.chair.imageUrl),
+        }
+    };
+    return addDoc(collection(db, COMMITTEES_COLLECTION), payload).then(ref => ref.id);
 }
 export async function getCommittees(): Promise<Committee[]> {
     const q = query(collection(db, COMMITTEES_COLLECTION), orderBy('name'));
