@@ -267,7 +267,14 @@ function AddCodeOfConductForm({ onAdd }: { onAdd: (data: any) => Promise<void> }
 }
 function AddSecretariatMemberForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
     const form = useForm({ resolver: zodResolver(secretariatMemberSchema), defaultValues: { name: '', role: '', imageUrl: '', bio: '' } });
-    return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd(d); form.reset(); })} className="flex flex-wrap lg:flex-nowrap gap-2 items-end p-2 border-t mt-4">
+    
+    const onSubmit = async (data: z.infer<typeof secretariatMemberSchema>) => {
+        const convertedData = { ...data, imageUrl: convertGoogleDriveLink(data.imageUrl) };
+        await onAdd(convertedData);
+        form.reset({ ...convertedData, name: '', role: '', imageUrl: '', bio: '' });
+    };
+
+    return <Form {...form}><form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-wrap lg:flex-nowrap gap-2 items-end p-2 border-t mt-4">
         <FormField control={form.control} name="name" render={({ field }) => <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
         <FormField control={form.control} name="role" render={({ field }) => <FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
         <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Use a standard image URL or a Google Drive "share" link.</FormDescription><FormMessage /></FormItem>} />
@@ -325,7 +332,14 @@ function CreatePostForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
 }
 function AddGalleryImageForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
     const form = useForm({ resolver: zodResolver(galleryImageSchema), defaultValues: { title: '', imageUrl: '' } });
-    return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd(d); form.reset(); })} className="flex flex-wrap md:flex-nowrap gap-2 items-end p-2 border-t mt-4">
+
+    const onSubmit = async (data: z.infer<typeof galleryImageSchema>) => {
+        const convertedData = { ...data, imageUrl: convertGoogleDriveLink(data.imageUrl) };
+        await onAdd(convertedData);
+        form.reset({ title: '', imageUrl: '' });
+    };
+
+    return <Form {...form}><form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-wrap md:flex-nowrap gap-2 items-end p-2 border-t mt-4">
         <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
         <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Use a standard image URL or a Google Drive "share" link.</FormDescription><FormMessage /></FormItem>} />
         <Button type="submit" size="sm">Add Image</Button>
@@ -455,22 +469,19 @@ export default function AdminPage() {
 
   useEffect(() => { fetchAllData(); }, [fetchAllData]);
   
-  const processUrlFields = (formData: any) => {
-    const convertedData = { ...formData };
-    for (const key in convertedData) {
-        if (key.toLowerCase().includes('imageurl') && typeof convertedData[key] === 'string') {
-            convertedData[key] = convertGoogleDriveLink(convertedData[key]);
-        }
-    }
-    return convertedData;
-  };
-
   const handleFormSubmit = async (updateFunction: (data: any) => Promise<void>, successMessage: string, data: any, form?: any) => {
     try {
-        const convertedData = processUrlFields(data);
+        const convertedData = { ...data };
+        // Convert any URL fields before saving
+        for (const key in convertedData) {
+            if (key.toLowerCase().includes('imageurl') && typeof convertedData[key] === 'string') {
+                convertedData[key] = convertGoogleDriveLink(convertedData[key]);
+            }
+        }
+
         await updateFunction(convertedData);
         toast({ title: "Success!", description: successMessage });
-        if(form) form.reset(convertedData); 
+        if(form) form.reset(convertedData); // Update form with converted URL
     } catch (error) {
         toast({ title: "Error", description: `Could not save data. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
     }
@@ -563,7 +574,10 @@ export default function AdminPage() {
         message: string
     ) => {
         try {
-            const convertedData = processUrlFields(itemData);
+            const convertedData = { ...itemData };
+             if ('imageUrl' in convertedData && typeof convertedData.imageUrl === 'string') {
+                convertedData.imageUrl = convertGoogleDriveLink(convertedData.imageUrl);
+            }
             await updateFunction(id, convertedData);
             setData(prev => ({
                 ...prev,
@@ -601,7 +615,10 @@ export default function AdminPage() {
         message: string
     ) => {
         try {
-            const convertedData = processUrlFields(addData);
+            const convertedData = {...addData};
+            if ('imageUrl' in convertedData && typeof convertedData.imageUrl === 'string') {
+                convertedData.imageUrl = convertGoogleDriveLink(convertedData.imageUrl);
+            }
             const newId = await addFunction(convertedData);
             const newItem = await firebaseService.getDocById(stateKey as string, newId);
             setData(prev => ({
@@ -932,7 +949,7 @@ export default function AdminPage() {
                                 <form onSubmit={generalSettingsForm.handleSubmit(async (values) => {
                                     await handleFormSubmit(firebaseService.updateSiteConfig, "General settings updated.", values, generalSettingsForm);
                                 })} className="space-y-4">
-                                    <FormField control={generalSettingsForm.control} name="conferenceDate" render={({ field }) => (<FormItem><FormLabel>Countdown Date</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Format: YYYY-MM-DDTHH:mm:ss</FormDescription></FormItem>)} />
+                                    <FormField control={generalSettingsForm.control} name="conferenceDate" render={({ field }) => (<FormItem><FormLabel>Countdown Date</FormLabel><FormControl><Input {...field} /></FormControl><p className="text-xs text-muted-foreground">Format: YYYY-MM-DDTHH:mm:ss</p></FormItem>)} />
                                     <FormField control={generalSettingsForm.control} name="mapEmbedUrl" render={({ field }) => (<FormItem><FormLabel>Google Maps Embed URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
                                     <FormField control={generalSettingsForm.control} name="footerText" render={({ field }) => (<FormItem><FormLabel>Footer Text</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>)} />
                                     <Button type="submit">Save General</Button>
