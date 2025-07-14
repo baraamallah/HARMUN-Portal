@@ -57,7 +57,7 @@ function HighlightItemForm({ item, onSave, onDelete }: { item: T.ConferenceHighl
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => onSave(item.id, data))} className="flex flex-wrap md:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
+      <form onSubmit={form.handleSubmit((data) => onSave(item.id, data))} className="flex flex-wrap gap-2 items-start p-2 border rounded-md mb-2">
         <FormField control={form.control} name="icon" render={({ field }) => <FormItem><FormLabel>Icon</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
         <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
         <FormField control={form.control} name="description" render={({ field }) => <FormItem className="flex-grow w-full md:w-auto"><FormLabel>Description</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
@@ -76,7 +76,7 @@ function DownloadableDocumentForm({ item, onSave, onDelete }: { item: T.Download
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => onSave(item.id, data))} className="flex flex-wrap md:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
+            <form onSubmit={form.handleSubmit((data) => onSave(item.id, data))} className="flex flex-wrap gap-2 items-start p-2 border rounded-md mb-2">
                 <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="description" render={({ field }) => <FormItem className="flex-grow w-full md:w-auto"><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="url" render={({ field }) => <FormItem className="flex-grow w-full md:w-auto"><FormLabel>File URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
@@ -88,7 +88,7 @@ function DownloadableDocumentForm({ item, onSave, onDelete }: { item: T.Download
 
 function AddHighlightForm({ onAdd }: { onAdd: (data: any, form: any) => Promise<void> }) {
     const form = useForm({ resolver: zodResolver(highlightItemSchema), defaultValues: { icon: '', title: '', description: '' } });
-    return <Form {...form}><form onSubmit={form.handleSubmit((d) => onAdd(d, form))} className="flex flex-wrap md:flex-nowrap gap-2 items-end p-2 border-t mt-4">
+    return <Form {...form}><form onSubmit={form.handleSubmit((d) => onAdd(d, form))} className="flex flex-wrap gap-2 items-end p-2 border-t mt-4">
         <FormField control={form.control} name="icon" render={({ field }) => <FormItem><FormLabel>Icon</FormLabel><FormControl><Input {...field} placeholder="e.g. Calendar" /></FormControl><FormMessage /></FormItem>} />
         <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
         <FormField control={form.control} name="description" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Description</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
@@ -99,11 +99,11 @@ function AddHighlightForm({ onAdd }: { onAdd: (data: any, form: any) => Promise<
 function AddDownloadableDocumentForm({ onAdd }: { onAdd: (data: any, form: any) => Promise<void> }) {
     const form = useForm({ resolver: zodResolver(downloadableDocumentSchema), defaultValues: { title: '', description: '', url: '' } });
 
-    return <Form {...form}><form onSubmit={form.handleSubmit((d) => onAdd(d, form))} className="flex flex-wrap md:flex-nowrap gap-2 items-end p-2 border-t mt-4">
+    return <Form {...form}><form onSubmit={form.handleSubmit((d) => onAdd(d, form))} className="flex flex-wrap gap-2 items-end p-2 border-t mt-4">
         <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-        <FormField control={form.control} name="description" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl><FormMessage /></FormItem>} />
-        <FormField control={form.control} name="url" render={({ field }) => <FormItem className="flex-grow w-full md:w-auto"><FormLabel>File URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-        <Button type="submit" size="sm">Add Document</Button>
+        <FormField control={form.control} name="description" render={({ field }) => <FormItem className="flex-grow w-full"><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl><FormMessage /></FormItem>} />
+        <FormField control={form.control} name="url" render={({ field }) => <FormItem className="flex-grow w-full"><FormLabel>File URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+        <Button type="submit" size="sm" className="w-full sm:w-auto">Add Document</Button>
     </form></Form>;
 }
 
@@ -290,3 +290,5 @@ export default function PagesTab() {
         </Accordion>
     );
 }
+
+    

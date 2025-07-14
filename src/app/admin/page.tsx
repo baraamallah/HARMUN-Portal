@@ -21,7 +21,7 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7">
                 <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
                 <TabsTrigger value="pages">Pages</TabsTrigger>
                 <TabsTrigger value="conference">Conference</TabsTrigger>
@@ -56,9 +56,11 @@ export default function AdminPage() {
             </TabsContent>
             
             <TabsContent value="security" className="mt-6">
-              <SecurityTab />
+              <SecurityTab toast={() => {}}/>
             </TabsContent>
         </Tabs>
     </div>
   );
 }
+
+    

@@ -32,7 +32,7 @@ function SecretariatMemberForm({ member, onSave, onDelete }: { member: T.Secreta
     
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => onSave(member.id, data, form))} className="flex flex-wrap lg:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
+            <form onSubmit={form.handleSubmit((data) => onSave(member.id, data, form))} className="flex flex-wrap gap-2 items-start p-2 border rounded-md mb-2">
                 <FormField control={form.control} name="name" render={({ field }) => <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="role" render={({ field }) => <FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
@@ -47,11 +47,11 @@ function SecretariatMemberForm({ member, onSave, onDelete }: { member: T.Secreta
 function AddSecretariatMemberForm({ onAdd }: { onAdd: (data: any, form: any) => Promise<void> }) {
     const form = useForm({ resolver: zodResolver(secretariatMemberSchema), defaultValues: { name: '', role: '', imageUrl: '', bio: '' } });
     
-    return <Form {...form}><form onSubmit={form.handleSubmit((d) => onAdd(d, form))} className="flex flex-wrap lg:flex-nowrap gap-2 items-end p-2 border-t mt-4">
+    return <Form {...form}><form onSubmit={form.handleSubmit((d) => onAdd(d, form))} className="flex flex-wrap gap-2 items-end p-2 border-t mt-4">
         <FormField control={form.control} name="name" render={({ field }) => <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
         <FormField control={form.control} name="role" render={({ field }) => <FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
         <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Provide a direct image link.</FormDescription><FormMessage /></FormItem>} />
-        <FormField control={form.control} name="bio" render={({ field }) => <FormItem className="flex-grow w-full lg:w-auto"><FormLabel>Bio</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl><FormMessage /></FormItem>} />
+        <FormField control={form.control} name="bio" render={({ field }) => <FormItem className="flex-grow w-full"><FormLabel>Bio</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl><FormMessage /></FormItem>} />
         <Button type="submit" size="sm">Add Member</Button>
     </form></Form>;
 }
@@ -102,7 +102,7 @@ export default function TeamTab() {
         try {
             const newId = await addFunction(data);
             const newItem = await firebaseService.getDocById(stateKey as string, newId);
-            setSecretariat(prev => [...prev, newItem].sort((a,b) => a.order - b.order));
+            setSecretariat(prev => [...prev, newItem].sort((a,b) => (a.order || 0) - (b.order || 0)));
             toast({ title: "Success!", description: message });
             if (form) form.reset();
         } catch (error) {
@@ -131,3 +131,5 @@ export default function TeamTab() {
         </Card>
     );
 }
+
+    

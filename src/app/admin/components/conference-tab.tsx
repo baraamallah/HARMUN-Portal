@@ -36,7 +36,7 @@ function ScheduleEventForm({ event, onSave, onDelete }: { event: T.ScheduleEvent
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => onSave(event.id, data))} className="flex flex-wrap md:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
+            <form onSubmit={form.handleSubmit((data) => onSave(event.id, data))} className="flex flex-wrap gap-2 items-start p-2 border rounded-md mb-2">
                 <FormField control={form.control} name="time" render={({ field }) => <FormItem><FormLabel>Time</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
                 <FormField control={form.control} name="title" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
                 <FormField control={form.control} name="location" render={({ field }) => <FormItem><FormLabel>Location</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
@@ -48,10 +48,10 @@ function ScheduleEventForm({ event, onSave, onDelete }: { event: T.ScheduleEvent
 
 function AddScheduleDayForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
     const form = useForm({ defaultValues: { title: '', date: '' } });
-    return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd(d); form.reset(); })} className="flex gap-2 items-end">
-        <FormField control={form.control} name="title" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Day Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-        <FormField control={form.control} name="date" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Date</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-        <Button type="submit" size="sm">Add Day</Button>
+    return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd(d); form.reset(); })} className="flex flex-col md:flex-row gap-2 items-end">
+        <FormField control={form.control} name="title" render={({ field }) => <FormItem className="flex-grow w-full"><FormLabel>Day Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+        <FormField control={form.control} name="date" render={({ field }) => <FormItem className="flex-grow w-full"><FormLabel>Date</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+        <Button type="submit" size="sm" className="w-full md:w-auto">Add Day</Button>
     </form></Form>;
 }
 
@@ -59,7 +59,7 @@ function AddScheduleEventForm({ dayId, onAdd }: { dayId: string; onAdd: (data: a
     const form = useForm<z.infer<typeof scheduleEventSchema>>({
         defaultValues: { time: '', title: '', location: '', description: '' }
     });
-    return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd({ ...d, dayId }); form.reset(); })} className="flex flex-wrap md:flex-nowrap gap-2 items-end p-2 border-t mt-4">
+    return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd({ ...d, dayId }); form.reset(); })} className="flex flex-wrap gap-2 items-end p-2 border-t mt-4">
         <FormField control={form.control} name="time" render={({ field }) => <FormItem><FormLabel>Time</FormLabel><FormControl><Input placeholder="e.g. 9:00 AM" {...field} /></FormControl></FormItem>} />
         <FormField control={form.control} name="title" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
         <FormField control={form.control} name="location" render={({ field }) => <FormItem><FormLabel>Location</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
@@ -69,10 +69,10 @@ function AddScheduleEventForm({ dayId, onAdd }: { dayId: string; onAdd: (data: a
 
 function AddCountryForm({ committees, onAdd }: { committees: T.Committee[]; onAdd: (data: any) => Promise<void> }) {
     const form = useForm({ defaultValues: { name: '', committee: '' } });
-    return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd({ ...d, status: 'Available' }); form.reset(); })} className="flex items-end gap-2 mb-4">
-        <FormField control={form.control} name="name" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Country Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
-        <FormField control={form.control} name="committee" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Committee</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger></FormControl><SelectContent>{committees?.map((c: T.Committee) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select></FormItem>} />
-        <Button type="submit"><PlusCircle className="mr-2 h-4 w-4" /> Add</Button>
+    return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd({ ...d, status: 'Available' }); form.reset(); })} className="flex flex-col md:flex-row items-end gap-2 mb-4">
+        <FormField control={form.control} name="name" render={({ field }) => <FormItem className="flex-grow w-full"><FormLabel>Country Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>} />
+        <FormField control={form.control} name="committee" render={({ field }) => <FormItem className="flex-grow w-full"><FormLabel>Committee</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger></FormControl><SelectContent>{committees?.map((c: T.Committee) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select></FormItem>} />
+        <Button type="submit" className="w-full md:w-auto"><PlusCircle className="mr-2 h-4 w-4" /> Add</Button>
     </form></Form>;
 }
 
@@ -125,7 +125,7 @@ export default function ConferenceTab() {
     const handleAddItem = async (addFunction: Function, itemData: any, stateKey: keyof typeof data, message: string, form?: any) => {
         try {
             const newId = await addFunction(itemData);
-            const newItem = await firebaseService.getDocById(stateKey, newId);
+            const newItem = await firebaseService.getDocById(stateKey as string, newId);
             
             setData(prev => ({
                 ...prev,
@@ -231,13 +231,13 @@ export default function ConferenceTab() {
                         event={event}
                         onSave={async (id: string, saveData: any) => {
                             await firebaseService.updateScheduleEvent(id, { ...event, ...saveData });
-                            setData((prev: any) => ({ ...prev, schedule: prev.schedule.map((d: T.ScheduleDay) => d.id === event.dayId ? {...d, events: d.events.map(e => e.id === id ? {...e, ...saveData} : e)} : d)}));
+                            setData((prev: any) => ({ ...prev, schedule: prev.schedule.map((d: T.ScheduleDay) => d.id === day.id ? {...d, events: d.events.map(e => e.id === id ? {...e, ...saveData} : e)} : d)}));
                             toast({title: "Event updated."});
                         }}
                         onDelete={async (id: string) => {
                             if(!confirm('Are you sure?')) return;
                             await firebaseService.deleteScheduleEvent(id);
-                            setData((prev: any) => ({ ...prev, schedule: prev.schedule.map((d: T.ScheduleDay) => d.id === event.dayId ? {...d, events: d.events.filter(e => e.id !== id)} : d)}));
+                            setData((prev: any) => ({ ...prev, schedule: prev.schedule.map((d: T.ScheduleDay) => d.id === day.id ? {...d, events: d.events.filter(e => e.id !== id)} : d)}));
                             toast({title: "Event deleted."});
                         }}
                     />
@@ -262,3 +262,5 @@ export default function ConferenceTab() {
         </Accordion>
     );
 }
+
+    

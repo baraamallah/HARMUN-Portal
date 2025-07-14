@@ -95,7 +95,7 @@ export default async function GalleryPage() {
             {items.length > 0 ? (
                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {items.map((item, index) => (
-                        <div key={item.id} className={cn("animate-fade-in-up", item.columnSpan === 2 ? "col-span-2" : "col-span-1")} style={{ animationDelay: `${index * 100}ms`}}>
+                        <div key={item.id} className={cn("animate-fade-in-up", item.columnSpan === 2 ? "col-span-2 sm:col-span-2" : "col-span-1")} style={{ animationDelay: `${index * 100}ms`}}>
                            <GalleryMedia item={item} />
                         </div>
                     ))}
@@ -108,3 +108,5 @@ export default async function GalleryPage() {
         </div>
     );
 }
+
+    

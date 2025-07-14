@@ -42,7 +42,7 @@ export default async function Home() {
           priority
         />
         <div className="relative z-20 container mx-auto px-4">
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-headline font-bold mb-4 text-primary-foreground drop-shadow-lg animate-fade-in-down">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-headline font-bold mb-4 text-primary-foreground drop-shadow-lg animate-fade-in-down">
             {content.heroTitle}
           </h1>
           <p className="text-lg md:text-xl max-w-3xl mx-auto mb-8 text-primary-foreground/80 drop-shadow-md animate-fade-in-up">
@@ -68,9 +68,9 @@ export default async function Home() {
       {/* Highlights Section */}
       <section className="bg-transparent py-20">
         <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-3 gap-8 text-center">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {highlights.map((highlight, index) => (
-               <Card key={highlight.id} className="animate-fade-in-up transition-all duration-300 hover:border-primary hover:-translate-y-1" style={{ animationDelay: `${index * 150}ms` }}>
+               <Card key={highlight.id} className="animate-fade-in-up transition-all duration-300 hover:border-primary hover:-translate-y-1 text-center" style={{ animationDelay: `${index * 150}ms` }}>
                 <CardHeader>
                   <div className="mx-auto bg-primary text-primary-foreground rounded-full w-16 h-16 flex items-center justify-center mb-4">
                     <Icon name={highlight.icon} className="w-8 h-8" />
@@ -82,7 +82,7 @@ export default async function Home() {
                 </CardContent>
               </Card>
             ))}
-             <Card className="animate-fade-in-up transition-all duration-300 hover:border-primary hover:-translate-y-1" style={{ animationDelay: `${highlights.length * 150}ms` }}>
+             <Card className="animate-fade-in-up transition-all duration-300 hover:border-primary hover:-translate-y-1 text-center md:col-span-2 lg:col-span-1" style={{ animationDelay: `${highlights.length * 150}ms` }}>
               <CardHeader>
                 <div className="mx-auto bg-primary text-primary-foreground rounded-full w-16 h-16 flex items-center justify-center mb-4">
                   <MapPin className="w-8 h-8" />
@@ -105,3 +105,5 @@ export default async function Home() {
     </div>
   );
 }
+
+    
