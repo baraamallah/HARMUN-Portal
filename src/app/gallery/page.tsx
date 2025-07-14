@@ -1,16 +1,80 @@
 
 import Image from 'next/image';
-import { getGalleryPageContent, getGalleryImages } from '@/lib/firebase-service';
-import type { GalleryPageContent, GalleryImage } from '@/lib/types';
+import { getGalleryPageContent, getGalleryItems } from '@/lib/firebase-service';
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { convertGoogleDriveLink } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import type { GalleryItem } from '@/lib/types';
+import { Video } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
+function GalleryMedia({ item }: { item: GalleryItem }) {
+    const itemContainerClasses = cn(
+        "break-inside-avoid relative group overflow-hidden cursor-pointer w-full",
+        {
+            'rounded-lg': item.display === 'default',
+            'rounded-lg aspect-square': item.display === 'square',
+            'rounded-full aspect-square': item.display === 'circle',
+        }
+    );
+
+    if (item.type === 'video') {
+        return (
+            <div className={itemContainerClasses}>
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
+                    <Video className="w-12 h-12 text-white" />
+                </div>
+                 <video
+                    src={item.videoUrl}
+                    className="w-full h-full object-cover"
+                    playsInline
+                    muted
+                    loop
+                 />
+                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                 <p className="absolute bottom-0 left-0 p-4 text-white font-semibold">{item.title}</p>
+            </div>
+        )
+    }
+
+    // Default to image
+    const imageUrl = convertGoogleDriveLink(item.imageUrl || '');
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <div className={itemContainerClasses}>
+                    <Image
+                        src={imageUrl}
+                        alt={item.title}
+                        width={500}
+                        height={500}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        data-ai-hint="conference photo"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                    <p className="absolute bottom-0 left-0 p-4 text-white font-semibold">{item.title}</p>
+                </div>
+            </DialogTrigger>
+            <DialogContent className="max-w-[90vw] max-h-[90vh] w-auto h-auto p-0 bg-transparent border-0 shadow-none flex items-center justify-center">
+                <DialogTitle className="sr-only">{item.title}</DialogTitle>
+                <DialogDescription className="sr-only">Enlarged view of the gallery image: {item.title}</DialogDescription>
+                <Image
+                     src={imageUrl}
+                     alt={item.title}
+                     width={1200}
+                     height={800}
+                     className="w-auto h-auto max-w-full max-h-[90vh] rounded-md object-contain"
+                />
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 export default async function GalleryPage() {
-    const [content, images] = await Promise.all([
+    const [content, items] = await Promise.all([
         getGalleryPageContent(),
-        getGalleryImages()
+        getGalleryItems()
     ]);
 
     return (
@@ -22,44 +86,21 @@ export default async function GalleryPage() {
                 </p>
             </div>
             
-            {images.length > 0 ? (
+            {items.length > 0 ? (
                  <div className="columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
-                    {images.map((image, index) => (
-                         <Dialog key={image.id}>
-                            <DialogTrigger asChild>
-                                <div className="break-inside-avoid relative group overflow-hidden rounded-lg cursor-pointer animate-fade-in-up" style={{ animationDelay: `${index * 100}ms`}}>
-                                    <Image
-                                        src={convertGoogleDriveLink(image.imageUrl)}
-                                        alt={image.title}
-                                        width={500}
-                                        height={500}
-                                        className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
-                                        data-ai-hint="conference photo"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                                    <p className="absolute bottom-0 left-0 p-4 text-white font-semibold">{image.title}</p>
-
-                                </div>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 bg-transparent border-0 shadow-none flex items-center justify-center">
-                                <DialogTitle className="sr-only">{image.title}</DialogTitle>
-                                <DialogDescription className="sr-only">Enlarged view of the gallery image: {image.title}</DialogDescription>
-                                <Image
-                                     src={convertGoogleDriveLink(image.imageUrl)}
-                                     alt={image.title}
-                                     width={1200}
-                                     height={800}
-                                     className="w-auto h-auto max-w-full max-h-[90vh] rounded-md object-contain"
-                                />
-                            </DialogContent>
-                        </Dialog>
+                    {items.map((item, index) => (
+                        <div key={item.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 100}ms`}}>
+                           <GalleryMedia item={item} />
+                        </div>
                     ))}
                 </div>
             ) : (
                 <div className="text-center text-muted-foreground py-16 animate-fade-in-up">
-                    <p>No images have been added to the gallery yet.</p>
+                    <p>No media has been added to the gallery yet.</p>
                 </div>
             )}
         </div>
     );
 }
+
+    

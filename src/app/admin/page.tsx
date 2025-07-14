@@ -25,7 +25,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>({
     homeContent: {}, aboutContent: {}, registrationContent: {}, documentsContent: {}, galleryContent: {}, siteConfig: { socialLinks: [] },
-    posts: [], countries: [], committees: [], secretariat: [], schedule: [], highlights: [], codeOfConduct: [], galleryImages: []
+    posts: [], countries: [], committees: [], secretariat: [], schedule: [], highlights: [], codeOfConduct: [], galleryItems: []
   });
 
   const [fetched, setFetched] = useState<FetchedState>({});
@@ -56,13 +56,13 @@ export default function AdminPage() {
                 keys = ['secretariat'];
                 break;
             case 'gallery':
-                promises = [firebaseService.getGalleryPageContent(), firebaseService.getGalleryImages()];
-                keys = ['galleryContent', 'galleryImages'];
+                promises = [firebaseService.getGalleryPageContent(), firebaseService.getGalleryItems()];
+                keys = ['galleryContent', 'galleryItems'];
                 break;
             case 'settings':
             case 'security': 
-                promises = [firebaseService.getSiteConfig(), firebaseService.getCommittees(), firebaseService.getCountries(), firebaseService.getSecretariat(), firebaseService.getGalleryImages()];
-                keys = ['siteConfig', 'committees', 'countries', 'secretariat', 'galleryImages'];
+                promises = [firebaseService.getSiteConfig(), firebaseService.getCommittees(), firebaseService.getCountries(), firebaseService.getSecretariat(), firebaseService.getGalleryItems()];
+                keys = ['siteConfig', 'committees', 'countries', 'secretariat', 'galleryItems'];
                 break;
         }
 
@@ -103,8 +103,10 @@ export default function AdminPage() {
            if (form) {
              const formValues = { ...form.getValues() };
              Object.keys(formValues).forEach(key => {
-                if (key.toLowerCase().includes('imageurl') && typeof formValues[key] === 'string') {
-                    formValues[key] = convertGoogleDriveLink(formValues[key]);
+                if (key.toLowerCase().includes('imageurl') || (key === 'url' && formValues.type === 'image')) {
+                    if (typeof formValues[key] === 'string') {
+                        formValues[key] = convertGoogleDriveLink(formValues[key]);
+                    }
                 }
              });
              form.reset(formValues);
@@ -151,6 +153,9 @@ export default function AdminPage() {
           const convertedData = {...addData};
           if ('imageUrl' in convertedData && typeof convertedData.imageUrl === 'string') {
               convertedData.imageUrl = convertGoogleDriveLink(convertedData.imageUrl);
+          }
+           if (convertedData.type === 'image' && 'url' in convertedData && typeof convertedData.url === 'string') {
+              convertedData.url = convertGoogleDriveLink(convertedData.url);
           }
           const newId = await addFunction(convertedData);
           const newItem = await firebaseService.getDocById(stateKey as string, newId);
@@ -244,3 +249,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    

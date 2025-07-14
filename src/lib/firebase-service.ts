@@ -1,7 +1,8 @@
 
+
 import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc, writeBatch, documentId, runTransaction } from 'firebase/firestore';
 import { db } from './firebase';
-import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, SecretariatMember, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, CodeOfConductItem, ConferenceHighlight, GalleryPageContent, GalleryImage } from './types';
+import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, SecretariatMember, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, CodeOfConductItem, ConferenceHighlight, GalleryPageContent, GalleryItem } from './types';
 import { format } from 'date-fns';
 import { convertGoogleDriveLink } from './utils';
 
@@ -16,7 +17,7 @@ const SCHEDULE_DAYS_COLLECTION = 'scheduleDays';
 const SCHEDULE_EVENTS_COLLECTION = 'scheduleEvents';
 const HIGHLIGHTS_COLLECTION = 'highlights';
 const CODE_OF_CONDUCT_COLLECTION = 'codeOfConduct';
-const GALLERY_COLLECTION = 'galleryImages';
+const GALLERY_COLLECTION = 'galleryItems';
 
 const HOME_PAGE_CONTENT_DOC_ID = 'homePage';
 const ABOUT_PAGE_CONTENT_DOC_ID = 'aboutPage';
@@ -95,8 +96,8 @@ export async function initializeDefaultData() {
             { dayId: 'day1', time: '2:00 PM - 5:00 PM', title: 'Delegate Registration', description: 'Pick up your credentials and welcome packet.', location: 'Main Hall', order: 1 },
         ],
         [GALLERY_COLLECTION]: [
-            { title: 'Opening Ceremony', imageUrl: 'https://placehold.co/600x400.png', order: 1 },
-            { title: 'Debate in Session', imageUrl: 'https://placehold.co/400x600.png', order: 2 },
+            { title: 'Opening Ceremony', imageUrl: 'https://placehold.co/600x400.png', videoUrl: null, type: 'image', display: 'default', order: 1 },
+            { title: 'Debate in Session', imageUrl: 'https://placehold.co/400x600.png', videoUrl: null, type: 'image', display: 'default', order: 2 },
         ],
     };
 
@@ -259,22 +260,26 @@ export const addCodeOfConductItem = (item: Omit<CodeOfConductItem, 'id'>) => add
 export const updateCodeOfConductItem = (id: string, item: Partial<CodeOfConductItem>) => updateCollectionDoc<CodeOfConductItem>(CODE_OF_CONDUCT_COLLECTION, id, item);
 export const deleteCodeOfConductItem = (id: string) => deleteCollectionDoc(CODE_OF_CONDUCT_COLLECTION, id);
 
-export const getGalleryImages = () => getCollection<GalleryImage>(GALLERY_COLLECTION);
-export const addGalleryImage = (image: Omit<GalleryImage, 'id' | 'order'>) => {
-    const processedImage = {
-        ...image,
-        imageUrl: convertGoogleDriveLink(image.imageUrl),
-    };
-    return addCollectionDoc<GalleryImage>(GALLERY_COLLECTION, processedImage);
-};
-export const updateGalleryImage = (id: string, image: Partial<Omit<GalleryImage, 'id' | 'order'>>) => {
-     const processedImage = {
-        ...image,
-        imageUrl: image.imageUrl ? convertGoogleDriveLink(image.imageUrl) : undefined,
-    };
-    return updateCollectionDoc<GalleryImage>(GALLERY_COLLECTION, id, processedImage);
-};
-export const deleteGalleryImage = (id: string) => deleteCollectionDoc(GALLERY_COLLECTION, id);
+
+// --- Gallery ---
+function processGalleryItemData(data: { url: string } & Omit<T.GalleryItem, 'id' | 'imageUrl' | 'videoUrl'>) {
+    const { url, type, ...rest } = data;
+    const processedData: any = { ...rest, type };
+    if (type === 'image') {
+        processedData.imageUrl = convertGoogleDriveLink(url);
+        processedData.videoUrl = null;
+    } else {
+        processedData.imageUrl = null;
+        processedData.videoUrl = url;
+    }
+    return processedData;
+}
+
+export const getGalleryItems = () => getCollection<GalleryItem>(GALLERY_COLLECTION);
+export const addGalleryItem = (item: any) => addCollectionDoc<GalleryItem>(GALLERY_COLLECTION, processGalleryItemData(item));
+export const updateGalleryItem = (id: string, item: any) => updateCollectionDoc<GalleryItem>(GALLERY_COLLECTION, id, processGalleryItemData(item));
+export const deleteGalleryItem = (id: string) => deleteCollectionDoc(GALLERY_COLLECTION, id);
+
 
 // --- Schedule (Special Handling) ---
 export async function getSchedule(): Promise<ScheduleDay[]> {
@@ -402,16 +407,23 @@ const countryTransformer = (row: any): Omit<Country, 'id'> => ({
     status: (row.status === 'Assigned' ? 'Assigned' : 'Available') as 'Available' | 'Assigned',
 });
 
-const galleryTransformer = (row: any): Omit<GalleryImage, 'id'> => ({
-    title: row.title || '',
-    imageUrl: convertGoogleDriveLink(row.imageUrl || 'https://placehold.co/600x400.png'),
-    order: parseInt(row.order, 10) || 0,
-});
+const galleryTransformer = (row: any): Omit<GalleryItem, 'id'> => {
+    const type = row.type === 'video' ? 'video' : 'image';
+    const url = row.url || '';
+    return {
+        title: row.title || '',
+        type,
+        display: row.display || 'default',
+        imageUrl: type === 'image' ? convertGoogleDriveLink(url) : null,
+        videoUrl: type === 'video' ? url : null,
+        order: parseInt(row.order, 10) || 0,
+    }
+};
 
 export const importCommittees = (data: any[]) => importData<Committee>(COMMITTEES_COLLECTION, data, committeeTransformer);
 export const importCountries = (data: any[]) => importData<Country>(COUNTRIES_COLLECTION, data, countryTransformer);
 export const importSecretariat = (data: any[]) => importData<SecretariatMember>(SECRETARIAT_COLLECTION, data, secretariatTransformer);
-export const importGallery = (data: any[]) => importData<GalleryImage>(GALLERY_COLLECTION, data, galleryTransformer);
+export const importGallery = (data: any[]) => importData<GalleryItem>(GALLERY_COLLECTION, data, galleryTransformer);
 
 async function clearCollection(collectionPath: string) {
     const collectionRef = collection(db, collectionPath);

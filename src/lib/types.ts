@@ -1,4 +1,5 @@
 
+
 import type { Timestamp } from 'firebase/firestore';
 
 export type Committee = {
@@ -113,10 +114,13 @@ export type GalleryPageContent = {
     subtitle: string;
 };
 
-export type GalleryImage = {
+export type GalleryItem = {
     id: string;
     title: string;
-    imageUrl: string;
+    type: 'image' | 'video';
+    display: 'default' | 'square' | 'circle';
+    imageUrl: string | null;
+    videoUrl: string | null;
     order: number;
 };
 

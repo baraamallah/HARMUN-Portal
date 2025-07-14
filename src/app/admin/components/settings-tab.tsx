@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState } from "react";
@@ -185,7 +186,11 @@ export default function SettingsTab({ data, setData, handleFormSubmit, toast, se
                 flattenedData = dataToExport.map(({id, ...rest}: T.Country) => rest);
                 break;
             case 'gallery.csv':
-                 flattenedData = dataToExport.map(({id, order, ...rest}: T.GalleryImage) => ({...rest, order}));
+                 flattenedData = dataToExport.map(({id, order, imageUrl, videoUrl, ...rest}: T.GalleryItem) => ({
+                    ...rest,
+                    url: rest.type === 'video' ? videoUrl : imageUrl,
+                    order
+                }));
                  break;
             default:
                 flattenedData = dataToExport;
@@ -314,9 +319,9 @@ export default function SettingsTab({ data, setData, handleFormSubmit, toast, se
                 </div>
                 <div className="space-y-2 p-4 border rounded-lg">
                     <h3 className="font-semibold flex items-center gap-2"><GalleryHorizontal/> Gallery</h3>
-                    <Button onClick={() => handleExport(data.galleryImages, 'gallery.csv')} className="w-full">Export to CSV</Button>
+                    <Button onClick={() => handleExport(data.galleryItems, 'gallery.csv')} className="w-full">Export to CSV</Button>
                     <div className="border-t pt-2 mt-2"><h4 className="font-semibold mb-2">Import</h4>
-                        <p className="text-xs text-muted-foreground mb-2">CSV must have columns: title, imageUrl, order.</p>
+                        <p className="text-xs text-muted-foreground mb-2">CSV must have columns: title, url, type (image/video), display (default/square/circle), order.</p>
                         <div className="flex gap-2"><Input id="galleryImportFile" type="file" accept=".csv" onChange={handleFileChange(setGalleryImportFile)}/>
                         <Button onClick={() => handleImport(galleryImportFile, firebaseService.importGallery, 'gallery')} disabled={!galleryImportFile || isImporting}><Upload/></Button></div>
                     </div>
@@ -325,3 +330,5 @@ export default function SettingsTab({ data, setData, handleFormSubmit, toast, se
         </Accordion>
     );
 }
+
+    
