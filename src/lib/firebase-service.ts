@@ -1,5 +1,4 @@
 
-
 import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc, writeBatch, documentId, runTransaction } from 'firebase/firestore';
 import { db } from './firebase';
 import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, SecretariatMember, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, CodeOfConductItem, ConferenceHighlight, GalleryPageContent, GalleryItem } from './types';
@@ -156,7 +155,6 @@ export async function getDocById(collectionName: string, id: string): Promise<an
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
         const data = docSnap.data();
-        if (data.imageUrl) data.imageUrl = convertGoogleDriveLink(data.imageUrl);
         return { id: docSnap.id, ...data };
     }
     throw new Error(`Document with id ${id} not found in ${collectionName}`);
@@ -193,12 +191,6 @@ async function getCollection<T>(collectionName: string, orderByField: string = '
     const querySnapshot = await getDocs(q);
     const results = querySnapshot.docs.map(doc => {
         const data = doc.data();
-        if (data.imageUrl) {
-            data.imageUrl = convertGoogleDriveLink(data.imageUrl);
-        }
-         if (data.chair && data.chair.imageUrl) {
-            data.chair.imageUrl = convertGoogleDriveLink(data.chair.imageUrl);
-        }
         return { id: doc.id, ...data } as T;
     });
     return results;
@@ -248,22 +240,23 @@ export const deleteCodeOfConductItem = (id: string) => deleteCollectionDoc(CODE_
 
 
 // --- Gallery ---
-function processGalleryItemData(data: { url: string; columnSpan: '1' | '2' } & Omit<GalleryItem, 'id' | 'imageUrl' | 'videoUrl' | 'columnSpan'>) {
+function processGalleryItemDataForSave(data: any) {
     const { url, type, columnSpan, ...rest } = data;
     const processedData: any = { ...rest, type, columnSpan: parseInt(columnSpan, 10) };
     if (type === 'image') {
-        processedData.imageUrl = convertGoogleDriveLink(url);
+        processedData.imageUrl = data.imageUrl || null;
         processedData.videoUrl = null;
     } else {
         processedData.imageUrl = null;
-        processedData.videoUrl = url;
+        processedData.videoUrl = data.videoUrl || null;
     }
+    delete processedData.url; // remove temp 'url' field
     return processedData;
 }
 
 export const getGalleryItems = () => getCollection<GalleryItem>(GALLERY_COLLECTION);
-export const addGalleryItem = (item: any) => addCollectionDoc<GalleryItem>(GALLERY_COLLECTION, processGalleryItemData(item));
-export const updateGalleryItem = (id: string, item: any) => updateCollectionDoc<GalleryItem>(GALLERY_COLLECTION, id, processGalleryItemData(item));
+export const addGalleryItem = (item: any) => addCollectionDoc<GalleryItem>(GALLERY_COLLECTION, processGalleryItemDataForSave(item));
+export const updateGalleryItem = (id: string, item: any) => updateCollectionDoc<GalleryItem>(GALLERY_COLLECTION, id, processGalleryItemDataForSave(item));
 export const deleteGalleryItem = (id: string) => deleteCollectionDoc(GALLERY_COLLECTION, id);
 export const updateGalleryItemsOrder = async (items: GalleryItem[]) => {
     const batch = writeBatch(db);
@@ -345,11 +338,7 @@ export const addCommittee = (committee: Omit<Committee, 'id'>) => {
 export async function getCommittees(): Promise<Committee[]> {
     const q = query(collection(db, COMMITTEES_COLLECTION), orderBy('name'));
     const querySnapshot = await getDocs(q);
-    const committees = querySnapshot.docs.map(doc => {
-        const data = doc.data() as Committee;
-        data.chair.imageUrl = convertGoogleDriveLink(data.chair.imageUrl);
-        return { id: doc.id, ...data };
-    });
+    const committees = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Omit<Committee, 'id'> }));
     return committees;
 }
 export const deleteCommittee = (id: string) => deleteDoc(doc(db, COMMITTEES_COLLECTION, id));
@@ -374,7 +363,7 @@ const committeeTransformer = (row: any): Omit<Committee, 'id'> => ({
     chair: {
         name: row.chairName || '',
         bio: row.chairBio || '',
-        imageUrl: convertGoogleDriveLink(row.chairImageUrl || 'https://placehold.co/400x400.png')
+        imageUrl: convertGoogleDriveLink(row.chairImageUrl || '')
     },
     topics: (row.topics || '').split('\\n').join('\n').split('\n').filter(Boolean),
     backgroundGuideUrl: row.backgroundGuideUrl || ''
@@ -384,7 +373,7 @@ const secretariatTransformer = (row: any): Omit<SecretariatMember, 'id'> => ({
     name: row.name || '',
     role: row.role || '',
     bio: row.bio || '',
-    imageUrl: convertGoogleDriveLink(row.imageUrl || 'https://placehold.co/400x400.png'),
+    imageUrl: convertGoogleDriveLink(row.imageUrl || ''),
     order: parseInt(row.order, 10) || 0,
 });
 
@@ -422,3 +411,5 @@ async function clearCollection(collectionPath: string) {
     querySnapshot.docs.forEach(docSnapshot => batch.delete(docSnapshot.ref));
     await batch.commit();
 }
+
+    

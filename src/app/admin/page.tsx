@@ -20,17 +20,41 @@ type FetchedState = {
     [key: string]: boolean;
 };
 
-// Helper to convert any image URLs in an object
-const convertImageUrls = (data: any): any => {
+// Helper to convert any Google Drive URLs in an object before saving
+const convertDataForSave = (data: any): any => {
+    if (!data) return data;
     const convertedData = { ...data };
-    for (const key in convertedData) {
-        if (typeof convertedData[key] === 'string' && (key.toLowerCase().includes('imageurl') || (key === 'url' && convertedData.type === 'image'))) {
-            convertedData[key] = convertGoogleDriveLink(convertedData[key]);
-        }
-        if (key === 'chair' && typeof convertedData[key] === 'object' && convertedData[key] !== null) {
-            convertedData[key].imageUrl = convertGoogleDriveLink(convertedData[key].imageUrl);
+
+    const keysToConvert = ['imageUrl', 'heroImageUrl', 'chairImageUrl', 'url'];
+
+    for (const key of keysToConvert) {
+        if (typeof convertedData[key] === 'string') {
+            // Special case for gallery items where 'url' is the source
+            if (key === 'url' && convertedData.type === 'image') {
+                 convertedData.imageUrl = convertGoogleDriveLink(convertedData.url);
+                 convertedData.videoUrl = null;
+            } else {
+                 convertedData[key] = convertGoogleDriveLink(convertedData[key]);
+            }
         }
     }
+    
+    // Nested object case for committee chairs
+    if (convertedData.chair && typeof convertedData.chair.imageUrl === 'string') {
+        convertedData.chair.imageUrl = convertGoogleDriveLink(convertedData.chair.imageUrl);
+    }
+    
+    // Process gallery item specifically from its 'url' field
+    if (convertedData.hasOwnProperty('url') && convertedData.hasOwnProperty('type')) {
+         if (convertedData.type === 'image') {
+            convertedData.imageUrl = convertGoogleDriveLink(convertedData.url);
+            convertedData.videoUrl = null;
+        } else {
+            convertedData.videoUrl = convertedData.url;
+            convertedData.imageUrl = null;
+        }
+    }
+    
     return convertedData;
 };
 
@@ -111,7 +135,7 @@ export default function AdminPage() {
     form?: any
   ) => {
       try {
-          const convertedData = convertImageUrls(itemData);
+          const convertedData = convertDataForSave(itemData);
           await updateFunction(id, convertedData);
           
           setData(prev => ({
@@ -120,8 +144,7 @@ export default function AdminPage() {
           }));
           
           if (form) {
-             const updatedFormValues = convertImageUrls(form.getValues());
-             form.reset(updatedFormValues);
+             form.reset(convertedData);
           }
 
           toast({ title: "Success!", description: message });
@@ -157,13 +180,20 @@ export default function AdminPage() {
       form?: any
   ) => {
       try {
-          const convertedData = convertImageUrls(addData);
+          const convertedData = convertDataForSave(addData);
           const newId = await addFunction(convertedData);
           const newItem = await firebaseService.getDocById(stateKey as string, newId);
-          setData(prev => ({
-              ...prev,
-              [stateKey]: [...(prev[stateKey] || []), newItem],
-          }));
+          
+          setData(prev => {
+              const currentItems = prev[stateKey] || [];
+              const updatedItems = [...currentItems, newItem];
+              // Re-sort if the collection has a specific order
+              if (newItem && newItem.hasOwnProperty('order')) {
+                  updatedItems.sort((a, b) => (a.order || 0) - (b.order || 0));
+              }
+              return { ...prev, [stateKey]: updatedItems };
+          });
+
           toast({ title: "Success!", description: message });
           if (form) form.reset();
       } catch (error) {
@@ -173,7 +203,7 @@ export default function AdminPage() {
 
   const handleFormSubmit = async (updateFunction: (data: any) => Promise<void>, successMessage: string, data: any, form: any) => {
     try {
-        const convertedData = convertImageUrls(data);
+        const convertedData = convertDataForSave(data);
         await updateFunction(convertedData);
         toast({ title: "Success!", description: successMessage });
         form.reset(convertedData);
@@ -245,3 +275,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    

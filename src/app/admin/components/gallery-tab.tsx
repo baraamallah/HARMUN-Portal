@@ -221,12 +221,14 @@ function AddGalleryItemForm({ onAdd }: { onAdd: (data: any, form: any) => Promis
 
 export default function GalleryTab({ data, setData, handleAddItem, handleUpdateItem, handleDeleteItem, handleFormSubmit, toast }: any) {
     const [activeAccordion, setActiveAccordion] = useState<string | undefined>();
-    const [galleryItems, setGalleryItems] = useState(data.galleryItems || []);
+    const [galleryItems, setGalleryItems] = useState<T.GalleryItem[]>([]);
     const [hasReordered, setHasReordered] = useState(false);
     const sensors = useSensors(useSensor(PointerSensor));
 
     useEffect(() => {
-        setGalleryItems(data.galleryItems || []);
+        // Ensure data is sorted by order when it comes from props
+        const sortedItems = [...(data.galleryItems || [])].sort((a,b) => (a.order || 0) - (b.order || 0));
+        setGalleryItems(sortedItems);
         setHasReordered(false);
     }, [data.galleryItems]);
     
@@ -234,8 +236,8 @@ export default function GalleryTab({ data, setData, handleAddItem, handleUpdateI
         const { active, over } = event;
         if (active.id !== over?.id) {
             setGalleryItems((items) => {
-                const oldIndex = items.findIndex((item: T.GalleryItem) => item.id === active.id);
-                const newIndex = items.findIndex((item: T.GalleryItem) => item.id === over?.id);
+                const oldIndex = items.findIndex((item) => item.id === active.id);
+                const newIndex = items.findIndex((item) => item.id === over?.id);
                 const newOrder = arrayMove(items, oldIndex, newIndex);
                 setHasReordered(true);
                 return newOrder;
@@ -256,6 +258,7 @@ export default function GalleryTab({ data, setData, handleAddItem, handleUpdateI
 
 
     const galleryForm = useForm<z.infer<typeof galleryPageContentSchema>>({
+        resolver: zodResolver(galleryPageContentSchema),
         defaultValues: data.galleryContent,
     });
     React.useEffect(() => { galleryForm.reset(data.galleryContent); }, [data.galleryContent, galleryForm]);
@@ -284,8 +287,8 @@ export default function GalleryTab({ data, setData, handleAddItem, handleUpdateI
                             </div>
                         )}
                         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                            <SortableContext items={galleryItems.map((item: T.GalleryItem) => item.id)} strategy={verticalListSortingStrategy}>
-                                {galleryItems.map((item: T.GalleryItem) => (
+                            <SortableContext items={galleryItems.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+                                {galleryItems.map((item) => (
                                     <SortableGalleryItem
                                         key={item.id}
                                         item={item}
@@ -302,3 +305,5 @@ export default function GalleryTab({ data, setData, handleAddItem, handleUpdateI
         </Accordion>
     );
 }
+
+    

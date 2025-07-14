@@ -77,16 +77,16 @@ function AddCountryForm({ committees, onAdd }: { committees: T.Committee[]; onAd
 
 function AddCommitteeForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
     const form = useForm({ defaultValues: { name: '', chairName: '', chairBio: '', chairImageUrl: '', topics: '', backgroundGuideUrl: '' } });
-    const handleConvertUrl = () => {
-        const url = form.getValues("chairImageUrl");
-        form.setValue("chairImageUrl", convertGoogleDriveLink(url), { shouldValidate: true });
+    const handleConvertUrl = (fieldName: "chairImageUrl") => {
+        const url = form.getValues(fieldName);
+        form.setValue(fieldName, convertGoogleDriveLink(url), { shouldValidate: true });
     }
     return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd(d); form.reset(); })} className="space-y-4">
         <div className="grid md:grid-cols-2 gap-4">
             <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Committee Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
             <FormField control={form.control} name="chairName" render={({ field }) => ( <FormItem><FormLabel>Chair Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
         </div>
-         <FormField control={form.control} name="chairImageUrl" render={({ field }) => ( <FormItem><FormLabel>Chair Image URL</FormLabel><div className="flex gap-2"><FormControl><Input {...field} /></FormControl><Button type="button" variant="outline" size="icon" onClick={handleConvertUrl}><Wand2 className="h-4 w-4"/></Button></div><p className="text-xs text-muted-foreground">Use a standard image URL or a Google Drive "share" link.</p></FormItem> )} />
+         <FormField control={form.control} name="chairImageUrl" render={({ field }) => ( <FormItem><FormLabel>Chair Image URL</FormLabel><div className="flex gap-2"><FormControl><Input {...field} /></FormControl><Button type="button" variant="outline" size="icon" onClick={() => handleConvertUrl("chairImageUrl")}><Wand2 className="h-4 w-4"/></Button></div><p className="text-xs text-muted-foreground">Use a standard image URL or a Google Drive "share" link.</p></FormItem> )} />
         <FormField control={form.control} name="chairBio" render={({ field }) => ( <FormItem><FormLabel>Chair Bio</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl></FormItem> )} />
         <FormField control={form.control} name="topics" render={({ field }) => ( <FormItem><FormLabel>Topics (one per line)</FormLabel><FormControl><Textarea {...field} rows={3}/></FormControl></FormItem> )} />
         <FormField control={form.control} name="backgroundGuideUrl" render={({ field }) => ( <FormItem><FormLabel>Background Guide URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
@@ -106,7 +106,7 @@ export default function ConferenceTab({ data, setData, handleAddItem, handleUpda
                 <CardContent>
                     <AddCommitteeForm onAdd={async(values) => {
                         await handleAddItem(
-                            (data: any) => firebaseService.addCommittee(data),
+                            firebaseService.addCommittee,
                             {
                                 name: values.name,
                                 chair: { name: values.chairName, bio: values.chairBio || "", imageUrl: values.chairImageUrl || "" },
@@ -201,3 +201,5 @@ export default function ConferenceTab({ data, setData, handleAddItem, handleUpda
         </Accordion>
     );
 }
+
+    
