@@ -6,18 +6,16 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function convertGoogleDriveLink(url: string): string {
-  if (!url || typeof url !== 'string') {
+  if (!url || typeof url !== 'string' || !url.includes("drive.google.com")) {
     return url;
   }
-  // Check if it's a Google Drive share link
-  const driveRegex = /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/;
-  const match = url.match(driveRegex);
-
+  // Extracts file ID from URLs like:
+  // - drive.google.com/file/d/FILE_ID/view
+  // - drive.google.com/file/d/FILE_ID
+  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
   if (match && match[1]) {
     const fileId = match[1];
-    return `https://drive.google.com/uc?export=view&id=${fileId}`;
+    return `https://lh3.googleusercontent.com/d/${fileId}`;
   }
-
-  // Return the original URL if it's not a matching Google Drive link
   return url;
 }
