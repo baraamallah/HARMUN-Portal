@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Papa from "papaparse";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -52,7 +52,8 @@ const navVisibilitySchema = z.object({
   navVisibility: z.object(Object.fromEntries(navLinksForAdmin.map(link => [link.href, z.boolean()]))),
 });
 
-const availablePlatforms = ['Twitter', 'Instagram', 'Facebook', 'LinkedIn', 'YouTube'];
+const availablePlatforms = ['Twitter', 'Instagram', 'Facebook', 'Linkedin', 'Youtube'];
+
 function AddSocialLinkForm({ onAdd, existingPlatforms }: { onAdd: (link: T.SocialLink) => void; existingPlatforms: string[] }) {
     const form = useForm<z.infer<typeof socialLinkItemSchema>>({
         resolver: zodResolver(socialLinkItemSchema),
