@@ -52,7 +52,7 @@ const navVisibilitySchema = z.object({
   navVisibility: z.object(Object.fromEntries(navLinksForAdmin.map(link => [link.href, z.boolean()]))),
 });
 
-const availablePlatforms = ['Twitter', 'Instagram', 'Facebook', 'Linkedin', 'Youtube'];
+const availablePlatforms = ['Twitter', 'Instagram', 'Facebook', 'Linkedin', 'Youtube', 'Tiktok'];
 
 function AddSocialLinkForm({ onAdd, existingPlatforms }: { onAdd: (link: T.SocialLink) => void; existingPlatforms: string[] }) {
     const form = useForm<z.infer<typeof socialLinkItemSchema>>({
