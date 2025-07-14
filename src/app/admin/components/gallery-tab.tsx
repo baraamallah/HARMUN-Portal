@@ -23,7 +23,7 @@ const galleryPageContentSchema = z.object({ title: z.string().min(5), subtitle: 
 const galleryItemSchema = z.object({
     title: z.string().min(2, "Title is required."),
     type: z.enum(["image", "video"], { required_error: "Please select a media type." }),
-    display: z.enum(["default", "square", "circle"], { required_error: "Please select a display style." }),
+    display: z.enum(["default", "square", "circle", "tall", "wide"], { required_error: "Please select a display style." }),
     url: z.string().url("Must be a valid URL.").min(1, "URL is required."),
 });
 
@@ -68,6 +68,8 @@ function GalleryItemForm({ item, onSave, onDelete }: { item: T.GalleryItem; onSa
                                     <SelectItem value="default">Default</SelectItem>
                                     <SelectItem value="square">Square</SelectItem>
                                     <SelectItem value="circle">Circle</SelectItem>
+                                    <SelectItem value="tall">Tall</SelectItem>
+                                    <SelectItem value="wide">Wide</SelectItem>
                                 </SelectContent>
                             </Select>
                             <FormMessage />
@@ -128,6 +130,8 @@ function AddGalleryItemForm({ onAdd }: { onAdd: (data: any, form: any) => Promis
                             <SelectItem value="default">Default</SelectItem>
                             <SelectItem value="square">Square</SelectItem>
                             <SelectItem value="circle">Circle</SelectItem>
+                            <SelectItem value="tall">Tall</SelectItem>
+                            <SelectItem value="wide">Wide</SelectItem>
                         </SelectContent>
                     </Select>
                     <FormMessage />

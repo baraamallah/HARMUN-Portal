@@ -118,7 +118,7 @@ export type GalleryItem = {
     id: string;
     title: string;
     type: 'image' | 'video';
-    display: 'default' | 'square' | 'circle';
+    display: 'default' | 'square' | 'circle' | 'tall' | 'wide';
     imageUrl: string | null;
     videoUrl: string | null;
     order: number;

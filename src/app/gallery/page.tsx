@@ -11,18 +11,19 @@ export const dynamic = 'force-dynamic';
 
 function GalleryMedia({ item }: { item: GalleryItem }) {
     const itemContainerClasses = cn(
-        "break-inside-avoid relative group overflow-hidden cursor-pointer w-full",
+        "break-inside-avoid relative group overflow-hidden cursor-pointer w-full rounded-lg",
         {
-            'rounded-lg': item.display === 'default',
-            'rounded-lg aspect-square': item.display === 'square',
-            'rounded-full aspect-square': item.display === 'circle',
+            'aspect-square': item.display === 'square' || item.display === 'circle',
+            'rounded-full': item.display === 'circle',
+            'aspect-[9/16]': item.display === 'tall',
+            'md:col-span-2': item.display === 'wide',
         }
     );
 
     if (item.type === 'video') {
         return (
             <div className={itemContainerClasses}>
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Video className="w-12 h-12 text-white" />
                 </div>
                  <video
@@ -31,6 +32,7 @@ function GalleryMedia({ item }: { item: GalleryItem }) {
                     playsInline
                     muted
                     loop
+                    autoPlay
                  />
                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                  <p className="absolute bottom-0 left-0 p-4 text-white font-semibold">{item.title}</p>
@@ -56,7 +58,7 @@ function GalleryMedia({ item }: { item: GalleryItem }) {
                     <p className="absolute bottom-0 left-0 p-4 text-white font-semibold">{item.title}</p>
                 </div>
             </DialogTrigger>
-            <DialogContent className="max-w-[90vw] max-h-[90vh] w-auto h-auto p-0 bg-transparent border-0 shadow-none flex items-center justify-center">
+            <DialogContent className="max-w-4xl w-auto h-auto p-0 bg-transparent border-0 shadow-none flex items-center justify-center">
                 <DialogTitle className="sr-only">{item.title}</DialogTitle>
                 <DialogDescription className="sr-only">Enlarged view of the gallery image: {item.title}</DialogDescription>
                 <Image
@@ -64,7 +66,7 @@ function GalleryMedia({ item }: { item: GalleryItem }) {
                      alt={item.title}
                      width={1200}
                      height={800}
-                     className="w-auto h-auto max-w-full max-h-[90vh] rounded-md object-contain"
+                     className="w-auto h-auto max-w-[90vw] max-h-[90vh] rounded-lg object-contain"
                 />
             </DialogContent>
         </Dialog>
@@ -87,9 +89,9 @@ export default async function GalleryPage() {
             </div>
             
             {items.length > 0 ? (
-                 <div className="columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
+                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {items.map((item, index) => (
-                        <div key={item.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 100}ms`}}>
+                        <div key={item.id} className={cn("animate-fade-in-up", {'md:col-span-2': item.display === 'wide'})} style={{ animationDelay: `${index * 100}ms`}}>
                            <GalleryMedia item={item} />
                         </div>
                     ))}
@@ -102,5 +104,3 @@ export default async function GalleryPage() {
         </div>
     );
 }
-
-    
