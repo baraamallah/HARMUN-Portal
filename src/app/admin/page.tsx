@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,6 +35,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/context/auth-context";
+import { convertGoogleDriveLink } from "@/lib/utils";
 
 const icons: Record<string, LucideIcon> = {
     HelpCircle, PlusCircle, Newspaper, Users, FileText, Library, Globe, Trash2, CalendarDays,
@@ -129,10 +131,16 @@ function SecretariatMemberForm({ member, onSave, onDelete }: { member: T.Secreta
         defaultValues: member,
     });
     React.useEffect(() => { form.reset(member); }, [member, form]);
+    
+    const onSubmit = (data: z.infer<typeof secretariatMemberSchema>) => {
+        const convertedData = { ...data, imageUrl: convertGoogleDriveLink(data.imageUrl) };
+        onSave(member.id, convertedData);
+        form.reset(convertedData);
+    };
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => onSave(member.id, data))} className="flex flex-wrap lg:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-wrap lg:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
                 <FormField control={form.control} name="name" render={({ field }) => <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="role" render={({ field }) => <FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
@@ -169,9 +177,15 @@ function GalleryImageForm({ image, onSave, onDelete }: { image: T.GalleryImage; 
     });
     React.useEffect(() => { form.reset(image); }, [image, form]);
 
+    const onSubmit = (data: z.infer<typeof galleryImageSchema>) => {
+        const convertedData = { ...data, imageUrl: convertGoogleDriveLink(data.imageUrl) };
+        onSave(image.id, convertedData);
+        form.reset(convertedData);
+    };
+    
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => onSave(image.id, data))} className="flex flex-wrap md:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-wrap md:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
                 <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem className="flex-grow w-full md:w-auto"><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <div className="flex gap-1 pt-6"><Button type="submit" size="sm">Save</Button><Button size="sm" variant="destructive" type="button" onClick={() => onDelete(image.id)}>Delete</Button></div>
@@ -440,12 +454,23 @@ export default function AdminPage() {
   }, [toast, homeForm, aboutForm, registrationForm, documentsForm, galleryForm, generalSettingsForm, replaceSocialLinks, navVisibilityForm]);
 
   useEffect(() => { fetchAllData(); }, [fetchAllData]);
+  
+  const processUrlFields = (formData: any) => {
+    const convertedData = { ...formData };
+    for (const key in convertedData) {
+        if (key.toLowerCase().includes('imageurl') && typeof convertedData[key] === 'string') {
+            convertedData[key] = convertGoogleDriveLink(convertedData[key]);
+        }
+    }
+    return convertedData;
+  };
 
   const handleFormSubmit = async (updateFunction: (data: any) => Promise<void>, successMessage: string, data: any, form?: any) => {
     try {
-        await updateFunction(data);
+        const convertedData = processUrlFields(data);
+        await updateFunction(convertedData);
         toast({ title: "Success!", description: successMessage });
-        if(form) form.reset(data); 
+        if(form) form.reset(convertedData); 
     } catch (error) {
         toast({ title: "Error", description: `Could not save data. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
     }
@@ -538,10 +563,11 @@ export default function AdminPage() {
         message: string
     ) => {
         try {
-            await updateFunction(id, itemData);
+            const convertedData = processUrlFields(itemData);
+            await updateFunction(id, convertedData);
             setData(prev => ({
                 ...prev,
-                [stateKey]: prev[stateKey].map((item: T) => item.id === id ? { ...item, ...itemData } : item),
+                [stateKey]: prev[stateKey].map((item: T) => item.id === id ? { ...item, ...convertedData } : item),
             }));
             toast({ title: "Success!", description: message });
         } catch (error) {
@@ -575,7 +601,8 @@ export default function AdminPage() {
         message: string
     ) => {
         try {
-            const newId = await addFunction(addData);
+            const convertedData = processUrlFields(addData);
+            const newId = await addFunction(convertedData);
             const newItem = await firebaseService.getDocById(stateKey as string, newId);
             setData(prev => ({
                 ...prev,
