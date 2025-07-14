@@ -22,20 +22,14 @@ type FetchedState = {
 
 // Helper to convert any Google Drive URLs in an object before saving
 const convertDataForSave = (data: any): any => {
-    if (!data) return data;
+    if (!data || typeof data !== 'object') return data;
+    
     const convertedData = { ...data };
+    const urlFields = ['imageUrl', 'heroImageUrl', 'chairImageUrl', 'backgroundGuideUrl', 'url'];
 
-    const keysToConvert = ['imageUrl', 'heroImageUrl', 'chairImageUrl', 'url'];
-
-    for (const key of keysToConvert) {
+    for (const key of urlFields) {
         if (typeof convertedData[key] === 'string') {
-            // Special case for gallery items where 'url' is the source
-            if (key === 'url' && convertedData.type === 'image') {
-                 convertedData.imageUrl = convertGoogleDriveLink(convertedData.url);
-                 convertedData.videoUrl = null;
-            } else {
-                 convertedData[key] = convertGoogleDriveLink(convertedData[key]);
-            }
+            convertedData[key] = convertGoogleDriveLink(convertedData[key]);
         }
     }
     
@@ -64,7 +58,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>({
     homeContent: {}, aboutContent: {}, registrationContent: {}, documentsContent: {}, galleryContent: {}, siteConfig: { socialLinks: [] },
-    posts: [], countries: [], committees: [], secretariat: [], schedule: [], highlights: [], codeOfConduct: [], galleryItems: []
+    posts: [], countries: [], committees: [], secretariat: [], schedule: [], highlights: [], documents: [], galleryItems: []
   });
 
   const [fetched, setFetched] = useState<FetchedState>({});
@@ -83,8 +77,8 @@ export default function AdminPage() {
                 keys = ['posts', 'countries', 'committees', 'secretariat'];
                 break;
             case 'pages':
-                promises = [firebaseService.getHomePageContent(), firebaseService.getAboutPageContent(), firebaseService.getRegistrationPageContent(), firebaseService.getDocumentsPageContent(), firebaseService.getHighlights(), firebaseService.getCodeOfConduct()];
-                keys = ['homeContent', 'aboutContent', 'registrationContent', 'documentsContent', 'highlights', 'codeOfConduct'];
+                promises = [firebaseService.getHomePageContent(), firebaseService.getAboutPageContent(), firebaseService.getRegistrationPageContent(), firebaseService.getDocumentsPageContent(), firebaseService.getHighlights(), firebaseService.getDownloadableDocuments()];
+                keys = ['homeContent', 'aboutContent', 'registrationContent', 'documentsContent', 'highlights', 'documents'];
                 break;
             case 'conference':
                 promises = [firebaseService.getCommittees(), firebaseService.getCountries(), firebaseService.getSchedule()];
@@ -275,5 +269,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    

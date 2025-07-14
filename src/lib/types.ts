@@ -1,5 +1,6 @@
 
 
+
 import type { Timestamp } from 'firebase/firestore';
 
 export type Committee = {
@@ -95,17 +96,13 @@ export type RegistrationPageContent = {
 export type DocumentsPageContent = {
     title: string;
     subtitle: string;
-    paperDeadline: string;
-    uploadTitle: string;
-    uploadDescription: string;
-    codeOfConductTitle: string;
-    codeOfConductDescription: string;
 }
 
-export type CodeOfConductItem = {
+export type DownloadableDocument = {
     id: string;
     title: string;
-    content: string;
+    description: string;
+    url: string;
     order: number;
 }
 
@@ -132,8 +129,3 @@ export type Post = {
   type: 'sg-note' | 'news';
   createdAt: Timestamp;
 };
-
-    
-
-    
-

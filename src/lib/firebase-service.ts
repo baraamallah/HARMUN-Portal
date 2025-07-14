@@ -1,7 +1,7 @@
 
 import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc, writeBatch, documentId, runTransaction } from 'firebase/firestore';
 import { db } from './firebase';
-import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, SecretariatMember, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, CodeOfConductItem, ConferenceHighlight, GalleryPageContent, GalleryItem } from './types';
+import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, SecretariatMember, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, DownloadableDocument, ConferenceHighlight, GalleryPageContent, GalleryItem } from './types';
 import { format } from 'date-fns';
 import { convertGoogleDriveLink } from './utils';
 
@@ -15,7 +15,7 @@ const SECRETARIAT_COLLECTION = 'secretariat';
 const SCHEDULE_DAYS_COLLECTION = 'scheduleDays';
 const SCHEDULE_EVENTS_COLLECTION = 'scheduleEvents';
 const HIGHLIGHTS_COLLECTION = 'highlights';
-const CODE_OF_CONDUCT_COLLECTION = 'codeOfConduct';
+const DOCUMENTS_COLLECTION = 'documents';
 const GALLERY_COLLECTION = 'galleryItems';
 
 const HOME_PAGE_CONTENT_DOC_ID = 'homePage';
@@ -64,12 +64,7 @@ export async function initializeDefaultData() {
             },
             [DOCUMENTS_PAGE_CONTENT_DOC_ID]: {
                 title: "Conference Documents",
-                subtitle: "Access important resources and upload your position papers here.",
-                paperDeadline: "January 15, 2025",
-                uploadTitle: "Position Paper Upload",
-                uploadDescription: "Please upload your position papers in PDF or DOCX format. The deadline for submission is January 15, 2025.",
-                codeOfConductTitle: "Code of Conduct",
-                codeOfConductDescription: "All delegates are expected to adhere to the code of conduct throughout the conference.",
+                subtitle: "Access important resources and other downloadable materials here.",
             },
             [GALLERY_PAGE_CONTENT_DOC_ID]: {
                 title: "Conference Gallery",
@@ -84,9 +79,9 @@ export async function initializeDefaultData() {
             { icon: 'Calendar', title: 'Conference Dates', description: 'January 30 - February 2, 2025', order: 1 },
             { icon: 'MapPin', title: 'Location', description: 'Harvard University, Cambridge, MA', order: 2 },
         ],
-        [CODE_OF_CONDUCT_COLLECTION]: [
-            { title: 'Respect and Decorum', content: 'Delegates must maintain a professional and respectful demeanor at all times. This includes respectful language and behavior towards all participants, staff, and faculty. Personal attacks are strictly prohibited.', order: 1 },
-            { title: 'Plagiarism', content: 'All work, including position papers and draft resolutions, must be the original work of the delegate. Plagiarism will result in immediate disqualification from awards and may lead to removal from the conference.', order: 2 },
+        [DOCUMENTS_COLLECTION]: [
+            { title: 'Conference Handbook', description: 'The official guide to rules, procedures, and conference etiquette.', url: '#', order: 1 },
+            { title: 'Background Guide: Security Council', description: 'Essential reading material for all delegates in the Security Council committee.', url: '#', order: 2 },
         ],
         [SCHEDULE_DAYS_COLLECTION]: [
             { title: 'Day 1: Thursday', date: 'January 30, 2025', order: 1, id: 'day1' },
@@ -233,10 +228,10 @@ export const addHighlight = (highlight: Omit<ConferenceHighlight, 'id'>) => addC
 export const updateHighlight = (id: string, highlight: Partial<ConferenceHighlight>) => updateCollectionDoc<ConferenceHighlight>(HIGHLIGHTS_COLLECTION, id, highlight);
 export const deleteHighlight = (id: string) => deleteCollectionDoc(HIGHLIGHTS_COLLECTION, id);
 
-export const getCodeOfConduct = () => getCollection<CodeOfConductItem>(CODE_OF_CONDUCT_COLLECTION);
-export const addCodeOfConductItem = (item: Omit<CodeOfConductItem, 'id'>) => addCollectionDoc<CodeOfConductItem>(CODE_OF_CONDUCT_COLLECTION, item);
-export const updateCodeOfConductItem = (id: string, item: Partial<CodeOfConductItem>) => updateCollectionDoc<CodeOfConductItem>(CODE_OF_CONDUCT_COLLECTION, id, item);
-export const deleteCodeOfConductItem = (id: string) => deleteCollectionDoc(CODE_OF_CONDUCT_COLLECTION, id);
+export const getDownloadableDocuments = () => getCollection<DownloadableDocument>(DOCUMENTS_COLLECTION);
+export const addDownloadableDocument = (item: Omit<DownloadableDocument, 'id'>) => addCollectionDoc<DownloadableDocument>(DOCUMENTS_COLLECTION, item);
+export const updateDownloadableDocument = (id: string, item: Partial<DownloadableDocument>) => updateCollectionDoc<DownloadableDocument>(DOCUMENTS_COLLECTION, id, item);
+export const deleteDownloadableDocument = (id: string) => deleteCollectionDoc(DOCUMENTS_COLLECTION, id);
 
 
 // --- Gallery ---
@@ -244,11 +239,11 @@ function processGalleryItemDataForSave(data: any) {
     const { url, type, columnSpan, ...rest } = data;
     const processedData: any = { ...rest, type, columnSpan: parseInt(columnSpan, 10) };
     if (type === 'image') {
-        processedData.imageUrl = data.imageUrl || null;
+        processedData.imageUrl = convertGoogleDriveLink(url);
         processedData.videoUrl = null;
     } else {
         processedData.imageUrl = null;
-        processedData.videoUrl = data.videoUrl || null;
+        processedData.videoUrl = url;
     }
     delete processedData.url; // remove temp 'url' field
     return processedData;
@@ -411,5 +406,3 @@ async function clearCollection(collectionPath: string) {
     querySnapshot.docs.forEach(docSnapshot => batch.delete(docSnapshot.ref));
     await batch.commit();
 }
-
-    

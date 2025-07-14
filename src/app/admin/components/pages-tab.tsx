@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Home, FileBadge, UserSquare, Shield, Wand2 } from "lucide-react";
+import { Home, FileBadge, UserSquare, Book, Wand2 } from "lucide-react";
 import * as firebaseService from "@/lib/firebase-service";
 import type * as T from "@/lib/types";
 import { convertGoogleDriveLink } from "@/lib/utils";
@@ -31,8 +31,6 @@ const aboutPageContentSchema = z.object({
 const registrationPageContentSchema = z.object({ title: z.string().min(5), subtitle: z.string().min(10) });
 const documentsPageContentSchema = z.object({
     title: z.string().min(5), subtitle: z.string().min(10),
-    uploadTitle: z.string().min(5), uploadDescription: z.string().min(10),
-    codeOfConductTitle: z.string().min(5), codeOfConductDescription: z.string().min(10),
 });
 
 const highlightItemSchema = z.object({
@@ -41,10 +39,12 @@ const highlightItemSchema = z.object({
   description: z.string().min(5, "Description is required."),
 });
 
-const codeOfConductItemSchema = z.object({
+const downloadableDocumentSchema = z.object({
   title: z.string().min(3, "Title is required."),
-  content: z.string().min(10, "Content is required."),
+  description: z.string().min(5, "Description is required."),
+  url: z.string().url("A valid URL is required."),
 });
+
 
 function HighlightItemForm({ item, onSave, onDelete }: { item: T.ConferenceHighlight; onSave: (id: string, data: z.infer<typeof highlightItemSchema>) => void; onDelete: (id: string) => void }) {
   const form = useForm<z.infer<typeof highlightItemSchema>>({
@@ -66,18 +66,20 @@ function HighlightItemForm({ item, onSave, onDelete }: { item: T.ConferenceHighl
   );
 }
 
-function CodeOfConductItemForm({ item, onSave, onDelete }: { item: T.CodeOfConductItem; onSave: (id: string, data: z.infer<typeof codeOfConductItemSchema>) => void; onDelete: (id: string) => void }) {
-    const form = useForm<z.infer<typeof codeOfConductItemSchema>>({
-        resolver: zodResolver(codeOfConductItemSchema),
+function DownloadableDocumentForm({ item, onSave, onDelete }: { item: T.DownloadableDocument; onSave: (id: string, data: z.infer<typeof downloadableDocumentSchema>) => void; onDelete: (id: string) => void }) {
+    const form = useForm<z.infer<typeof downloadableDocumentSchema>>({
+        resolver: zodResolver(downloadableDocumentSchema),
         defaultValues: item,
     });
      React.useEffect(() => { form.reset(item); }, [item, form]);
+     const handleConvertUrl = () => { form.setValue("url", convertGoogleDriveLink(form.getValues("url")), { shouldValidate: true }); };
 
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit((data) => onSave(item.id, data))} className="flex flex-wrap md:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
                 <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-                <FormField control={form.control} name="content" render={({ field }) => <FormItem className="flex-grow w-full md:w-auto"><FormLabel>Content</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl><FormMessage /></FormItem>} />
+                <FormField control={form.control} name="description" render={({ field }) => <FormItem className="flex-grow w-full md:w-auto"><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl><FormMessage /></FormItem>} />
+                <FormField control={form.control} name="url" render={({ field }) => <FormItem className="flex-grow w-full md:w-auto"><FormLabel>File URL</FormLabel><div className="flex gap-2"><FormControl><Input {...field} /></FormControl><Button type="button" variant="outline" size="icon" onClick={handleConvertUrl}><Wand2 className="h-4 w-4"/></Button></div><FormMessage /></FormItem>} />
                 <div className="flex gap-1 pt-6"><Button type="submit" size="sm">Save</Button><Button size="sm" variant="destructive" type="button" onClick={() => onDelete(item.id)}>Delete</Button></div>
             </form>
         </Form>
@@ -94,14 +96,18 @@ function AddHighlightForm({ onAdd }: { onAdd: (data: any, form: any) => Promise<
     </form></Form>;
 }
 
-function AddCodeOfConductForm({ onAdd }: { onAdd: (data: any, form: any) => Promise<void> }) {
-    const form = useForm({ resolver: zodResolver(codeOfConductItemSchema), defaultValues: { title: '', content: '' } });
+function AddDownloadableDocumentForm({ onAdd }: { onAdd: (data: any, form: any) => Promise<void> }) {
+    const form = useForm({ resolver: zodResolver(downloadableDocumentSchema), defaultValues: { title: '', description: '', url: '' } });
+    const handleConvertUrl = () => { form.setValue("url", convertGoogleDriveLink(form.getValues("url")), { shouldValidate: true }); };
+
     return <Form {...form}><form onSubmit={form.handleSubmit((d) => onAdd(d, form))} className="flex flex-wrap md:flex-nowrap gap-2 items-end p-2 border-t mt-4">
         <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-        <FormField control={form.control} name="content" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Content</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl><FormMessage /></FormItem>} />
-        <Button type="submit" size="sm">Add Rule</Button>
+        <FormField control={form.control} name="description" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl><FormMessage /></FormItem>} />
+        <FormField control={form.control} name="url" render={({ field }) => <FormItem className="flex-grow w-full md:w-auto"><FormLabel>File URL</FormLabel><div className="flex gap-2"><FormControl><Input {...field} /></FormControl><Button type="button" variant="outline" size="icon" onClick={handleConvertUrl}><Wand2 className="h-4 w-4"/></Button></div><FormMessage /></FormItem>} />
+        <Button type="submit" size="sm">Add Document</Button>
     </form></Form>;
 }
+
 
 export default function PagesTab({ data, handleAddItem, handleUpdateItem, handleDeleteItem, handleFormSubmit }: any) {
     const [activeAccordion, setActiveAccordion] = useState<string | undefined>();
@@ -117,8 +123,7 @@ export default function PagesTab({ data, handleAddItem, handleUpdateItem, handle
     React.useEffect(() => { documentsForm.reset(data.documentsContent); }, [data.documentsContent, documentsForm]);
 
     const createUrlConverter = (form: any, fieldName: string) => () => {
-        const url = form.getValues(fieldName);
-        form.setValue(fieldName, convertGoogleDriveLink(url), { shouldValidate: true });
+        form.setValue(fieldName, convertGoogleDriveLink(form.getValues(fieldName)), { shouldValidate: true });
     }
 
     return (
@@ -177,36 +182,30 @@ export default function PagesTab({ data, handleAddItem, handleUpdateItem, handle
                 </CardContent></Card></AccordionContent>
             </AccordionItem>
             <AccordionItem value="documents">
-                <AccordionTrigger><div className="flex items-center gap-2 text-lg"><Shield /> Documents Page</div></AccordionTrigger>
+                <AccordionTrigger><div className="flex items-center gap-2 text-lg"><Book /> Documents Page</div></AccordionTrigger>
                 <AccordionContent className="p-1 space-y-6">
                     <Card><CardHeader><CardTitle>Page Content</CardTitle></CardHeader>
                     <CardContent>
                         <Form {...documentsForm}><form onSubmit={documentsForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateDocumentsPageContent, "Documents page updated.", d, documentsForm))} className="space-y-4">
                             <FormField control={documentsForm.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                             <FormField control={documentsForm.control} name="subtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
-                            <FormField control={documentsForm.control} name="uploadTitle" render={({ field }) => <FormItem><FormLabel>Upload Box Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-                            <FormField control={documentsForm.control} name="uploadDescription" render={({ field }) => <FormItem><FormLabel>Upload Box Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
-                            <FormField control={documentsForm.control} name="codeOfConductTitle" render={({ field }) => <FormItem><FormLabel>Code of Conduct Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-                            <FormField control={documentsForm.control} name="codeOfConductDescription" render={({ field }) => <FormItem><FormLabel>CoC Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
                             <Button type="submit">Save Content</Button>
                         </form></Form>
                     </CardContent></Card>
-                    <Card><CardHeader><CardTitle>Code of Conduct Items</CardTitle></CardHeader>
+                    <Card><CardHeader><CardTitle>Downloadable Documents</CardTitle></CardHeader>
                     <CardContent>
-                        {data.codeOfConduct?.map((item: T.CodeOfConductItem) => (
-                            <CodeOfConductItemForm
+                        {data.documents?.map((item: T.DownloadableDocument) => (
+                            <DownloadableDocumentForm
                                 key={item.id}
                                 item={item}
-                                onSave={(id, saveData) => handleUpdateItem(firebaseService.updateCodeOfConductItem, id, saveData, "codeOfConduct", "Rule updated.")}
-                                onDelete={(id) => handleDeleteItem(firebaseService.deleteCodeOfConductItem, id, "codeOfConduct", "Rule deleted.")}
+                                onSave={(id, saveData) => handleUpdateItem(firebaseService.updateDownloadableDocument, id, saveData, "documents", "Document updated.")}
+                                onDelete={(id) => handleDeleteItem(firebaseService.deleteDownloadableDocument, id, "documents", "Document deleted.")}
                             />
                         ))}
-                        <AddCodeOfConductForm onAdd={(addData, form) => handleAddItem(firebaseService.addCodeOfConductItem, addData, "codeOfConduct", "Rule added!", form)} />
+                        <AddDownloadableDocumentForm onAdd={(addData, form) => handleAddItem(firebaseService.addDownloadableDocument, addData, "documents", "Document added!", form)} />
                     </CardContent></Card>
                 </AccordionContent>
             </AccordionItem>
         </Accordion>
     );
 }
-
-    
