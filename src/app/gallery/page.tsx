@@ -1,54 +1,17 @@
 
-"use client";
-
-import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { getGalleryPageContent, getGalleryImages } from '@/lib/firebase-service';
 import type { GalleryPageContent, GalleryImage } from '@/lib/types';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { convertGoogleDriveLink } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-export default function GalleryPage() {
-    const [content, setContent] = useState<GalleryPageContent | null>(null);
-    const [images, setImages] = useState<GalleryImage[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        async function fetchData() {
-            try {
-                const [pageContent, galleryImages] = await Promise.all([
-                    getGalleryPageContent(),
-                    getGalleryImages()
-                ]);
-                setContent(pageContent);
-                setImages(galleryImages);
-            } catch (error) {
-                console.error("Failed to load gallery page data", error);
-            } finally {
-                setLoading(false);
-            }
-        }
-        fetchData();
-    }, []);
-    
-    if (loading) {
-        return (
-             <div className="container mx-auto px-4 py-12 md:py-20">
-                <div className="text-center mb-12">
-                    <Skeleton className="h-12 w-3/4 mx-auto" />
-                    <Skeleton className="h-6 w-1/2 mx-auto mt-4" />
-                </div>
-                <div className="columns-2 md:columns-3 lg:columns-4 gap-4">
-                    {Array.from({ length: 8 }).map((_, i) => (
-                        <Skeleton key={i} className="h-64 w-full mb-4" />
-                    ))}
-                </div>
-            </div>
-        )
-    }
+export default async function GalleryPage() {
+    const [content, images] = await Promise.all([
+        getGalleryPageContent(),
+        getGalleryImages()
+    ]);
 
     return (
         <div className="container mx-auto px-4 py-12 md:py-20">
@@ -71,7 +34,6 @@ export default function GalleryPage() {
                                         width={500}
                                         height={500}
                                         className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
-                                        unoptimized // Required for Google Drive links which may not have standard extensions
                                         data-ai-hint="conference photo"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -87,8 +49,7 @@ export default function GalleryPage() {
                                      alt={image.title}
                                      width={1200}
                                      height={800}
-                                     className="w-auto h-auto max-w-full max-h-full rounded-md object-contain"
-                                     unoptimized
+                                     className="w-auto h-auto max-w-full max-h-[90vh] rounded-md object-contain"
                                 />
                             </DialogContent>
                         </Dialog>

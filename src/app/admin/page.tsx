@@ -44,8 +44,8 @@ export default function AdminPage() {
                 keys = ['posts', 'countries', 'committees', 'secretariat'];
                 break;
             case 'pages':
-                promises = [firebaseService.getHomePageContent(), firebaseService.getAboutPageContent(), firebaseService.getRegistrationPageContent(), firebaseService.getDocumentsPageContent(), firebaseService.getGalleryPageContent(), firebaseService.getHighlights(), firebaseService.getCodeOfConduct(), firebaseService.getGalleryImages()];
-                keys = ['homeContent', 'aboutContent', 'registrationContent', 'documentsContent', 'galleryContent', 'highlights', 'codeOfConduct', 'galleryImages'];
+                promises = [firebaseService.getHomePageContent(), firebaseService.getAboutPageContent(), firebaseService.getRegistrationPageContent(), firebaseService.getDocumentsPageContent(), firebaseService.getHighlights(), firebaseService.getCodeOfConduct()];
+                keys = ['homeContent', 'aboutContent', 'registrationContent', 'documentsContent', 'highlights', 'codeOfConduct'];
                 break;
             case 'conference':
                 promises = [firebaseService.getCommittees(), firebaseService.getCountries(), firebaseService.getSchedule()];
@@ -98,15 +98,15 @@ export default function AdminPage() {
       try {
           const convertedData = { ...itemData };
            if ('imageUrl' in convertedData && typeof convertedData.imageUrl === 'string') {
-              convertedData.imageUrl = convertGoogleDriveLink(convertedData.imageUrl);
+              (convertedData as any).imageUrl = convertGoogleDriveLink(convertedData.imageUrl);
           }
            if (form) {
-             const formValues = form.getValues();
-             for (const key in formValues) {
+             const formValues = { ...form.getValues() };
+             Object.keys(formValues).forEach(key => {
                 if (key.toLowerCase().includes('imageurl') && typeof formValues[key] === 'string') {
-                  formValues[key] = convertGoogleDriveLink(formValues[key]);
+                    formValues[key] = convertGoogleDriveLink(formValues[key]);
                 }
-             }
+             });
              form.reset(formValues);
           }
 
