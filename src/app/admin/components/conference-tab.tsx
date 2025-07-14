@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { convertGoogleDriveLink } from "@/lib/utils";
 
 const scheduleEventSchema = z.object({
     time: z.string().min(1, "Time is required."),
@@ -164,14 +165,19 @@ export default function ConferenceTab() {
                 <Card><CardHeader><CardTitle>Add New Committee</CardTitle></CardHeader>
                 <CardContent>
                     <AddCommitteeForm onAdd={async(values) => {
+                        const payload = {
+                            name: values.name,
+                            chair: { 
+                                name: values.chairName, 
+                                bio: values.chairBio || "", 
+                                imageUrl: convertGoogleDriveLink(values.chairImageUrl || "")
+                            },
+                            topics: (values.topics || "").split('\n').filter(Boolean), 
+                            backgroundGuideUrl: values.backgroundGuideUrl || "",
+                        };
                         await handleAddItem(
                             firebaseService.addCommittee,
-                            {
-                                name: values.name,
-                                chair: { name: values.chairName, bio: values.chairBio || "", imageUrl: values.chairImageUrl || "" },
-                                topics: (values.topics || "").split('\n').filter(Boolean), 
-                                backgroundGuideUrl: values.backgroundGuideUrl || "",
-                            },
+                            payload,
                             "committees",
                             "Committee Added!"
                         );

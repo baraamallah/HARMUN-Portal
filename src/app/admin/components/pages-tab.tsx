@@ -17,7 +17,7 @@ import * as firebaseService from "@/lib/firebase-service";
 import type * as T from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-
+import { convertGoogleDriveLink } from "@/lib/utils";
 
 const homePageContentSchema = z.object({
     heroTitle: z.string().min(5),
@@ -142,10 +142,14 @@ export default function PagesTab() {
     
     const handleFormSubmit = async (updateFunction: Function, stateKey: string, successMessage: string, formData: any, form: any) => {
         try {
-            await updateFunction(formData);
-            setData(prev => ({...prev, [stateKey]: {...prev[stateKey], ...formData}}))
+            const payload = { ...formData };
+            if (payload.heroImageUrl) payload.heroImageUrl = convertGoogleDriveLink(payload.heroImageUrl);
+            if (payload.imageUrl) payload.imageUrl = convertGoogleDriveLink(payload.imageUrl);
+            
+            await updateFunction(payload);
+            setData(prev => ({...prev, [stateKey]: {...prev[stateKey], ...payload}}))
             toast({ title: "Success!", description: successMessage });
-            form.reset(formData);
+            form.reset(payload);
         } catch (error) {
             toast({ title: "Error", description: `Could not save data. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
         }

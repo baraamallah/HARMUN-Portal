@@ -32,6 +32,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { convertGoogleDriveLink } from "@/lib/utils";
 
 const galleryPageContentSchema = z.object({ title: z.string().min(5), subtitle: z.string().min(10) });
 
@@ -263,10 +264,14 @@ export default function GalleryTab() {
 
     const handleFormSubmit = async (updateFunction: Function, successMessage: string, formData: any, form: any) => {
         try {
-            await updateFunction(formData);
-            setData(prev => ({ ...prev, galleryContent: { ...prev.galleryContent, ...formData } }));
+            const payload = {
+                ...formData,
+                imageUrl: convertGoogleDriveLink(formData.imageUrl),
+            };
+            await updateFunction(payload);
+            setData(prev => ({ ...prev, galleryContent: { ...prev.galleryContent, ...payload } }));
             toast({ title: "Success!", description: successMessage });
-            form.reset(formData);
+            form.reset(payload);
         } catch (error) {
             toast({ title: "Error", description: `Could not save data. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
         }
@@ -275,7 +280,7 @@ export default function GalleryTab() {
     const handleUpdateItem = async (updateFunction: Function, id: string, itemData: any, stateKey: keyof typeof data, message: string, form?: any) => {
         try {
             await updateFunction(id, itemData);
-            const updatedItem = await firebaseService.getDocById(stateKey, id);
+            const updatedItem = await firebaseService.getDocById(stateKey as string, id);
             const updatedItems = galleryItems.map((item) => item.id === id ? updatedItem : item);
             setGalleryItems(updatedItems);
             setData(prev => ({ ...prev, [stateKey]: updatedItems }));
@@ -289,7 +294,7 @@ export default function GalleryTab() {
     const handleAddItem = async (addFunction: Function, addData: any, stateKey: keyof typeof data, message: string, form?: any) => {
         try {
             const newId = await addFunction(addData);
-            const newItem = await firebaseService.getDocById(stateKey, newId);
+            const newItem = await firebaseService.getDocById(stateKey as string, newId);
             const updatedItems = [...galleryItems, newItem].sort((a,b) => (a.order || 0) - (b.order || 0));
             setGalleryItems(updatedItems);
             setData(prev => ({ ...prev, [stateKey]: updatedItems }));
@@ -365,3 +370,5 @@ export default function GalleryTab() {
         </Accordion>
     );
 }
+
+    

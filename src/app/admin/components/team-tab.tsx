@@ -15,6 +15,7 @@ import * as firebaseService from "@/lib/firebase-service";
 import type * as T from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { convertGoogleDriveLink } from "@/lib/utils";
 
 const secretariatMemberSchema = z.object({
   name: z.string().min(2, "Name is required."),
@@ -79,8 +80,12 @@ export default function TeamTab() {
     
     const handleUpdateItem = async (updateFunction: Function, id: string, data: any, stateKey: string, message: string, form: any) => {
         try {
-            await updateFunction(id, data);
-            setSecretariat(prev => prev.map(item => item.id === id ? { ...item, ...data } : item));
+            const payload = {
+                ...data,
+                imageUrl: convertGoogleDriveLink(data.imageUrl),
+            };
+            await updateFunction(id, payload);
+            setSecretariat(prev => prev.map(item => item.id === id ? { ...item, ...payload } : item));
             toast({ title: "Success!", description: message });
         } catch (error) {
             toast({ title: "Error", description: `Could not save item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
@@ -100,7 +105,11 @@ export default function TeamTab() {
     
     const handleAddItem = async (addFunction: Function, data: any, stateKey: string, message: string, form: any) => {
         try {
-            const newId = await addFunction(data);
+            const payload = {
+                ...data,
+                imageUrl: convertGoogleDriveLink(data.imageUrl),
+            };
+            const newId = await addFunction(payload);
             const newItem = await firebaseService.getDocById(stateKey as string, newId);
             setSecretariat(prev => [...prev, newItem].sort((a,b) => (a.order || 0) - (b.order || 0)));
             toast({ title: "Success!", description: message });

@@ -1,8 +1,10 @@
 
+
 import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc, writeBatch, documentId, runTransaction } from 'firebase/firestore';
 import { db } from './firebase';
 import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, SecretariatMember, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, DownloadableDocument, ConferenceHighlight, GalleryPageContent, GalleryItem } from './types';
 import { format } from 'date-fns';
+import { convertGoogleDriveLink } from './utils';
 
 
 // Collection & Document Names
@@ -228,15 +230,15 @@ export const deleteDownloadableDocument = (id: string) => deleteCollectionDoc(DO
 // --- Gallery ---
 function processGalleryItemDataForSave(data: any) {
     const { url, type, columnSpan, ...rest } = data;
+    const convertedUrl = convertGoogleDriveLink(url);
     const processedData: any = { ...rest, type, columnSpan: parseInt(columnSpan, 10) };
     if (type === 'image') {
-        processedData.imageUrl = url;
+        processedData.imageUrl = convertedUrl;
         processedData.videoUrl = null;
     } else {
         processedData.imageUrl = null;
-        processedData.videoUrl = url;
+        processedData.videoUrl = convertedUrl;
     }
-    delete processedData.url; // remove temp 'url' field
     return processedData;
 }
 
@@ -349,7 +351,7 @@ const committeeTransformer = (row: any): Omit<Committee, 'id'> => ({
     chair: {
         name: row.chairName || '',
         bio: row.chairBio || '',
-        imageUrl: row.chairImageUrl || ''
+        imageUrl: convertGoogleDriveLink(row.chairImageUrl || '')
     },
     topics: (row.topics || '').split('\\n').join('\n').split('\n').filter(Boolean),
     backgroundGuideUrl: row.backgroundGuideUrl || ''
@@ -359,7 +361,7 @@ const secretariatTransformer = (row: any): Omit<SecretariatMember, 'id'> => ({
     name: row.name || '',
     role: row.role || '',
     bio: row.bio || '',
-    imageUrl: row.imageUrl || '',
+    imageUrl: convertGoogleDriveLink(row.imageUrl || ''),
     order: parseInt(row.order, 10) || 0,
 });
 
@@ -371,7 +373,7 @@ const countryTransformer = (row: any): Omit<Country, 'id'> => ({
 
 const galleryTransformer = (row: any): Omit<GalleryItem, 'id'> => {
     const type = row.type === 'video' ? 'video' : 'image';
-    const url = row.url || '';
+    const url = convertGoogleDriveLink(row.url || '');
     return {
         title: row.title || '',
         type,
@@ -397,3 +399,5 @@ async function clearCollection(collectionPath: string) {
     querySnapshot.docs.forEach(docSnapshot => batch.delete(docSnapshot.ref));
     await batch.commit();
 }
+
+    
