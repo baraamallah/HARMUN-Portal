@@ -9,6 +9,7 @@ import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { FileText, GalleryHorizontal, Wand2 } from "lucide-react";
@@ -189,5 +190,3 @@ export default function GalleryTab({ data, handleAddItem, handleUpdateItem, hand
         </Accordion>
     );
 }
-
-    
