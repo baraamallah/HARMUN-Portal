@@ -1,5 +1,3 @@
-
-
 import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc, writeBatch, documentId, runTransaction } from 'firebase/firestore';
 import { db } from './firebase';
 import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, SecretariatMember, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, DownloadableDocument, ConferenceHighlight, GalleryPageContent, GalleryItem } from './types';
@@ -29,7 +27,15 @@ const GALLERY_PAGE_CONTENT_DOC_ID = 'galleryPage';
 
 // --- Default Data ---
 // This function initializes the database with default content if it's empty.
-export async function initializeDefaultData() {
+async function initializeDefaultData() {
+    const siteConfigRef = doc(db, CONFIG_COLLECTION, SITE_CONFIG_DOC_ID);
+    const siteConfigSnap = await getDoc(siteConfigRef);
+
+    // If site config already exists, assume DB is initialized and exit.
+    if (siteConfigSnap.exists()) {
+        return;
+    }
+
     const defaultData = {
         [CONFIG_COLLECTION]: {
             [HOME_PAGE_CONTENT_DOC_ID]: {
@@ -102,32 +108,28 @@ export async function initializeDefaultData() {
         if (collectionName === CONFIG_COLLECTION) {
              for (const [docId, data] of Object.entries(docs)) {
                 const docRef = doc(db, collectionName, docId);
-                const docSnap = await getDoc(docRef);
-                if (!docSnap.exists()) {
-                    batch.set(docRef, data);
-                }
+                batch.set(docRef, data);
             }
-        } else {
+        } else if (Array.isArray(docs)) {
             const collectionRef = collection(db, collectionName);
-            const snapshot = await getDocs(query(collectionRef));
-            if (snapshot.empty && Array.isArray(docs)) {
-                docs.forEach(data => {
-                    const docId = data.id || undefined;
-                    const docRef = docId ? doc(db, collectionName, docId) : doc(collectionRef);
-                    const {id, ...rest} = data;
-                    batch.set(docRef, rest);
-                });
-            }
+            docs.forEach(data => {
+                const docId = data.id || undefined;
+                const docRef = docId ? doc(db, collectionName, docId) : doc(collectionRef);
+                const {id, ...rest} = data;
+                batch.set(docRef, rest);
+            });
         }
     }
     await batch.commit();
 }
 
+// Initialize data once when the server starts.
+initializeDefaultData().catch(console.error);
+
 
 // --- Generic Get/Set for Config Documents ---
 async function getConfigDoc<T>(docId: string, defaultConfig: T): Promise<T> {
   try {
-    await initializeDefaultData(); // Ensure defaults exist
     const docRef = doc(db, CONFIG_COLLECTION, docId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
@@ -178,7 +180,6 @@ export const updateSiteConfig = (config: Partial<SiteConfig>) => updateConfigDoc
 
 // --- Generic Collection CRUD ---
 async function getCollection<T>(collectionName: string, orderByField: string = 'order'): Promise<T[]> {
-    await initializeDefaultData();
     const q = query(collection(db, collectionName), orderBy(orderByField));
     const querySnapshot = await getDocs(q);
     const results = querySnapshot.docs.map(doc => {
@@ -258,7 +259,6 @@ export const updateGalleryItemsOrder = async (items: GalleryItem[]) => {
 
 // --- Schedule (Special Handling) ---
 export async function getSchedule(): Promise<ScheduleDay[]> {
-    await initializeDefaultData();
     const days = await getCollection<Omit<ScheduleDay, 'events'>>(SCHEDULE_DAYS_COLLECTION, 'order');
     const events = await getCollection<ScheduleEvent>(SCHEDULE_EVENTS_COLLECTION, 'order');
     return days.map(day => ({
@@ -399,5 +399,3 @@ async function clearCollection(collectionPath: string) {
     querySnapshot.docs.forEach(docSnapshot => batch.delete(docSnapshot.ref));
     await batch.commit();
 }
-
-    
