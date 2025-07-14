@@ -1,7 +1,7 @@
 
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -13,8 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import * as firebaseService from "@/lib/firebase-service";
 import type * as T from "@/lib/types";
-import { convertGoogleDriveLink } from "@/lib/utils";
-import { Wand2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const secretariatMemberSchema = z.object({
   name: z.string().min(2, "Name is required."),
@@ -29,18 +29,13 @@ function SecretariatMemberForm({ member, onSave, onDelete }: { member: T.Secreta
         defaultValues: member,
     });
     React.useEffect(() => { form.reset(member); }, [member, form]);
-
-    const handleConvertUrl = () => {
-        const url = form.getValues("imageUrl");
-        form.setValue("imageUrl", convertGoogleDriveLink(url), { shouldValidate: true });
-    }
     
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit((data) => onSave(member.id, data, form))} className="flex flex-wrap lg:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
                 <FormField control={form.control} name="name" render={({ field }) => <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="role" render={({ field }) => <FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-                <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><div className="flex gap-2"><FormControl><Input {...field} /></FormControl><Button type="button" variant="outline" size="icon" onClick={handleConvertUrl}><Wand2 className="h-4 w-4"/></Button></div><FormMessage /></FormItem>} />
+                <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="bio" render={({ field }) => <FormItem className="flex-grow w-full lg:w-auto"><FormLabel>Bio</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl><FormMessage /></FormItem>} />
                 <div className="flex gap-1 pt-6"><Button type="submit" size="sm">Save</Button><Button size="sm" variant="destructive" type="button" onClick={() => onDelete(member.id)}>Delete</Button></div>
             </form>
@@ -51,27 +46,79 @@ function SecretariatMemberForm({ member, onSave, onDelete }: { member: T.Secreta
 
 function AddSecretariatMemberForm({ onAdd }: { onAdd: (data: any, form: any) => Promise<void> }) {
     const form = useForm({ resolver: zodResolver(secretariatMemberSchema), defaultValues: { name: '', role: '', imageUrl: '', bio: '' } });
-
-    const handleConvertUrl = () => {
-        const url = form.getValues("imageUrl");
-        form.setValue("imageUrl", convertGoogleDriveLink(url), { shouldValidate: true });
-    }
     
     return <Form {...form}><form onSubmit={form.handleSubmit((d) => onAdd(d, form))} className="flex flex-wrap lg:flex-nowrap gap-2 items-end p-2 border-t mt-4">
         <FormField control={form.control} name="name" render={({ field }) => <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
         <FormField control={form.control} name="role" render={({ field }) => <FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-        <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><div className="flex gap-2"><FormControl><Input {...field} /></FormControl><Button type="button" variant="outline" size="icon" onClick={handleConvertUrl}><Wand2 className="h-4 w-4"/></Button></div><FormDescription>Use a standard image URL or a Google Drive "share" link.</FormDescription><FormMessage /></FormItem>} />
+        <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Provide a direct image link.</FormDescription><FormMessage /></FormItem>} />
         <FormField control={form.control} name="bio" render={({ field }) => <FormItem className="flex-grow w-full lg:w-auto"><FormLabel>Bio</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl><FormMessage /></FormItem>} />
         <Button type="submit" size="sm">Add Member</Button>
     </form></Form>;
 }
 
-export default function TeamTab({ data, handleAddItem, handleUpdateItem, handleDeleteItem }: any) {
+export default function TeamTab() {
+    const { toast } = useToast();
+    const [loading, setLoading] = useState(true);
+    const [secretariat, setSecretariat] = useState<T.SecretariatMember[]>([]);
+    
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const members = await firebaseService.getSecretariat();
+                setSecretariat(members);
+            } catch (error) {
+                console.error("Failed to fetch secretariat data:", error);
+                toast({ title: "Error", description: `Could not load team members.`, variant: "destructive" });
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [toast]);
+    
+    const handleUpdateItem = async (updateFunction: Function, id: string, data: any, stateKey: string, message: string, form: any) => {
+        try {
+            await updateFunction(id, data);
+            setSecretariat(prev => prev.map(item => item.id === id ? { ...item, ...data } : item));
+            toast({ title: "Success!", description: message });
+        } catch (error) {
+            toast({ title: "Error", description: `Could not save item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
+        }
+    };
+    
+    const handleDeleteItem = async (deleteFunction: Function, id: string, stateKey: string, message: string) => {
+        if (!confirm('Are you sure you want to delete this item?')) return;
+        try {
+            await deleteFunction(id);
+            setSecretariat(prev => prev.filter(item => item.id !== id));
+            toast({ title: "Success!", description: message });
+        } catch (error) {
+            toast({ title: "Error", description: `Could not delete item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
+        }
+    };
+    
+    const handleAddItem = async (addFunction: Function, data: any, stateKey: string, message: string, form: any) => {
+        try {
+            const newId = await addFunction(data);
+            const newItem = await firebaseService.getDocById(stateKey as string, newId);
+            setSecretariat(prev => [...prev, newItem].sort((a,b) => a.order - b.order));
+            toast({ title: "Success!", description: message });
+            if (form) form.reset();
+        } catch (error) {
+            toast({ title: "Error", description: `Could not add item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
+        }
+    };
+    
+    if (loading) {
+        return <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></div>;
+    }
+
     return (
         <Card>
             <CardHeader><CardTitle>Secretariat Members</CardTitle></CardHeader>
             <CardContent>
-                {data.secretariat?.map((member: T.SecretariatMember) => (
+                {secretariat?.map((member: T.SecretariatMember) => (
                     <SecretariatMemberForm
                         key={member.id}
                         member={member}
@@ -84,5 +131,3 @@ export default function TeamTab({ data, handleAddItem, handleUpdateItem, handleD
         </Card>
     );
 }
-
-    

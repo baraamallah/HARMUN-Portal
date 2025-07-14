@@ -2,7 +2,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpen, Landmark } from 'lucide-react';
 import Image from 'next/image';
 import { getAboutPageContent } from '@/lib/firebase-service';
-import { convertGoogleDriveLink } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +21,7 @@ export default async function AboutPage() {
         <div className="grid md:grid-cols-2 gap-12 items-center mb-20 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
             <div className="relative h-80 rounded-lg overflow-hidden shadow-xl">
                 <Image
-                    src={convertGoogleDriveLink(content.imageUrl)}
+                    src={content.imageUrl}
                     alt="Students engaged in a debate"
                     fill
                     className="object-cover"

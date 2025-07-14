@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -12,10 +12,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Home, FileBadge, UserSquare, Book, Wand2 } from "lucide-react";
+import { Home, FileBadge, UserSquare, Book } from "lucide-react";
 import * as firebaseService from "@/lib/firebase-service";
 import type * as T from "@/lib/types";
-import { convertGoogleDriveLink } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 const homePageContentSchema = z.object({
@@ -72,14 +73,13 @@ function DownloadableDocumentForm({ item, onSave, onDelete }: { item: T.Download
         defaultValues: item,
     });
      React.useEffect(() => { form.reset(item); }, [item, form]);
-     const handleConvertUrl = () => { form.setValue("url", convertGoogleDriveLink(form.getValues("url")), { shouldValidate: true }); };
 
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit((data) => onSave(item.id, data))} className="flex flex-wrap md:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
                 <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="description" render={({ field }) => <FormItem className="flex-grow w-full md:w-auto"><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl><FormMessage /></FormItem>} />
-                <FormField control={form.control} name="url" render={({ field }) => <FormItem className="flex-grow w-full md:w-auto"><FormLabel>File URL</FormLabel><div className="flex gap-2"><FormControl><Input {...field} /></FormControl><Button type="button" variant="outline" size="icon" onClick={handleConvertUrl}><Wand2 className="h-4 w-4"/></Button></div><FormMessage /></FormItem>} />
+                <FormField control={form.control} name="url" render={({ field }) => <FormItem className="flex-grow w-full md:w-auto"><FormLabel>File URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <div className="flex gap-1 pt-6"><Button type="submit" size="sm">Save</Button><Button size="sm" variant="destructive" type="button" onClick={() => onDelete(item.id)}>Delete</Button></div>
             </form>
         </Form>
@@ -98,32 +98,113 @@ function AddHighlightForm({ onAdd }: { onAdd: (data: any, form: any) => Promise<
 
 function AddDownloadableDocumentForm({ onAdd }: { onAdd: (data: any, form: any) => Promise<void> }) {
     const form = useForm({ resolver: zodResolver(downloadableDocumentSchema), defaultValues: { title: '', description: '', url: '' } });
-    const handleConvertUrl = () => { form.setValue("url", convertGoogleDriveLink(form.getValues("url")), { shouldValidate: true }); };
 
     return <Form {...form}><form onSubmit={form.handleSubmit((d) => onAdd(d, form))} className="flex flex-wrap md:flex-nowrap gap-2 items-end p-2 border-t mt-4">
         <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
         <FormField control={form.control} name="description" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl><FormMessage /></FormItem>} />
-        <FormField control={form.control} name="url" render={({ field }) => <FormItem className="flex-grow w-full md:w-auto"><FormLabel>File URL</FormLabel><div className="flex gap-2"><FormControl><Input {...field} /></FormControl><Button type="button" variant="outline" size="icon" onClick={handleConvertUrl}><Wand2 className="h-4 w-4"/></Button></div><FormMessage /></FormItem>} />
+        <FormField control={form.control} name="url" render={({ field }) => <FormItem className="flex-grow w-full md:w-auto"><FormLabel>File URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
         <Button type="submit" size="sm">Add Document</Button>
     </form></Form>;
 }
 
 
-export default function PagesTab({ data, handleAddItem, handleUpdateItem, handleDeleteItem, handleFormSubmit }: any) {
+export default function PagesTab() {
+    const { toast } = useToast();
+    const [loading, setLoading] = useState(true);
     const [activeAccordion, setActiveAccordion] = useState<string | undefined>();
+    const [data, setData] = useState<any>({
+        homeContent: {}, aboutContent: {}, registrationContent: {}, documentsContent: {}, 
+        highlights: [], documents: []
+    });
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const [homeContent, aboutContent, registrationContent, documentsContent, highlights, documents] = await Promise.all([
+                    firebaseService.getHomePageContent(),
+                    firebaseService.getAboutPageContent(),
+                    firebaseService.getRegistrationPageContent(),
+                    firebaseService.getDocumentsPageContent(),
+                    firebaseService.getHighlights(),
+                    firebaseService.getDownloadableDocuments()
+                ]);
+                setData({ homeContent, aboutContent, registrationContent, documentsContent, highlights, documents });
+            } catch (error) {
+                console.error("Failed to fetch page data:", error);
+                toast({ title: "Error", description: `Could not load page content.`, variant: "destructive" });
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [toast]);
     
+    const handleFormSubmit = async (updateFunction: Function, stateKey: string, successMessage: string, formData: any, form: any) => {
+        try {
+            await updateFunction(formData);
+            setData(prev => ({...prev, [stateKey]: {...prev[stateKey], ...formData}}))
+            toast({ title: "Success!", description: successMessage });
+            form.reset(formData);
+        } catch (error) {
+            toast({ title: "Error", description: `Could not save data. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
+        }
+    };
+    
+    const handleUpdateItem = async (updateFunction: Function, id: string, itemData: any, stateKey: keyof typeof data, message: string) => {
+        try {
+            await updateFunction(id, itemData);
+            setData(prev => ({
+                ...prev,
+                [stateKey]: (prev[stateKey] as any[]).map((item: any) => item.id === id ? { ...item, ...itemData } : item),
+            }));
+            toast({ title: "Success!", description: message });
+        } catch (error) {
+            toast({ title: "Error", description: `Could not save item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
+        }
+    };
+
+    const handleDeleteItem = async (deleteFunction: Function, id: string, stateKey: keyof typeof data, message: string) => {
+        if (!confirm('Are you sure you want to delete this item?')) return;
+        try {
+            await deleteFunction(id);
+            setData(prev => ({
+                ...prev,
+                [stateKey]: (prev[stateKey] as any[]).filter((item: any) => item.id !== id),
+            }));
+            toast({ title: "Success!", description: message });
+        } catch (error) {
+            toast({ title: "Error", description: `Could not delete item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
+        }
+    };
+
+    const handleAddItem = async (addFunction: Function, addData: any, stateKey: keyof typeof data, message: string, form?: any) => {
+        try {
+            const newId = await addFunction(addData);
+            const newItem = await firebaseService.getDocById(stateKey as string, newId);
+            setData(prev => ({
+                ...prev,
+                [stateKey]: [...(prev[stateKey] as any[]), newItem],
+            }));
+            toast({ title: "Success!", description: message });
+            if (form) form.reset();
+        } catch (error) {
+            toast({ title: "Error", description: `Could not add item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
+        }
+    };
+
     const homeForm = useForm<z.infer<typeof homePageContentSchema>>({ resolver: zodResolver(homePageContentSchema), defaultValues: data.homeContent });
     const aboutForm = useForm<z.infer<typeof aboutPageContentSchema>>({ resolver: zodResolver(aboutPageContentSchema), defaultValues: data.aboutContent });
     const registrationForm = useForm<z.infer<typeof registrationPageContentSchema>>({ resolver: zodResolver(registrationPageContentSchema), defaultValues: data.registrationContent });
     const documentsForm = useForm<z.infer<typeof documentsPageContentSchema>>({ resolver: zodResolver(documentsPageContentSchema), defaultValues: data.documentsContent });
 
-    React.useEffect(() => { homeForm.reset(data.homeContent); }, [data.homeContent, homeForm]);
-    React.useEffect(() => { aboutForm.reset(data.aboutContent); }, [data.aboutContent, aboutForm]);
-    React.useEffect(() => { registrationForm.reset(data.registrationContent); }, [data.registrationContent, registrationForm]);
-    React.useEffect(() => { documentsForm.reset(data.documentsContent); }, [data.documentsContent, documentsForm]);
+    useEffect(() => { homeForm.reset(data.homeContent); }, [data.homeContent, homeForm]);
+    useEffect(() => { aboutForm.reset(data.aboutContent); }, [data.aboutContent, aboutForm]);
+    useEffect(() => { registrationForm.reset(data.registrationContent); }, [data.registrationContent, registrationForm]);
+    useEffect(() => { documentsForm.reset(data.documentsContent); }, [data.documentsContent, documentsForm]);
 
-    const createUrlConverter = (form: any, fieldName: string) => () => {
-        form.setValue(fieldName, convertGoogleDriveLink(form.getValues(fieldName)), { shouldValidate: true });
+    if (loading) {
+        return <div className="space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-64 w-full" /><Skeleton className="h-64 w-full" /></div>;
     }
 
     return (
@@ -133,10 +214,10 @@ export default function PagesTab({ data, handleAddItem, handleUpdateItem, handle
                 <AccordionContent className="p-1 space-y-6">
                     <Card><CardHeader><CardTitle>Hero Section</CardTitle></CardHeader>
                     <CardContent>
-                        <Form {...homeForm}><form onSubmit={homeForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateHomePageContent, "Home page content updated.", d, homeForm))} className="space-y-4">
+                        <Form {...homeForm}><form onSubmit={homeForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateHomePageContent, "homeContent", "Home page content updated.", d, homeForm))} className="space-y-4">
                             <FormField control={homeForm.control} name="heroTitle" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                             <FormField control={homeForm.control} name="heroSubtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
-                            <FormField control={homeForm.control} name="heroImageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><div className="flex gap-2"><FormControl><Input {...field} /></FormControl><Button type="button" variant="outline" size="icon" onClick={createUrlConverter(homeForm, "heroImageUrl")}><Wand2 className="h-4 w-4"/></Button></div><FormDescription>Use a standard image URL or a Google Drive "share" link.</FormDescription><FormMessage /></FormItem>} />
+                            <FormField control={homeForm.control} name="heroImageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Provide a direct image link.</FormDescription><FormMessage /></FormItem>} />
                             <Button type="submit">Save Hero</Button>
                         </form></Form>
                     </CardContent></Card>
@@ -157,10 +238,10 @@ export default function PagesTab({ data, handleAddItem, handleUpdateItem, handle
             <AccordionItem value="about">
                 <AccordionTrigger><div className="flex items-center gap-2 text-lg"><FileBadge /> About Page</div></AccordionTrigger>
                 <AccordionContent className="p-1"><Card><CardContent className="pt-6">
-                    <Form {...aboutForm}><form onSubmit={aboutForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateAboutPageContent, "About page content updated.", d, aboutForm))} className="space-y-4">
+                    <Form {...aboutForm}><form onSubmit={aboutForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateAboutPageContent, "aboutContent", "About page content updated.", d, aboutForm))} className="space-y-4">
                         <FormField control={aboutForm.control} name="title" render={({ field }) => (<FormItem><FormLabel>Page Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={aboutForm.control} name="subtitle" render={({ field }) => (<FormItem><FormLabel>Page Subtitle</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={aboutForm.control} name="imageUrl" render={({ field }) => (<FormItem><FormLabel>Image URL</FormLabel><div className="flex gap-2"><FormControl><Input {...field} /></FormControl><Button type="button" variant="outline" size="icon" onClick={createUrlConverter(aboutForm, "imageUrl")}><Wand2 className="h-4 w-4"/></Button></div><FormDescription>Use a standard image URL or a Google Drive "share" link.</FormDescription><FormMessage /></FormItem>)} /> <hr/>
+                        <FormField control={aboutForm.control} name="imageUrl" render={({ field }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Provide a direct image link.</FormDescription><FormMessage /></FormItem>)} /> <hr/>
                         <FormField control={aboutForm.control} name="whatIsTitle" render={({ field }) => (<FormItem><FormLabel>Section 1: Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={aboutForm.control} name="whatIsPara1" render={({ field }) => (<FormItem><FormLabel>Section 1: Paragraph 1</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={aboutForm.control} name="whatIsPara2" render={({ field }) => (<FormItem><FormLabel>Section 1: Paragraph 2</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} /> <hr/>
@@ -174,7 +255,7 @@ export default function PagesTab({ data, handleAddItem, handleUpdateItem, handle
             <AccordionItem value="registration">
                 <AccordionTrigger><div className="flex items-center gap-2 text-lg"><UserSquare /> Registration Page</div></AccordionTrigger>
                 <AccordionContent className="p-1"><Card><CardContent className="pt-6">
-                    <Form {...registrationForm}><form onSubmit={registrationForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateRegistrationPageContent, "Registration page updated.", d, registrationForm))} className="space-y-4">
+                    <Form {...registrationForm}><form onSubmit={registrationForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateRegistrationPageContent, "registrationContent", "Registration page updated.", d, registrationForm))} className="space-y-4">
                         <FormField control={registrationForm.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                         <FormField control={registrationForm.control} name="subtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
                         <Button type="submit">Save</Button>
@@ -186,7 +267,7 @@ export default function PagesTab({ data, handleAddItem, handleUpdateItem, handle
                 <AccordionContent className="p-1 space-y-6">
                     <Card><CardHeader><CardTitle>Page Content</CardTitle></CardHeader>
                     <CardContent>
-                        <Form {...documentsForm}><form onSubmit={documentsForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateDocumentsPageContent, "Documents page updated.", d, documentsForm))} className="space-y-4">
+                        <Form {...documentsForm}><form onSubmit={documentsForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateDocumentsPageContent, "documentsContent", "Documents page updated.", d, documentsForm))} className="space-y-4">
                             <FormField control={documentsForm.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                             <FormField control={documentsForm.control} name="subtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
                             <Button type="submit">Save Content</Button>

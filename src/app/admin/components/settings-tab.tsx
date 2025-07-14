@@ -19,6 +19,9 @@ import * as firebaseService from "@/lib/firebase-service";
 import type * as T from "@/lib/types";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
+
 
 const navLinksForAdmin = [
   { href: '/about', label: 'About' }, { href: '/committees', label: 'Committees' }, { href: '/news', label: 'News' },
@@ -106,14 +109,21 @@ function AddSocialLinkForm({ onAdd, existingPlatforms }: { onAdd: (link: T.Socia
     );
 }
 
-export default function SettingsTab({ data, setData, handleFormSubmit, toast, setFetched, loadDataForTab }: any) {
+export default function SettingsTab() {
+    const { toast } = useToast();
+    const [loading, setLoading] = useState(true);
+    const [data, setData] = useState<any>({
+        siteConfig: { socialLinks: [], navVisibility: {} },
+        committees: [], countries: [], secretariat: [], galleryItems: []
+    });
+    
     const [activeAccordion, setActiveAccordion] = useState<string | undefined>();
     const [committeeImportFile, setCommitteeImportFile] = useState<File | null>(null);
     const [countryImportFile, setCountryImportFile] = useState<File | null>(null);
     const [secretariatImportFile, setSecretariatImportFile] = useState<File | null>(null);
     const [galleryImportFile, setGalleryImportFile] = useState<File | null>(null);
     const [isImporting, setIsImporting] = useState(false);
-    
+
     const generalSettingsForm = useForm<z.infer<typeof generalSettingsSchema>>({ resolver: zodResolver(generalSettingsSchema), defaultValues: data.siteConfig });
     const socialLinksForm = useForm<z.infer<typeof socialLinksSchema>>({ resolver: zodResolver(socialLinksSchema), defaultValues: { socialLinks: data.siteConfig.socialLinks || [] } });
     const navVisibilityForm = useForm<z.infer<typeof navVisibilitySchema>>({ resolver: zodResolver(navVisibilitySchema), defaultValues: { navVisibility: data.siteConfig.navVisibility || {} } });
@@ -123,11 +133,43 @@ export default function SettingsTab({ data, setData, handleFormSubmit, toast, se
         name: "socialLinks",
     });
 
+    const loadData = React.useCallback(async () => {
+        setLoading(true);
+        try {
+            const [siteConfig, committees, countries, secretariat, galleryItems] = await Promise.all([
+                firebaseService.getSiteConfig(),
+                firebaseService.getCommittees(),
+                firebaseService.getCountries(),
+                firebaseService.getSecretariat(),
+                firebaseService.getGalleryItems(),
+            ]);
+            setData({ siteConfig, committees, countries, secretariat, galleryItems });
+            generalSettingsForm.reset(siteConfig);
+            replaceSocialLinks(siteConfig.socialLinks || []);
+            navVisibilityForm.reset({ navVisibility: siteConfig.navVisibility || {} });
+        } catch (error) {
+            console.error("Failed to fetch settings data:", error);
+            toast({ title: "Error", description: `Could not load settings data.`, variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
+    }, [toast, generalSettingsForm, replaceSocialLinks, navVisibilityForm]);
+
     React.useEffect(() => {
-        generalSettingsForm.reset(data.siteConfig);
-        replaceSocialLinks(data.siteConfig.socialLinks || []);
-        navVisibilityForm.reset({ navVisibility: data.siteConfig.navVisibility || {} });
-    }, [data.siteConfig, generalSettingsForm, replaceSocialLinks, navVisibilityForm]);
+        loadData();
+    }, [loadData]);
+
+
+    const handleFormSubmit = async (updateFunction: Function, formValues: any, form: any) => {
+        try {
+            await updateFunction(formValues);
+            setData(prev => ({...prev, siteConfig: {...prev.siteConfig, ...formValues}}));
+            toast({ title: "Success!", description: "Settings updated." });
+            form.reset(formValues);
+        } catch (error) {
+            toast({ title: "Error", description: `Could not save data. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
+        }
+    };
 
     const handleFileChange = (setter: React.Dispatch<React.SetStateAction<File | null>>) => (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files.length > 0) setter(event.target.files[0]); else setter(null);
@@ -148,8 +190,7 @@ export default function SettingsTab({ data, setData, handleFormSubmit, toast, se
                 try {
                     await importFunction(results.data as any[]);
                     toast({ title: "Import Successful!", description: `Your ${type} data has been imported.` });
-                    setFetched((prev: any) => ({ ...prev, settings: false }));
-                    await loadDataForTab('settings');
+                    await loadData();
                 } catch (error) {
                     toast({ title: "Import Failed", description: error instanceof Error ? error.message : "An unknown error occurred.", variant: "destructive" });
                 } finally {
@@ -207,6 +248,10 @@ export default function SettingsTab({ data, setData, handleFormSubmit, toast, se
         toast({ title: "Export Successful", description: `Downloaded ${filename}` });
     };
 
+    if (loading) {
+        return <div className="space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-64 w-full" /></div>;
+    }
+
     return (
         <Accordion type="single" collapsible value={activeAccordion} onValueChange={setActiveAccordion}>
             <AccordionItem value="site"><AccordionTrigger><div className="flex items-center gap-2 text-lg"><Settings /> Site & Navigation</div></AccordionTrigger>
@@ -215,7 +260,7 @@ export default function SettingsTab({ data, setData, handleFormSubmit, toast, se
                 <CardContent>
                     <Form {...generalSettingsForm}>
                         <form onSubmit={generalSettingsForm.handleSubmit(async (values) => {
-                            await handleFormSubmit(firebaseService.updateSiteConfig, "General settings updated.", values, generalSettingsForm);
+                            await handleFormSubmit(firebaseService.updateSiteConfig, values, generalSettingsForm);
                         })} className="space-y-4">
                             <FormField control={generalSettingsForm.control} name="conferenceDate" render={({ field }) => (<FormItem><FormLabel>Countdown Date</FormLabel><FormControl><Input {...field} /></FormControl><p className="text-xs text-muted-foreground">Format: YYYY-MM-DDTHH:mm:ss</p></FormItem>)} />
                             <FormField control={generalSettingsForm.control} name="mapEmbedUrl" render={({ field }) => (<FormItem><FormLabel>Google Maps Embed URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
@@ -229,8 +274,7 @@ export default function SettingsTab({ data, setData, handleFormSubmit, toast, se
                 <CardContent>
                     <Form {...socialLinksForm}>
                         <form onSubmit={socialLinksForm.handleSubmit(async (values) => {
-                            await handleFormSubmit(firebaseService.updateSiteConfig, "Social links updated.", values, socialLinksForm);
-                            // Manually refetch siteConfig to update the footer, etc.
+                            await handleFormSubmit(firebaseService.updateSiteConfig, values, socialLinksForm);
                             const siteConfig = await firebaseService.getSiteConfig();
                             setData((p: any) => ({...p, siteConfig}));
 
@@ -273,7 +317,7 @@ export default function SettingsTab({ data, setData, handleFormSubmit, toast, se
                 <CardContent>
                     <Form {...navVisibilityForm}>
                         <form onSubmit={navVisibilityForm.handleSubmit(async (values) => {
-                            await handleFormSubmit(firebaseService.updateSiteConfig, "Navigation visibility updated.", values, navVisibilityForm);
+                             await handleFormSubmit(firebaseService.updateSiteConfig, values, navVisibilityForm);
                         })} className="space-y-2">
                             {navLinksForAdmin.map((link) => (
                                 <FormField key={link.href} control={navVisibilityForm.control} name={`navVisibility.${link.href}` as const} render={({ field }) => (
@@ -330,5 +374,3 @@ export default function SettingsTab({ data, setData, handleFormSubmit, toast, se
         </Accordion>
     );
 }
-
-    

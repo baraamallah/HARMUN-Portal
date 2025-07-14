@@ -1,15 +1,14 @@
 
+
 "use client";
 
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Download, BookOpen } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { getDocumentsPageContent, getDownloadableDocuments } from '@/lib/firebase-service';
 import type { DocumentsPageContent, DownloadableDocument } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { convertGoogleDriveLink } from '@/lib/utils';
 
 export default function DocumentsPage() {
     const [content, setContent] = useState<DocumentsPageContent | null>(null);
@@ -72,7 +71,7 @@ export default function DocumentsPage() {
                   </div>
                 </div>
                 <Button asChild>
-                  <a href={convertGoogleDriveLink(doc.url)} target="_blank" rel="noopener noreferrer">
+                  <a href={doc.url} target="_blank" rel="noopener noreferrer">
                     <Download className="mr-2 h-4 w-4" />
                     Download
                   </a>

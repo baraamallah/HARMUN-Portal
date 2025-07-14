@@ -12,13 +12,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { PlusCircle, Trash2, CalendarDays, Globe, Library, Wand2 } from "lucide-react";
+import { PlusCircle, Trash2, CalendarDays, Globe, Library } from "lucide-react";
 import * as firebaseService from "@/lib/firebase-service";
 import type * as T from "@/lib/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { convertGoogleDriveLink } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const scheduleEventSchema = z.object({
     time: z.string().min(1, "Time is required."),
@@ -77,16 +78,12 @@ function AddCountryForm({ committees, onAdd }: { committees: T.Committee[]; onAd
 
 function AddCommitteeForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
     const form = useForm({ defaultValues: { name: '', chairName: '', chairBio: '', chairImageUrl: '', topics: '', backgroundGuideUrl: '' } });
-    const handleConvertUrl = (fieldName: "chairImageUrl") => {
-        const url = form.getValues(fieldName);
-        form.setValue(fieldName, convertGoogleDriveLink(url), { shouldValidate: true });
-    }
     return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd(d); form.reset(); })} className="space-y-4">
         <div className="grid md:grid-cols-2 gap-4">
             <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Committee Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
             <FormField control={form.control} name="chairName" render={({ field }) => ( <FormItem><FormLabel>Chair Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
         </div>
-         <FormField control={form.control} name="chairImageUrl" render={({ field }) => ( <FormItem><FormLabel>Chair Image URL</FormLabel><div className="flex gap-2"><FormControl><Input {...field} /></FormControl><Button type="button" variant="outline" size="icon" onClick={() => handleConvertUrl("chairImageUrl")}><Wand2 className="h-4 w-4"/></Button></div><p className="text-xs text-muted-foreground">Use a standard image URL or a Google Drive "share" link.</p></FormItem> )} />
+         <FormField control={form.control} name="chairImageUrl" render={({ field }) => ( <FormItem><FormLabel>Chair Image URL</FormLabel><FormControl><Input {...field} /></FormControl><p className="text-xs text-muted-foreground">Provide a direct image link.</p></FormItem> )} />
         <FormField control={form.control} name="chairBio" render={({ field }) => ( <FormItem><FormLabel>Chair Bio</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl></FormItem> )} />
         <FormField control={form.control} name="topics" render={({ field }) => ( <FormItem><FormLabel>Topics (one per line)</FormLabel><FormControl><Textarea {...field} rows={3}/></FormControl></FormItem> )} />
         <FormField control={form.control} name="backgroundGuideUrl" render={({ field }) => ( <FormItem><FormLabel>Background Guide URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
@@ -95,8 +92,70 @@ function AddCommitteeForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
 }
 
 
-export default function ConferenceTab({ data, setData, handleAddItem, handleUpdateItem, handleDeleteItem, toast }: any) {
+export default function ConferenceTab() {
+    const { toast } = useToast();
+    const [loading, setLoading] = useState(true);
+    const [data, setData] = useState<{ committees: T.Committee[], countries: T.Country[], schedule: T.ScheduleDay[] }>({
+      committees: [],
+      countries: [],
+      schedule: []
+    });
     const [activeAccordion, setActiveAccordion] = useState<string | undefined>();
+
+    React.useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const [committees, countries, schedule] = await Promise.all([
+                    firebaseService.getCommittees(),
+                    firebaseService.getCountries(),
+                    firebaseService.getSchedule()
+                ]);
+                setData({ committees, countries, schedule });
+            } catch (error) {
+                console.error("Failed to fetch conference data:", error);
+                toast({ title: "Error", description: `Could not load conference data.`, variant: "destructive" });
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [toast]);
+
+    const handleAddItem = async (addFunction: Function, itemData: any, stateKey: keyof typeof data, message: string, form?: any) => {
+        try {
+            const newId = await addFunction(itemData);
+            const newItem = await firebaseService.getDocById(stateKey, newId);
+            
+            setData(prev => ({
+                ...prev,
+                [stateKey]: [...(prev[stateKey] as any[]), newItem],
+            }));
+
+            toast({ title: "Success!", description: message });
+            if (form) form.reset();
+        } catch (error) {
+            toast({ title: "Error", description: `Could not add item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
+        }
+    };
+    
+    const handleDeleteItem = async (deleteFunction: Function, id: string, stateKey: keyof typeof data, message: string) => {
+        if (!confirm('Are you sure you want to delete this item?')) return;
+        try {
+            await deleteFunction(id);
+            setData(prev => ({
+                ...prev,
+                [stateKey]: (prev[stateKey] as any[]).filter((item: {id: string}) => item.id !== id),
+            }));
+            toast({ title: "Success!", description: message });
+        } catch (error) {
+            toast({ title: "Error", description: `Could not delete item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
+        }
+    };
+
+    if (loading) {
+        return <div className="space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-64 w-full" /><Skeleton className="h-64 w-full" /></div>;
+    }
     
     return (
         <Accordion type="single" collapsible value={activeAccordion} onValueChange={setActiveAccordion}>
@@ -150,7 +209,9 @@ export default function ConferenceTab({ data, setData, handleAddItem, handleUpda
                                 <TableCell className="text-right flex items-center justify-end gap-2">
                                     <Switch checked={country.status === 'Assigned'} onCheckedChange={async () => { 
                                         const newStatus = country.status === 'Available' ? 'Assigned' : 'Available'; 
-                                        handleUpdateItem(firebaseService.updateCountryStatus, country.id, {status: newStatus}, "countries", "Country status updated.");
+                                        await firebaseService.updateCountryStatus(country.id, { status: newStatus });
+                                        setData(prev => ({...prev, countries: prev.countries.map(c => c.id === country.id ? {...c, status: newStatus} : c)}));
+                                        toast({title: "Country status updated."});
                                     }} />
                                     <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(firebaseService.deleteCountry, country.id, "countries", "Country deleted.")}> <Trash2 className="h-4 w-4 text-destructive" /></Button>
                                 </TableCell>
@@ -201,5 +262,3 @@ export default function ConferenceTab({ data, setData, handleAddItem, handleUpda
         </Accordion>
     );
 }
-
-    

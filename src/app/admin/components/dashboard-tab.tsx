@@ -14,6 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PlusCircle, FileText, Globe, Library, Users, Newspaper, Trash2 } from "lucide-react";
 import * as firebaseService from "@/lib/firebase-service";
 import type * as T from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function CreatePostForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
     const form = useForm({ defaultValues: { title: '', content: '', type: undefined } });
@@ -25,7 +27,73 @@ function CreatePostForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
     </form></Form>;
 }
 
-export default function DashboardTab({ data, handleAddItem, handleDeleteItem }: any) {
+export default function DashboardTab() {
+    const { toast } = useToast();
+    const [loading, setLoading] = useState(true);
+    const [data, setData] = useState<{ posts: T.Post[], countries: T.Country[], committees: T.Committee[], secretariat: T.SecretariatMember[] }>({
+        posts: [],
+        countries: [],
+        committees: [],
+        secretariat: []
+    });
+
+    React.useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const [posts, countries, committees, secretariat] = await Promise.all([
+                    firebaseService.getAllPosts(),
+                    firebaseService.getCountries(),
+                    firebaseService.getCommittees(),
+                    firebaseService.getSecretariat()
+                ]);
+                setData({ posts, countries, committees, secretariat });
+            } catch (error) {
+                console.error("Failed to fetch dashboard data:", error);
+                toast({ title: "Error", description: `Could not load dashboard data.`, variant: "destructive" });
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [toast]);
+    
+    const handleAddItem = async (addFunction: Function, itemData: any, stateKey: keyof typeof data, message: string) => {
+        try {
+            const newId = await addFunction(itemData);
+            const newItem = await firebaseService.getDocById(stateKey, newId);
+            setData(prev => ({ ...prev, [stateKey]: [newItem, ...prev[stateKey] as any[]] }));
+            toast({ title: "Success!", description: message });
+        } catch (error) {
+            toast({ title: "Error", description: `Could not add item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
+        }
+    };
+    
+    const handleDeleteItem = async (deleteFunction: Function, id: string, stateKey: keyof typeof data, message: string) => {
+        if (!confirm('Are you sure you want to delete this item?')) return;
+        try {
+            await deleteFunction(id);
+            setData(prev => ({ ...prev, [stateKey]: (prev[stateKey] as any[]).filter((item: {id: string}) => item.id !== id) }));
+            toast({ title: "Success!", description: message });
+        } catch (error) {
+            toast({ title: "Error", description: `Could not delete item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
+        }
+    };
+    
+    if (loading) {
+        return (
+            <>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                    <Skeleton className="h-24" />
+                    <Skeleton className="h-24" />
+                    <Skeleton className="h-24" />
+                    <Skeleton className="h-24" />
+                </div>
+                <Skeleton className="h-96 mt-6" />
+            </>
+        );
+    }
+    
     return (
         <>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">

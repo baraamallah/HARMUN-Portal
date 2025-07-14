@@ -2,7 +2,6 @@
 import Image from 'next/image';
 import { getGalleryPageContent, getGalleryItems } from '@/lib/firebase-service';
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { convertGoogleDriveLink } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import type { GalleryItem } from '@/lib/types';
 import { Video } from 'lucide-react';
@@ -46,7 +45,7 @@ function GalleryMedia({ item }: { item: GalleryItem }) {
     }
 
     // Default to image
-    const imageUrl = convertGoogleDriveLink(item.imageUrl || '');
+    const imageUrl = item.imageUrl || '';
     return (
         <Dialog>
             <DialogTrigger asChild>
@@ -96,7 +95,7 @@ export default async function GalleryPage() {
             {items.length > 0 ? (
                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {items.map((item, index) => (
-                        <div key={item.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 100}ms`}}>
+                        <div key={item.id} className={cn("animate-fade-in-up", item.columnSpan === 2 ? "col-span-2" : "col-span-1")} style={{ animationDelay: `${index * 100}ms`}}>
                            <GalleryMedia item={item} />
                         </div>
                     ))}

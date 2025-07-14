@@ -3,7 +3,6 @@ import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, quer
 import { db } from './firebase';
 import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, SecretariatMember, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, DownloadableDocument, ConferenceHighlight, GalleryPageContent, GalleryItem } from './types';
 import { format } from 'date-fns';
-import { convertGoogleDriveLink } from './utils';
 
 
 // Collection & Document Names
@@ -157,14 +156,10 @@ export async function getDocById(collectionName: string, id: string): Promise<an
 
 // --- Specific Content Getters/Setters ---
 export const getHomePageContent = () => getConfigDoc<HomePageContent>(HOME_PAGE_CONTENT_DOC_ID, {} as HomePageContent);
-export const updateHomePageContent = (content: Partial<HomePageContent>) => {
-    return updateConfigDoc(HOME_PAGE_CONTENT_DOC_ID, content);
-};
+export const updateHomePageContent = (content: Partial<HomePageContent>) => updateConfigDoc(HOME_PAGE_CONTENT_DOC_ID, content);
 
 export const getAboutPageContent = () => getConfigDoc<AboutPageContent>(ABOUT_PAGE_CONTENT_DOC_ID, {} as AboutPageContent);
-export const updateAboutPageContent = (content: Partial<AboutPageContent>) => {
-    return updateConfigDoc(ABOUT_PAGE_CONTENT_DOC_ID, content);
-};
+export const updateAboutPageContent = (content: Partial<AboutPageContent>) => updateConfigDoc(ABOUT_PAGE_CONTENT_DOC_ID, content);
 
 export const getRegistrationPageContent = () => getConfigDoc<RegistrationPageContent>(REGISTRATION_PAGE_CONTENT_DOC_ID, {} as RegistrationPageContent);
 export const updateRegistrationPageContent = (content: Partial<RegistrationPageContent>) => updateConfigDoc(REGISTRATION_PAGE_CONTENT_DOC_ID, content);
@@ -215,12 +210,8 @@ async function deleteCollectionDoc(collectionName: string, id: string): Promise<
 
 // --- Specific Collection Functions ---
 export const getSecretariat = () => getCollection<SecretariatMember>(SECRETARIAT_COLLECTION);
-export const addSecretariatMember = (member: Omit<SecretariatMember, 'id' | 'order'>) => {
-    return addCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, member);
-}
-export const updateSecretariatMember = (id: string, member: Omit<SecretariatMember, 'id' | 'order'>) => {
-    return updateCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, id, member);
-}
+export const addSecretariatMember = (member: Omit<SecretariatMember, 'id' | 'order'>) => addCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, member);
+export const updateSecretariatMember = (id: string, member: Omit<SecretariatMember, 'id' | 'order'>) => updateCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, id, member);
 export const deleteSecretariatMember = (id: string) => deleteCollectionDoc(SECRETARIAT_COLLECTION, id);
 
 export const getHighlights = () => getCollection<ConferenceHighlight>(HIGHLIGHTS_COLLECTION);
@@ -239,7 +230,7 @@ function processGalleryItemDataForSave(data: any) {
     const { url, type, columnSpan, ...rest } = data;
     const processedData: any = { ...rest, type, columnSpan: parseInt(columnSpan, 10) };
     if (type === 'image') {
-        processedData.imageUrl = convertGoogleDriveLink(url);
+        processedData.imageUrl = url;
         processedData.videoUrl = null;
     } else {
         processedData.imageUrl = null;
@@ -358,7 +349,7 @@ const committeeTransformer = (row: any): Omit<Committee, 'id'> => ({
     chair: {
         name: row.chairName || '',
         bio: row.chairBio || '',
-        imageUrl: convertGoogleDriveLink(row.chairImageUrl || '')
+        imageUrl: row.chairImageUrl || ''
     },
     topics: (row.topics || '').split('\\n').join('\n').split('\n').filter(Boolean),
     backgroundGuideUrl: row.backgroundGuideUrl || ''
@@ -368,7 +359,7 @@ const secretariatTransformer = (row: any): Omit<SecretariatMember, 'id'> => ({
     name: row.name || '',
     role: row.role || '',
     bio: row.bio || '',
-    imageUrl: convertGoogleDriveLink(row.imageUrl || ''),
+    imageUrl: row.imageUrl || '',
     order: parseInt(row.order, 10) || 0,
 });
 
@@ -386,7 +377,7 @@ const galleryTransformer = (row: any): Omit<GalleryItem, 'id'> => {
         type,
         display: row.display || '4:3',
         columnSpan: parseInt(row.columnSpan, 10) === 2 ? 2 : 1,
-        imageUrl: type === 'image' ? convertGoogleDriveLink(url) : null,
+        imageUrl: type === 'image' ? url : null,
         videoUrl: type === 'video' ? url : null,
         order: parseInt(row.order, 10) || 0,
     }
