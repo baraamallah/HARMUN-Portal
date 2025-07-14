@@ -11,8 +11,7 @@ export const dynamic = 'force-dynamic';
 
 function GalleryMedia({ item }: { item: GalleryItem }) {
     const itemContainerClasses = cn(
-        "relative group overflow-hidden cursor-pointer w-full rounded-lg",
-        "break-inside-avoid mb-4", // Added for better masonry layout
+        "relative group overflow-hidden cursor-pointer w-full rounded-lg mb-4",
         {
             'aspect-video': item.display === '16:9',
             'aspect-[4/3]': item.display === '4:3',
@@ -21,6 +20,8 @@ function GalleryMedia({ item }: { item: GalleryItem }) {
             'aspect-[9/16]': item.display === '9:16',
             'aspect-[2/3]': item.display === '2:3',
             'rounded-full': item.display === 'circle',
+            'col-span-1': item.columnSpan === 1,
+            'md:col-span-2': item.columnSpan === 2,
         }
     );
 
@@ -93,7 +94,7 @@ export default async function GalleryPage() {
             </div>
             
             {items.length > 0 ? (
-                 <div className="columns-2 md:columns-3 lg:columns-4 gap-4">
+                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {items.map((item, index) => (
                         <div key={item.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 100}ms`}}>
                            <GalleryMedia item={item} />

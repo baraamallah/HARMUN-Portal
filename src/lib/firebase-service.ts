@@ -96,8 +96,8 @@ export async function initializeDefaultData() {
             { dayId: 'day1', time: '2:00 PM - 5:00 PM', title: 'Delegate Registration', description: 'Pick up your credentials and welcome packet.', location: 'Main Hall', order: 1 },
         ],
         [GALLERY_COLLECTION]: [
-            { title: 'Opening Ceremony', imageUrl: 'https://placehold.co/600x400.png', videoUrl: null, type: 'image', display: '16:9', order: 1 },
-            { title: 'Debate in Session', imageUrl: 'https://placehold.co/400x600.png', videoUrl: null, type: 'image', display: '2:3', order: 2 },
+            { title: 'Opening Ceremony', imageUrl: 'https://placehold.co/600x400.png', videoUrl: null, type: 'image', display: '16:9', columnSpan: 1, order: 1 },
+            { title: 'Debate in Session', imageUrl: 'https://placehold.co/400x600.png', videoUrl: null, type: 'image', display: '2:3', columnSpan: 1, order: 2 },
         ],
     };
 
@@ -248,9 +248,9 @@ export const deleteCodeOfConductItem = (id: string) => deleteCollectionDoc(CODE_
 
 
 // --- Gallery ---
-function processGalleryItemData(data: { url: string } & Omit<GalleryItem, 'id' | 'imageUrl' | 'videoUrl'>) {
-    const { url, type, ...rest } = data;
-    const processedData: any = { ...rest, type };
+function processGalleryItemData(data: { url: string; columnSpan: '1' | '2' } & Omit<GalleryItem, 'id' | 'imageUrl' | 'videoUrl' | 'columnSpan'>) {
+    const { url, type, columnSpan, ...rest } = data;
+    const processedData: any = { ...rest, type, columnSpan: parseInt(columnSpan, 10) };
     if (type === 'image') {
         processedData.imageUrl = convertGoogleDriveLink(url);
         processedData.videoUrl = null;
@@ -265,6 +265,14 @@ export const getGalleryItems = () => getCollection<GalleryItem>(GALLERY_COLLECTI
 export const addGalleryItem = (item: any) => addCollectionDoc<GalleryItem>(GALLERY_COLLECTION, processGalleryItemData(item));
 export const updateGalleryItem = (id: string, item: any) => updateCollectionDoc<GalleryItem>(GALLERY_COLLECTION, id, processGalleryItemData(item));
 export const deleteGalleryItem = (id: string) => deleteCollectionDoc(GALLERY_COLLECTION, id);
+export const updateGalleryItemsOrder = async (items: GalleryItem[]) => {
+    const batch = writeBatch(db);
+    items.forEach((item, index) => {
+        const docRef = doc(db, GALLERY_COLLECTION, item.id);
+        batch.update(docRef, { order: index });
+    });
+    await batch.commit();
+};
 
 
 // --- Schedule (Special Handling) ---
@@ -393,6 +401,7 @@ const galleryTransformer = (row: any): Omit<GalleryItem, 'id'> => {
         title: row.title || '',
         type,
         display: row.display || '4:3',
+        columnSpan: parseInt(row.columnSpan, 10) === 2 ? 2 : 1,
         imageUrl: type === 'image' ? convertGoogleDriveLink(url) : null,
         videoUrl: type === 'video' ? url : null,
         order: parseInt(row.order, 10) || 0,
