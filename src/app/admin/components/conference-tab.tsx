@@ -12,12 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { PlusCircle, Trash2, CalendarDays, Globe, Library } from "lucide-react";
+import { PlusCircle, Trash2, CalendarDays, Globe, Library, Wand2 } from "lucide-react";
 import * as firebaseService from "@/lib/firebase-service";
 import type * as T from "@/lib/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { convertGoogleDriveLink } from "@/lib/utils";
 
 const scheduleEventSchema = z.object({
     time: z.string().min(1, "Time is required."),
@@ -76,12 +77,16 @@ function AddCountryForm({ committees, onAdd }: { committees: T.Committee[]; onAd
 
 function AddCommitteeForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
     const form = useForm({ defaultValues: { name: '', chairName: '', chairBio: '', chairImageUrl: '', topics: '', backgroundGuideUrl: '' } });
+    const handleConvertUrl = () => {
+        const url = form.getValues("chairImageUrl");
+        form.setValue("chairImageUrl", convertGoogleDriveLink(url));
+    }
     return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd(d); form.reset(); })} className="space-y-4">
         <div className="grid md:grid-cols-2 gap-4">
             <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Committee Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
             <FormField control={form.control} name="chairName" render={({ field }) => ( <FormItem><FormLabel>Chair Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
         </div>
-         <FormField control={form.control} name="chairImageUrl" render={({ field }) => ( <FormItem><FormLabel>Chair Image URL</FormLabel><FormControl><Input {...field} /></FormControl><p className="text-xs text-muted-foreground">Use a standard image URL or a Google Drive "share" link.</p></FormItem> )} />
+         <FormField control={form.control} name="chairImageUrl" render={({ field }) => ( <FormItem><FormLabel>Chair Image URL</FormLabel><div className="flex gap-2"><FormControl><Input {...field} /></FormControl><Button type="button" variant="outline" size="icon" onClick={handleConvertUrl}><Wand2 className="h-4 w-4"/></Button></div><p className="text-xs text-muted-foreground">Use a standard image URL or a Google Drive "share" link.</p></FormItem> )} />
         <FormField control={form.control} name="chairBio" render={({ field }) => ( <FormItem><FormLabel>Chair Bio</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl></FormItem> )} />
         <FormField control={form.control} name="topics" render={({ field }) => ( <FormItem><FormLabel>Topics (one per line)</FormLabel><FormControl><Textarea {...field} rows={3}/></FormControl></FormItem> )} />
         <FormField control={form.control} name="backgroundGuideUrl" render={({ field }) => ( <FormItem><FormLabel>Background Guide URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />

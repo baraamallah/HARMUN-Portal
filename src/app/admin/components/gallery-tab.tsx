@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { FileText, GalleryHorizontal } from "lucide-react";
+import { FileText, GalleryHorizontal, Wand2 } from "lucide-react";
 import * as firebaseService from "@/lib/firebase-service";
 import type * as T from "@/lib/types";
 import { convertGoogleDriveLink } from "@/lib/utils";
@@ -30,11 +30,16 @@ function GalleryImageForm({ image, onSave, onDelete }: { image: T.GalleryImage; 
     });
     React.useEffect(() => { form.reset(image); }, [image, form]);
 
+    const handleConvertUrl = () => {
+        const url = form.getValues("imageUrl");
+        form.setValue("imageUrl", convertGoogleDriveLink(url));
+    }
+
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit((data) => onSave(image.id, data, form))} className="flex flex-wrap md:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
                 <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-                <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem className="flex-grow w-full md:w-auto"><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem className="flex-grow w-full md:w-auto"><FormLabel>Image URL</FormLabel><div className="flex gap-2"><FormControl><Input {...field} /></FormControl><Button type="button" variant="outline" size="icon" onClick={handleConvertUrl}><Wand2 className="h-4 w-4"/></Button></div><FormMessage /></FormItem>} />
                 <div className="flex gap-1 pt-6"><Button type="submit" size="sm">Save</Button><Button size="sm" variant="destructive" type="button" onClick={() => onDelete(image.id)}>Delete</Button></div>
             </form>
         </Form>
@@ -44,9 +49,14 @@ function GalleryImageForm({ image, onSave, onDelete }: { image: T.GalleryImage; 
 function AddGalleryImageForm({ onAdd }: { onAdd: (data: any, form: any) => Promise<void> }) {
     const form = useForm({ resolver: zodResolver(galleryImageSchema), defaultValues: { title: '', imageUrl: '' } });
 
+    const handleConvertUrl = () => {
+        const url = form.getValues("imageUrl");
+        form.setValue("imageUrl", convertGoogleDriveLink(url));
+    }
+
     return <Form {...form}><form onSubmit={form.handleSubmit((d) => onAdd(d, form))} className="flex flex-wrap md:flex-nowrap gap-2 items-end p-2 border-t mt-4">
         <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-        <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Use a standard image URL or a Google Drive "share" link.</FormDescription><FormMessage /></FormItem>} />
+        <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem className="flex-grow"><FormLabel>Image URL</FormLabel><div className="flex gap-2"><FormControl><Input {...field} /></FormControl><Button type="button" variant="outline" size="icon" onClick={handleConvertUrl}><Wand2 className="h-4 w-4"/></Button></div><FormDescription>Use a standard image URL or a Google Drive "share" link.</FormDescription><FormMessage /></FormItem>} />
         <Button type="submit" size="sm">Add Image</Button>
     </form></Form>;
 }

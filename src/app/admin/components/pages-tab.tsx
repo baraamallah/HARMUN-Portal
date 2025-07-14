@@ -12,9 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Home, FileBadge, UserSquare, Shield } from "lucide-react";
+import { Home, FileBadge, UserSquare, Shield, Wand2 } from "lucide-react";
 import * as firebaseService from "@/lib/firebase-service";
 import type * as T from "@/lib/types";
+import { convertGoogleDriveLink } from "@/lib/utils";
 
 
 const homePageContentSchema = z.object({
@@ -115,6 +116,11 @@ export default function PagesTab({ data, handleAddItem, handleUpdateItem, handle
     React.useEffect(() => { registrationForm.reset(data.registrationContent); }, [data.registrationContent, registrationForm]);
     React.useEffect(() => { documentsForm.reset(data.documentsContent); }, [data.documentsContent, documentsForm]);
 
+    const createUrlConverter = (form: any, fieldName: string) => () => {
+        const url = form.getValues(fieldName);
+        form.setValue(fieldName, convertGoogleDriveLink(url));
+    }
+
     return (
         <Accordion type="single" collapsible value={activeAccordion} onValueChange={setActiveAccordion}>
             <AccordionItem value="home">
@@ -125,7 +131,7 @@ export default function PagesTab({ data, handleAddItem, handleUpdateItem, handle
                         <Form {...homeForm}><form onSubmit={homeForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateHomePageContent, "Home page content updated.", d, homeForm))} className="space-y-4">
                             <FormField control={homeForm.control} name="heroTitle" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                             <FormField control={homeForm.control} name="heroSubtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
-                            <FormField control={homeForm.control} name="heroImageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Use a standard image URL or a Google Drive "share" link.</FormDescription><FormMessage /></FormItem>} />
+                            <FormField control={homeForm.control} name="heroImageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><div className="flex gap-2"><FormControl><Input {...field} /></FormControl><Button type="button" variant="outline" size="icon" onClick={createUrlConverter(homeForm, "heroImageUrl")}><Wand2 className="h-4 w-4"/></Button></div><FormDescription>Use a standard image URL or a Google Drive "share" link.</FormDescription><FormMessage /></FormItem>} />
                             <Button type="submit">Save Hero</Button>
                         </form></Form>
                     </CardContent></Card>
@@ -149,7 +155,7 @@ export default function PagesTab({ data, handleAddItem, handleUpdateItem, handle
                     <Form {...aboutForm}><form onSubmit={aboutForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateAboutPageContent, "About page content updated.", d, aboutForm))} className="space-y-4">
                         <FormField control={aboutForm.control} name="title" render={({ field }) => (<FormItem><FormLabel>Page Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={aboutForm.control} name="subtitle" render={({ field }) => (<FormItem><FormLabel>Page Subtitle</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={aboutForm.control} name="imageUrl" render={({ field }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Use a standard image URL or a Google Drive "share" link.</FormDescription><FormMessage /></FormItem>)} /> <hr/>
+                        <FormField control={aboutForm.control} name="imageUrl" render={({ field }) => (<FormItem><FormLabel>Image URL</FormLabel><div className="flex gap-2"><FormControl><Input {...field} /></FormControl><Button type="button" variant="outline" size="icon" onClick={createUrlConverter(aboutForm, "imageUrl")}><Wand2 className="h-4 w-4"/></Button></div><FormDescription>Use a standard image URL or a Google Drive "share" link.</FormDescription><FormMessage /></FormItem>)} /> <hr/>
                         <FormField control={aboutForm.control} name="whatIsTitle" render={({ field }) => (<FormItem><FormLabel>Section 1: Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={aboutForm.control} name="whatIsPara1" render={({ field }) => (<FormItem><FormLabel>Section 1: Paragraph 1</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={aboutForm.control} name="whatIsPara2" render={({ field }) => (<FormItem><FormLabel>Section 1: Paragraph 2</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} /> <hr/>

@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import * as firebaseService from "@/lib/firebase-service";
 import type * as T from "@/lib/types";
 import { convertGoogleDriveLink } from "@/lib/utils";
+import { Wand2 } from "lucide-react";
 
 const secretariatMemberSchema = z.object({
   name: z.string().min(2, "Name is required."),
@@ -28,13 +29,18 @@ function SecretariatMemberForm({ member, onSave, onDelete }: { member: T.Secreta
         defaultValues: member,
     });
     React.useEffect(() => { form.reset(member); }, [member, form]);
+
+    const handleConvertUrl = () => {
+        const url = form.getValues("imageUrl");
+        form.setValue("imageUrl", convertGoogleDriveLink(url));
+    }
     
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit((data) => onSave(member.id, data, form))} className="flex flex-wrap lg:flex-nowrap gap-2 items-start p-2 border rounded-md mb-2">
                 <FormField control={form.control} name="name" render={({ field }) => <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="role" render={({ field }) => <FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-                <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><div className="flex gap-2"><FormControl><Input {...field} /></FormControl><Button type="button" variant="outline" size="icon" onClick={handleConvertUrl}><Wand2 className="h-4 w-4"/></Button></div><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="bio" render={({ field }) => <FormItem className="flex-grow w-full lg:w-auto"><FormLabel>Bio</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl><FormMessage /></FormItem>} />
                 <div className="flex gap-1 pt-6"><Button type="submit" size="sm">Save</Button><Button size="sm" variant="destructive" type="button" onClick={() => onDelete(member.id)}>Delete</Button></div>
             </form>
@@ -45,11 +51,16 @@ function SecretariatMemberForm({ member, onSave, onDelete }: { member: T.Secreta
 
 function AddSecretariatMemberForm({ onAdd }: { onAdd: (data: any, form: any) => Promise<void> }) {
     const form = useForm({ resolver: zodResolver(secretariatMemberSchema), defaultValues: { name: '', role: '', imageUrl: '', bio: '' } });
+
+    const handleConvertUrl = () => {
+        const url = form.getValues("imageUrl");
+        form.setValue("imageUrl", convertGoogleDriveLink(url));
+    }
     
     return <Form {...form}><form onSubmit={form.handleSubmit((d) => onAdd(d, form))} className="flex flex-wrap lg:flex-nowrap gap-2 items-end p-2 border-t mt-4">
         <FormField control={form.control} name="name" render={({ field }) => <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
         <FormField control={form.control} name="role" render={({ field }) => <FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-        <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Use a standard image URL or a Google Drive "share" link.</FormDescription><FormMessage /></FormItem>} />
+        <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><div className="flex gap-2"><FormControl><Input {...field} /></FormControl><Button type="button" variant="outline" size="icon" onClick={handleConvertUrl}><Wand2 className="h-4 w-4"/></Button></div><FormDescription>Use a standard image URL or a Google Drive "share" link.</FormDescription><FormMessage /></FormItem>} />
         <FormField control={form.control} name="bio" render={({ field }) => <FormItem className="flex-grow w-full lg:w-auto"><FormLabel>Bio</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl><FormMessage /></FormItem>} />
         <Button type="submit" size="sm">Add Member</Button>
     </form></Form>;
