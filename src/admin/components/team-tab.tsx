@@ -50,7 +50,7 @@ function AddSecretariatMemberForm({ onAdd }: { onAdd: (data: any, form: any) => 
     return <Form {...form}><form onSubmit={form.handleSubmit((d) => onAdd(d, form))} className="flex flex-wrap gap-2 items-end p-2 border-t mt-4">
         <FormField control={form.control} name="name" render={({ field }) => <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
         <FormField control={form.control} name="role" render={({ field }) => <FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-        <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Provide a direct image link or Google Drive share link.</FormDescription><FormMessage /></FormItem>} />
+        <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Provide a direct image link.</FormDescription><FormMessage /></FormItem>} />
         <FormField control={form.control} name="bio" render={({ field }) => <FormItem className="flex-grow w-full"><FormLabel>Bio</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl><FormMessage /></FormItem>} />
         <Button type="submit" size="sm">Add Member</Button>
     </form></Form>;
@@ -81,8 +81,7 @@ export default function TeamTab() {
         try {
             const payload = { ...data };
             await updateFunction(id, payload);
-            const updatedMembers = await firebaseService.getSecretariat();
-            setSecretariat(updatedMembers);
+            setSecretariat(prev => prev.map(item => item.id === id ? { ...item, ...payload } : item));
             toast({ title: "Success!", description: message });
         } catch (error) {
             toast({ title: "Error", description: `Could not save item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });

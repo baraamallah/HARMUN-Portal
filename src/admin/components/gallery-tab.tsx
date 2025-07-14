@@ -195,7 +195,7 @@ function AddGalleryItemForm({ onAdd }: { onAdd: (data: any, form: any) => Promis
             <FormItem>
                 <FormLabel>{itemType === 'video' ? "Video URL" : "Image URL"}</FormLabel>
                 <FormControl><Input {...field} /></FormControl>
-                <FormDescription>Provide a direct URL or Google Drive share link.</FormDescription>
+                <FormDescription>Provide a direct URL for the image or video.</FormDescription>
                 <FormMessage />
             </FormItem>
         )} />

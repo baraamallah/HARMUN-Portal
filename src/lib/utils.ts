@@ -4,25 +4,3 @@ import { twMerge } from "tailwind-merge"
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
-
-export function convertGoogleDriveLink(url: string): string {
-  if (!url) return url;
-
-  // If it's already a direct image link, do nothing
-  if (url.includes('lh3.googleusercontent.com/d/')) {
-    return url;
-  }
-  
-  // Regex to extract the file ID from a standard Google Drive share link
-  const regex = /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/;
-  const match = url.match(regex);
-
-  if (match && match[1]) {
-    const fileId = match[1];
-    // Use the reliable lh3.googleusercontent.com domain for direct image embedding
-    return `https://lh3.googleusercontent.com/d/${fileId}`;
-  }
-  
-  // Return original URL if it doesn't match the expected format
-  return url;
-}

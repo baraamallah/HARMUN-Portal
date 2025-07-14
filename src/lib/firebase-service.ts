@@ -3,7 +3,6 @@ import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, quer
 import { db } from './firebase';
 import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, SecretariatMember, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, DownloadableDocument, ConferenceHighlight, GalleryPageContent, GalleryItem } from './types';
 import { format } from 'date-fns';
-import { convertGoogleDriveLink } from './utils';
 
 
 // Collection & Document Names
@@ -151,16 +150,7 @@ async function getConfigDoc<T>(docId: string, defaultConfig: T): Promise<T> {
 
 async function updateConfigDoc<T extends Record<string, any>>(docId: string, data: Partial<T>): Promise<void> {
     const docRef = doc(db, CONFIG_COLLECTION, docId);
-    const updateData = { ...data };
-    
-    // Convert any Google Drive links before saving
-    for (const key in updateData) {
-        if (key.toLowerCase().includes('imageurl') && typeof updateData[key] === 'string') {
-            updateData[key] = convertGoogleDriveLink(updateData[key] as string);
-        }
-    }
-    
-    await setDoc(docRef, updateData, { merge: true });
+    await setDoc(docRef, data, { merge: true });
 }
 
 export async function getDocById(collectionName: string, id: string): Promise<any> {
@@ -230,14 +220,8 @@ async function deleteCollectionDoc(collectionName: string, id: string): Promise<
 
 // --- Specific Collection Functions ---
 export const getSecretariat = () => getCollection<SecretariatMember>(SECRETARIAT_COLLECTION);
-export const addSecretariatMember = (member: Omit<SecretariatMember, 'id' | 'order'>) => {
-    const payload = { ...member, imageUrl: convertGoogleDriveLink(member.imageUrl) };
-    return addCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, payload);
-}
-export const updateSecretariatMember = (id: string, member: Omit<SecretariatMember, 'id' | 'order'>) => {
-    const payload = { ...member, imageUrl: convertGoogleDriveLink(member.imageUrl) };
-    return updateCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, id, payload);
-}
+export const addSecretariatMember = (member: Omit<SecretariatMember, 'id' | 'order'>) => addCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, member);
+export const updateSecretariatMember = (id: string, member: Omit<SecretariatMember, 'id' | 'order'>) => updateCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, id, member);
 export const deleteSecretariatMember = (id: string) => deleteCollectionDoc(SECRETARIAT_COLLECTION, id);
 
 export const getHighlights = () => getCollection<ConferenceHighlight>(HIGHLIGHTS_COLLECTION);
@@ -254,14 +238,13 @@ export const deleteDownloadableDocument = (id: string) => deleteCollectionDoc(DO
 // --- Gallery ---
 function processGalleryItemDataForSave(data: any) {
     const { url, type, columnSpan, ...rest } = data;
-    const convertedUrl = convertGoogleDriveLink(url);
     const processedData: any = { ...rest, type, columnSpan: parseInt(columnSpan, 10) };
     if (type === 'image') {
-        processedData.imageUrl = convertedUrl;
+        processedData.imageUrl = url;
         processedData.videoUrl = null;
     } else {
         processedData.imageUrl = null;
-        processedData.videoUrl = convertedUrl;
+        processedData.videoUrl = url;
     }
     return processedData;
 }
@@ -343,16 +326,7 @@ export const updateCountryStatus = (id: string, data: { status: 'Available' | 'A
 export const deleteCountry = (id: string) => deleteDoc(doc(db, COUNTRIES_COLLECTION, id));
 
 // --- Committees (Existing) ---
-export const addCommittee = (committee: Omit<Committee, 'id'>) => {
-    const payload = {
-        ...committee,
-        chair: {
-            ...committee.chair,
-            imageUrl: convertGoogleDriveLink(committee.chair.imageUrl),
-        }
-    };
-    return addDoc(collection(db, COMMITTEES_COLLECTION), payload).then(ref => ref.id);
-}
+export const addCommittee = (committee: Omit<Committee, 'id'>) => addDoc(collection(db, COMMITTEES_COLLECTION), committee).then(ref => ref.id);
 export async function getCommittees(): Promise<Committee[]> {
     const q = query(collection(db, COMMITTEES_COLLECTION), orderBy('name'));
     const querySnapshot = await getDocs(q);
@@ -381,7 +355,7 @@ const committeeTransformer = (row: any): Omit<Committee, 'id'> => ({
     chair: {
         name: row.chairName || '',
         bio: row.chairBio || '',
-        imageUrl: convertGoogleDriveLink(row.chairImageUrl || '')
+        imageUrl: row.chairImageUrl || ''
     },
     topics: (row.topics || '').split('\\n').join('\n').split('\n').filter(Boolean),
     backgroundGuideUrl: row.backgroundGuideUrl || ''
@@ -391,7 +365,7 @@ const secretariatTransformer = (row: any): Omit<SecretariatMember, 'id'> => ({
     name: row.name || '',
     role: row.role || '',
     bio: row.bio || '',
-    imageUrl: convertGoogleDriveLink(row.imageUrl || ''),
+    imageUrl: row.imageUrl || '',
     order: parseInt(row.order, 10) || 0,
 });
 
@@ -403,7 +377,7 @@ const countryTransformer = (row: any): Omit<Country, 'id'> => ({
 
 const galleryTransformer = (row: any): Omit<GalleryItem, 'id'> => {
     const type = row.type === 'video' ? 'video' : 'image';
-    const url = convertGoogleDriveLink(row.url || '');
+    const url = row.url || '';
     return {
         title: row.title || '',
         type,
