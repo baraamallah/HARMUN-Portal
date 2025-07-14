@@ -6,7 +6,10 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function convertGoogleDriveLink(url: string): string {
-  if (!url || !url.includes('drive.google.com')) {
+  if (!url) return url;
+
+  // If it's already a direct image link, do nothing
+  if (url.includes('lh3.googleusercontent.com/d/')) {
     return url;
   }
   

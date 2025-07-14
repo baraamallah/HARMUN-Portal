@@ -27,9 +27,13 @@ const GALLERY_PAGE_CONTENT_DOC_ID = 'galleryPage';
 
 // --- Default Data ---
 // This function initializes the database with default content if it's empty.
+let isInitialized = false;
 async function initializeDefaultData() {
+    if (isInitialized) return;
+
     const siteConfigRef = doc(db, CONFIG_COLLECTION, SITE_CONFIG_DOC_ID);
     const siteConfigSnap = await getDoc(siteConfigRef);
+    isInitialized = true;
 
     // If site config already exists, assume DB is initialized and exit.
     if (siteConfigSnap.exists()) {
@@ -231,14 +235,13 @@ export const deleteDownloadableDocument = (id: string) => deleteCollectionDoc(DO
 // --- Gallery ---
 function processGalleryItemDataForSave(data: any) {
     const { url, type, columnSpan, ...rest } = data;
-    const convertedUrl = convertGoogleDriveLink(url);
     const processedData: any = { ...rest, type, columnSpan: parseInt(columnSpan, 10) };
     if (type === 'image') {
-        processedData.imageUrl = convertedUrl;
+        processedData.imageUrl = url;
         processedData.videoUrl = null;
     } else {
         processedData.imageUrl = null;
-        processedData.videoUrl = convertedUrl;
+        processedData.videoUrl = url;
     }
     return processedData;
 }
