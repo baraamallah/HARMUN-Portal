@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Download, Upload, Settings, Trash2, Library, Globe, Users, GalleryHorizontal, type LucideIcon } from "lucide-react";
+import { Download, Upload, Settings, Trash2, Library, Globe, Users, GalleryHorizontal } from "lucide-react";
 import * as firebaseService from "@/lib/firebase-service";
 import type * as T from "@/lib/types";
 import { Switch } from "@/components/ui/switch";
@@ -365,7 +365,7 @@ export default function SettingsTab() {
                     <h3 className="font-semibold flex items-center gap-2"><GalleryHorizontal/> Gallery</h3>
                     <Button onClick={() => handleExport(data.galleryItems, 'gallery.csv')} className="w-full">Export to CSV</Button>
                     <div className="border-t pt-2 mt-2"><h4 className="font-semibold mb-2">Import</h4>
-                        <p className="text-xs text-muted-foreground mb-2">CSV must have columns: title, url, type (image/video), display (default/square/circle), order.</p>
+                        <p className="text-xs text-muted-foreground mb-2">CSV must have columns: title, url, type (image/video), display, columnSpan, order.</p>
                         <div className="flex gap-2"><Input id="galleryImportFile" type="file" accept=".csv" onChange={handleFileChange(setGalleryImportFile)}/>
                         <Button onClick={() => handleImport(galleryImportFile, firebaseService.importGallery, 'gallery')} disabled={!galleryImportFile || isImporting}><Upload/></Button></div>
                     </div>
