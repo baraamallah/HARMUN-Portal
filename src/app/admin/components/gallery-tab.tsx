@@ -9,7 +9,6 @@ import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { FileText, GalleryHorizontal, Wand2 } from "lucide-react";
@@ -17,13 +16,14 @@ import * as firebaseService from "@/lib/firebase-service";
 import type * as T from "@/lib/types";
 import { convertGoogleDriveLink } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 const galleryPageContentSchema = z.object({ title: z.string().min(5), subtitle: z.string().min(10) });
 
 const galleryItemSchema = z.object({
     title: z.string().min(2, "Title is required."),
     type: z.enum(["image", "video"], { required_error: "Please select a media type." }),
-    display: z.enum(["default", "square", "circle", "tall", "wide"], { required_error: "Please select a display style." }),
+    display: z.enum(['16:9', '4:3', '1:1', '3:4', '9:16', '2:3', 'circle'], { required_error: "Please select a display style." }),
     url: z.string().url("Must be a valid URL.").min(1, "URL is required."),
 });
 
@@ -61,15 +61,17 @@ function GalleryItemForm({ item, onSave, onDelete }: { item: T.GalleryItem; onSa
                     )} />
                      <FormField control={form.control} name="display" render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Display Style</FormLabel>
+                            <FormLabel>Aspect Ratio</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl><SelectTrigger><SelectValue placeholder="Select style..." /></SelectTrigger></FormControl>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Select ratio..." /></SelectTrigger></FormControl>
                                 <SelectContent>
-                                    <SelectItem value="default">Default</SelectItem>
-                                    <SelectItem value="square">Square</SelectItem>
+                                    <SelectItem value="16:9">16:9 (Landscape)</SelectItem>
+                                    <SelectItem value="4:3">4:3 (Standard)</SelectItem>
+                                    <SelectItem value="1:1">1:1 (Square)</SelectItem>
+                                    <SelectItem value="3:4">3:4 (Portrait)</SelectItem>
+                                    <SelectItem value="9:16">9:16 (Tall)</SelectItem>
+                                    <SelectItem value="2:3">2:3 (Classic Portrait)</SelectItem>
                                     <SelectItem value="circle">Circle</SelectItem>
-                                    <SelectItem value="tall">Tall</SelectItem>
-                                    <SelectItem value="wide">Wide</SelectItem>
                                 </SelectContent>
                             </Select>
                             <FormMessage />
@@ -96,7 +98,7 @@ function GalleryItemForm({ item, onSave, onDelete }: { item: T.GalleryItem; onSa
 function AddGalleryItemForm({ onAdd }: { onAdd: (data: any, form: any) => Promise<void> }) {
     const form = useForm<z.infer<typeof galleryItemSchema>>({ 
         resolver: zodResolver(galleryItemSchema), 
-        defaultValues: { title: '', url: '', type: 'image', display: 'default' } 
+        defaultValues: { title: '', url: '', type: 'image', display: '4:3' } 
     });
     const itemType = form.watch("type");
 
@@ -123,15 +125,17 @@ function AddGalleryItemForm({ onAdd }: { onAdd: (data: any, form: any) => Promis
             )} />
              <FormField control={form.control} name="display" render={({ field }) => (
                 <FormItem>
-                    <FormLabel>Display Style</FormLabel>
+                    <FormLabel>Aspect Ratio</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Select style..." /></SelectTrigger></FormControl>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select ratio..." /></SelectTrigger></FormControl>
                         <SelectContent>
-                            <SelectItem value="default">Default</SelectItem>
-                            <SelectItem value="square">Square</SelectItem>
+                            <SelectItem value="16:9">16:9 (Landscape)</SelectItem>
+                            <SelectItem value="4:3">4:3 (Standard)</SelectItem>
+                            <SelectItem value="1:1">1:1 (Square)</SelectItem>
+                            <SelectItem value="3:4">3:4 (Portrait)</SelectItem>
+                            <SelectItem value="9:16">9:16 (Tall)</SelectItem>
+                            <SelectItem value="2:3">2:3 (Classic Portrait)</SelectItem>
                             <SelectItem value="circle">Circle</SelectItem>
-                            <SelectItem value="tall">Tall</SelectItem>
-                            <SelectItem value="wide">Wide</SelectItem>
                         </SelectContent>
                     </Select>
                     <FormMessage />
@@ -194,5 +198,3 @@ export default function GalleryTab({ data, handleAddItem, handleUpdateItem, hand
         </Accordion>
     );
 }
-
-    

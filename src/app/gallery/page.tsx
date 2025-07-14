@@ -11,12 +11,16 @@ export const dynamic = 'force-dynamic';
 
 function GalleryMedia({ item }: { item: GalleryItem }) {
     const itemContainerClasses = cn(
-        "break-inside-avoid relative group overflow-hidden cursor-pointer w-full rounded-lg",
+        "relative group overflow-hidden cursor-pointer w-full rounded-lg",
+        "break-inside-avoid mb-4", // Added for better masonry layout
         {
-            'aspect-square': item.display === 'square' || item.display === 'circle',
+            'aspect-video': item.display === '16:9',
+            'aspect-[4/3]': item.display === '4:3',
+            'aspect-square': item.display === '1:1' || item.display === 'circle',
+            'aspect-[3/4]': item.display === '3:4',
+            'aspect-[9/16]': item.display === '9:16',
+            'aspect-[2/3]': item.display === '2:3',
             'rounded-full': item.display === 'circle',
-            'aspect-[9/16]': item.display === 'tall',
-            'md:col-span-2': item.display === 'wide',
         }
     );
 
@@ -27,7 +31,7 @@ function GalleryMedia({ item }: { item: GalleryItem }) {
                     <Video className="w-12 h-12 text-white" />
                 </div>
                  <video
-                    src={item.videoUrl}
+                    src={item.videoUrl || ''}
                     className="w-full h-full object-cover"
                     playsInline
                     muted
@@ -89,9 +93,9 @@ export default async function GalleryPage() {
             </div>
             
             {items.length > 0 ? (
-                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                 <div className="columns-2 md:columns-3 lg:columns-4 gap-4">
                     {items.map((item, index) => (
-                        <div key={item.id} className={cn("animate-fade-in-up", {'md:col-span-2': item.display === 'wide'})} style={{ animationDelay: `${index * 100}ms`}}>
+                        <div key={item.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 100}ms`}}>
                            <GalleryMedia item={item} />
                         </div>
                     ))}
@@ -104,5 +108,3 @@ export default async function GalleryPage() {
         </div>
     );
 }
-
-    

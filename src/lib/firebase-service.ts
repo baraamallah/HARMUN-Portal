@@ -96,8 +96,8 @@ export async function initializeDefaultData() {
             { dayId: 'day1', time: '2:00 PM - 5:00 PM', title: 'Delegate Registration', description: 'Pick up your credentials and welcome packet.', location: 'Main Hall', order: 1 },
         ],
         [GALLERY_COLLECTION]: [
-            { title: 'Opening Ceremony', imageUrl: 'https://placehold.co/600x400.png', videoUrl: null, type: 'image', display: 'default', order: 1 },
-            { title: 'Debate in Session', imageUrl: 'https://placehold.co/400x600.png', videoUrl: null, type: 'image', display: 'default', order: 2 },
+            { title: 'Opening Ceremony', imageUrl: 'https://placehold.co/600x400.png', videoUrl: null, type: 'image', display: '16:9', order: 1 },
+            { title: 'Debate in Session', imageUrl: 'https://placehold.co/400x600.png', videoUrl: null, type: 'image', display: '2:3', order: 2 },
         ],
     };
 
@@ -413,7 +413,7 @@ const galleryTransformer = (row: any): Omit<GalleryItem, 'id'> => {
     return {
         title: row.title || '',
         type,
-        display: row.display || 'default',
+        display: row.display || '4:3',
         imageUrl: type === 'image' ? convertGoogleDriveLink(url) : null,
         videoUrl: type === 'video' ? url : null,
         order: parseInt(row.order, 10) || 0,
@@ -434,7 +434,3 @@ async function clearCollection(collectionPath: string) {
     querySnapshot.docs.forEach(docSnapshot => batch.delete(docSnapshot.ref));
     await batch.commit();
 }
-
-    
-
-    
