@@ -248,25 +248,26 @@ export default function GalleryTab() {
     const [hasReordered, setHasReordered] = useState(false);
     const sensors = useSensors(useSensor(PointerSensor));
 
-    useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const [galleryContent, items] = await Promise.all([
-                    firebaseService.getGalleryPageContent(),
-                    firebaseService.getGalleryItems()
-                ]);
-                setData({ galleryContent, galleryItems: items });
-            } catch (error) {
-                console.error("Failed to fetch gallery data:", error);
-                toast({ title: "Error", description: `Could not load gallery data.`, variant: "destructive" });
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
-        setHasReordered(false);
+    const loadData = React.useCallback(async () => {
+        setLoading(true);
+        try {
+            const [content, items] = await Promise.all([
+                firebaseService.getGalleryPageContent(),
+                firebaseService.getGalleryItems()
+            ]);
+            setData({ galleryContent: content, galleryItems: items });
+            setHasReordered(false);
+        } catch (error) {
+            console.error("Failed to fetch gallery data:", error);
+            toast({ title: "Error", description: `Could not load gallery data.`, variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
     }, [toast]);
+    
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
     
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
@@ -285,8 +286,8 @@ export default function GalleryTab() {
     const handleSaveOrder = async () => {
         try {
             await firebaseService.updateGalleryItemsOrder(data.galleryItems);
+            await loadData();
             toast({ title: "Success!", description: "Gallery order has been updated." });
-            setHasReordered(false);
         } catch (error) {
             toast({ title: "Error", description: `Could not save order. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
         }
@@ -295,7 +296,7 @@ export default function GalleryTab() {
     const handleFormSubmit = async (updateFunction: Function, successMessage: string, formData: any, form: any) => {
         try {
             await updateFunction(formData);
-            setData(prev => ({ ...prev, galleryContent: { ...prev.galleryContent, ...formData } }));
+            await loadData();
             toast({ title: "Success!", description: successMessage });
             form.reset(formData);
         } catch (error) {
@@ -306,10 +307,9 @@ export default function GalleryTab() {
     const handleUpdateItem = async (updateFunction: Function, id: string, itemData: any, message: string, form?: any) => {
         try {
             await updateFunction(id, itemData);
-            const updatedItem = await firebaseService.getDocById("galleryItems", id);
             setData(prev => ({
                 ...prev,
-                galleryItems: prev.galleryItems.map(item => item.id === id ? updatedItem : item)
+                galleryItems: prev.galleryItems.map(item => item.id === id ? { ...item, ...itemData } : item)
             }));
             toast({ title: "Success!", description: message });
         } catch (error) {
