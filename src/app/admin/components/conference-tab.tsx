@@ -20,7 +20,6 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { convertGoogleDriveLink } from "@/lib/utils";
 
 const scheduleEventSchema = z.object({
     time: z.string().min(1, "Time is required."),
@@ -79,6 +78,7 @@ function AddCountryForm({ committees, onAdd }: { committees: T.Committee[]; onAd
 
 function AddCommitteeForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
     const form = useForm({ defaultValues: { name: '', chairName: '', chairBio: '', chairImageUrl: '', topics: '', backgroundGuideUrl: '' } });
+    
     return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd(d); form.reset(); })} className="space-y-4">
         <div className="grid md:grid-cols-2 gap-4">
             <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Committee Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
@@ -170,7 +170,7 @@ export default function ConferenceTab() {
                             chair: { 
                                 name: values.chairName, 
                                 bio: values.chairBio || "", 
-                                imageUrl: convertGoogleDriveLink(values.chairImageUrl || "")
+                                imageUrl: values.chairImageUrl || ""
                             },
                             topics: (values.topics || "").split('\n').filter(Boolean), 
                             backgroundGuideUrl: values.backgroundGuideUrl || "",
@@ -268,5 +268,3 @@ export default function ConferenceTab() {
         </Accordion>
     );
 }
-
-    

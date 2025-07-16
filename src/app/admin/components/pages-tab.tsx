@@ -17,7 +17,6 @@ import * as firebaseService from "@/lib/firebase-service";
 import type * as T from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { convertGoogleDriveLink } from "@/lib/utils";
 
 const homePageContentSchema = z.object({
     heroTitle: z.string().min(5),
@@ -143,8 +142,6 @@ export default function PagesTab() {
     const handleFormSubmit = async (updateFunction: Function, stateKey: string, successMessage: string, formData: any, form: any) => {
         try {
             const payload = { ...formData };
-            if (payload.heroImageUrl) payload.heroImageUrl = convertGoogleDriveLink(payload.heroImageUrl);
-            if (payload.imageUrl) payload.imageUrl = convertGoogleDriveLink(payload.imageUrl);
             
             await updateFunction(payload);
             setData(prev => ({...prev, [stateKey]: {...prev[stateKey], ...payload}}))
@@ -294,5 +291,3 @@ export default function PagesTab() {
         </Accordion>
     );
 }
-
-    

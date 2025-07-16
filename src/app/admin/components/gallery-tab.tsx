@@ -32,7 +32,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { convertGoogleDriveLink } from "@/lib/utils";
 
 const galleryPageContentSchema = z.object({ title: z.string().min(5), subtitle: z.string().min(10) });
 
@@ -196,7 +195,7 @@ function AddGalleryItemForm({ onAdd }: { onAdd: (data: any, form: any) => Promis
             <FormItem>
                 <FormLabel>{itemType === 'video' ? "Video URL" : "Image URL"}</FormLabel>
                 <FormControl><Input {...field} /></FormControl>
-                <FormDescription>Provide a direct URL for the image or video.</FormDescription>
+                <FormDescription>Provide a direct image link.</FormDescription>
                 <FormMessage />
             </FormItem>
         )} />
@@ -264,10 +263,7 @@ export default function GalleryTab() {
 
     const handleFormSubmit = async (updateFunction: Function, successMessage: string, formData: any, form: any) => {
         try {
-            const payload = {
-                ...formData,
-                imageUrl: convertGoogleDriveLink(formData.imageUrl),
-            };
+            const payload = { ...formData };
             await updateFunction(payload);
             setData(prev => ({ ...prev, galleryContent: { ...prev.galleryContent, ...payload } }));
             toast({ title: "Success!", description: successMessage });
@@ -370,5 +366,3 @@ export default function GalleryTab() {
         </Accordion>
     );
 }
-
-    
