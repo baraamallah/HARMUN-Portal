@@ -162,10 +162,10 @@ export default function PagesTab() {
     
     useEffect(() => { loadData(); }, [loadData]);
     
-    const homeForm = useForm<z.infer<typeof homePageContentSchema>>({ resolver: zodResolver(homePageContentSchema), defaultValues: data.homeContent || {} });
-    const aboutForm = useForm<z.infer<typeof aboutPageContentSchema>>({ resolver: zodResolver(aboutPageContentSchema), defaultValues: data.aboutContent || {} });
-    const registrationForm = useForm<z.infer<typeof registrationPageContentSchema>>({ resolver: zodResolver(registrationPageContentSchema), defaultValues: data.registrationContent || {} });
-    const documentsForm = useForm<z.infer<typeof documentsPageContentSchema>>({ resolver: zodResolver(documentsPageContentSchema), defaultValues: data.documentsContent || {} });
+    const homeForm = useForm<z.infer<typeof homePageContentSchema>>({ resolver: zodResolver(homePageContentSchema), defaultValues: { heroTitle: "", heroSubtitle: "", heroImageUrl: "" } });
+    const aboutForm = useForm<z.infer<typeof aboutPageContentSchema>>({ resolver: zodResolver(aboutPageContentSchema), defaultValues: { title: "", subtitle: "", imageUrl: "", whatIsTitle: "", whatIsPara1: "", whatIsPara2: "", storyTitle: "", storyPara1: "", storyPara2: "" } });
+    const registrationForm = useForm<z.infer<typeof registrationPageContentSchema>>({ resolver: zodResolver(registrationPageContentSchema), defaultValues: { title: "", subtitle: "" } });
+    const documentsForm = useForm<z.infer<typeof documentsPageContentSchema>>({ resolver: zodResolver(documentsPageContentSchema), defaultValues: { title: "", subtitle: "" } });
 
     useEffect(() => { if(data.homeContent) homeForm.reset(data.homeContent); }, [data.homeContent, homeForm]);
     useEffect(() => { if(data.aboutContent) aboutForm.reset(data.aboutContent); }, [data.aboutContent, aboutForm]);
