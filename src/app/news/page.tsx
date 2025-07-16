@@ -36,7 +36,7 @@ export default async function NewsPage() {
               </CardContent>
                <CardFooter>
                  <Button variant="link" asChild className="p-0 h-auto">
-                    <Link href="#">
+                    <Link href={`/news/${post.id}`}>
                         Read More <ArrowRight className="w-4 h-4 ml-2"/>
                     </Link>
                  </Button>
@@ -52,3 +52,5 @@ export default async function NewsPage() {
     </div>
   );
 }
+
+    

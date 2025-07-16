@@ -1,17 +1,20 @@
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowRight, Library, Calendar } from 'lucide-react';
-import { getHomePageContent, getRecentGalleryItems, getSiteConfig } from '@/lib/firebase-service';
+import { getHomePageContent, getHighlights, getRecentGalleryItems, getSiteConfig } from '@/lib/firebase-service';
 import { cn } from '@/lib/utils';
 import { Countdown } from '@/components/countdown';
+import { createDynamicIcon } from '@/components/dynamic-icon';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const [content, recentItems, siteConfig] = await Promise.all([
+  const [content, highlights, recentItems, siteConfig] = await Promise.all([
     getHomePageContent(),
+    getHighlights(),
     getRecentGalleryItems(3),
     getSiteConfig()
   ]);
@@ -45,6 +48,23 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {/* Highlights Section */}
+        {highlights.length > 0 && (
+            <section className="bg-secondary/50 py-16 md:py-20 border-b">
+                <div className="container mx-auto px-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-center">
+                        {highlights.map((highlight, index) => (
+                             <div key={highlight.id} className="flex flex-col items-center animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
+                                {createDynamicIcon(highlight.icon, "w-10 h-10 mb-3 text-primary")}
+                                <h3 className="text-xl font-bold">{highlight.title}</h3>
+                                <p className="text-muted-foreground mt-1">{highlight.description}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+        )}
 
       {/* Countdown Section */}
       <section className="bg-background py-16 md:py-20 border-b">
@@ -129,3 +149,5 @@ export default async function Home() {
     </div>
   );
 }
+
+    

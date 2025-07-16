@@ -50,6 +50,7 @@ export type SiteConfig = {
   socialLinks: SocialLink[];
   footerText: string;
   mapEmbedUrl: string;
+  sgAvatarUrl: string;
   navVisibility?: Record<string, boolean>;
 };
 
@@ -75,6 +76,7 @@ export type AboutPageContent = {
   whatIsPara1: string;
   whatIsPara2: string;
   storyTitle: string;
+  storyImageUrl: string;
   storyPara1: string;
   storyPara2: string;
 };
@@ -120,3 +122,5 @@ export type Post = {
   type: 'sg-note' | 'news';
   createdAt: Timestamp;
 };
+
+    

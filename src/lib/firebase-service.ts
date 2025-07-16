@@ -1,3 +1,4 @@
+
 import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc, writeBatch, documentId, runTransaction, limit } from 'firebase/firestore';
 import { db } from './firebase';
 import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, DownloadableDocument, ConferenceHighlight, GalleryPageContent, GalleryItem } from './types';
@@ -55,11 +56,13 @@ async function initializeDefaultData() {
                 whatIsPara1: "Model United Nations is an academic simulation of the United Nations where students play the role of delegates from different countries and attempt to solve real world issues with the policies and perspectives of their assigned country.",
                 whatIsPara2: "Participants learn about diplomacy, international relations, and the United Nations. Delegates are placed in committees and assigned countries, research topics, and formulate positions to debate with their peers, staying true to the actual position of the country they represent.",
                 storyTitle: "The Story of HARMUN",
+                storyImageUrl: "https://placehold.co/800x600.png",
                 storyPara1: "Harvard Model United Nations (HARMUN) was founded in 1953, only a few years after the creation of the United Nations itself. It was conceived as a platform to educate the next generation of leaders about the complexities of international affairs and the importance of diplomacy. From its humble beginnings, HARMUN has grown into one of the largest, oldest, and most prestigious conferences of its kind in the world.",
                 storyPara2: "Each year, HARMUN brings together over 3,000 high school students from across the globe to our campus in Cambridge. Our mission is to provide a dynamic and engaging educational experience that promotes a deeper understanding of the world, fosters a spirit of collaboration, and inspires a commitment to global citizenship. The conference is entirely run by Harvard undergraduates who are passionate about international relations and dedicated to creating a memorable and impactful experience for every delegate.",
             },
             [SITE_CONFIG_DOC_ID]: {
                 conferenceDate: '2025-01-30T09:00:00',
+                sgAvatarUrl: "https://placehold.co/400x400.png",
                 socialLinks: [
                     { platform: 'Twitter', url: '#' },
                     { platform: 'Instagram', url: '#' },
@@ -85,6 +88,7 @@ async function initializeDefaultData() {
         [HIGHLIGHTS_COLLECTION]: [
             { icon: 'Calendar', title: 'Conference Dates', description: 'January 30 - February 2, 2025', order: 1 },
             { icon: 'MapPin', title: 'Location', description: 'Harvard University, Cambridge, MA', order: 2 },
+            { icon: 'Users', title: 'Delegates', description: 'Over 3,000 students from 50+ countries', order: 3 },
         ],
         [DOCUMENTS_COLLECTION]: [
             { title: 'Conference Handbook', description: 'The official guide to rules, procedures, and conference etiquette.', url: '#', order: 1 },
@@ -180,6 +184,9 @@ export const updateAboutPageContent = (content: Partial<AboutPageContent>) => {
     if (payload.imageUrl) {
         payload.imageUrl = convertGoogleDriveLink(payload.imageUrl);
     }
+    if (payload.storyImageUrl) {
+        payload.storyImageUrl = convertGoogleDriveLink(payload.storyImageUrl);
+    }
     return updateConfigDoc(ABOUT_PAGE_CONTENT_DOC_ID, payload);
 }
 
@@ -190,7 +197,13 @@ export const getDocumentsPageContent = () => getConfigDoc<DocumentsPageContent>(
 export const updateDocumentsPageContent = (content: Partial<DocumentsPageContent>) => updateConfigDoc(DOCUMENTS_PAGE_CONTENT_DOC_ID, content);
 
 export const getSiteConfig = () => getConfigDoc<SiteConfig>(SITE_CONFIG_DOC_ID, { socialLinks: [] } as SiteConfig);
-export const updateSiteConfig = (config: Partial<SiteConfig>) => updateConfigDoc(SITE_CONFIG_DOC_ID, config);
+export const updateSiteConfig = (config: Partial<SiteConfig>) => {
+    const payload = { ...config };
+    if (payload.sgAvatarUrl) {
+        payload.sgAvatarUrl = convertGoogleDriveLink(payload.sgAvatarUrl);
+    }
+    return updateConfigDoc(SITE_CONFIG_DOC_ID, payload)
+};
 
 export const getGalleryPageContent = () => getConfigDoc<GalleryPageContent>(GALLERY_PAGE_CONTENT_DOC_ID, {} as GalleryPageContent);
 export const updateGalleryPageContent = (content: Partial<GalleryPageContent>) => updateConfigDoc(GALLERY_PAGE_CONTENT_DOC_ID, content);
@@ -412,3 +425,5 @@ async function clearCollection(collectionPath: string) {
     querySnapshot.docs.forEach(docSnapshot => batch.delete(docSnapshot.ref));
     await batch.commit();
 }
+
+    

@@ -50,7 +50,7 @@ export default async function AboutPage() {
                 </div>
                 <div className="relative h-80 md:h-96 rounded-lg overflow-hidden shadow-xl md:order-1 group">
                     <Image
-                        src="https://placehold.co/800x600.png"
+                        src={content.storyImageUrl}
                         alt="Harvard campus building"
                         fill
                         sizes="(max-width: 768px) 100vw, 50vw"
@@ -65,3 +65,5 @@ export default async function AboutPage() {
     </div>
   );
 }
+
+    

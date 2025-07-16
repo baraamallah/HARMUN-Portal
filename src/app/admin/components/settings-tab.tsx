@@ -28,6 +28,7 @@ const navLinksForAdmin = [
 
 const generalSettingsSchema = z.object({
   conferenceDate: z.string().min(1),
+  sgAvatarUrl: z.string().url(),
   mapEmbedUrl: z.string().url(),
   footerText: z.string().min(5),
 });
@@ -264,6 +265,7 @@ export default function SettingsTab() {
                 <Form {...generalSettingsForm}>
                     <form onSubmit={generalSettingsForm.handleSubmit(d => handleAction(firebaseService.updateSiteConfig(d), "General settings updated."))} className="space-y-4">
                         <FormField control={generalSettingsForm.control} name="conferenceDate" render={({ field }) => (<FormItem><FormLabel>Countdown Date</FormLabel><FormControl><Input {...field} /></FormControl><p className="text-xs text-muted-foreground">Format: YYYY-MM-DDTHH:mm:ss</p></FormItem>)} />
+                        <FormField control={generalSettingsForm.control} name="sgAvatarUrl" render={({ field }) => (<FormItem><FormLabel>Secretary-General Avatar URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
                         <FormField control={generalSettingsForm.control} name="mapEmbedUrl" render={({ field }) => (<FormItem><FormLabel>Google Maps Embed URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
                         <FormField control={generalSettingsForm.control} name="footerText" render={({ field }) => (<FormItem><FormLabel>Footer Text</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>)} />
                         <Button type="submit">Save General Settings</Button>
@@ -341,3 +343,5 @@ export default function SettingsTab() {
         </div>
     );
 }
+
+    

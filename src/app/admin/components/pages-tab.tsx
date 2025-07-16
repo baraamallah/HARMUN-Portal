@@ -25,6 +25,7 @@ const homePageContentSchema = z.object({
 });
 const aboutPageContentSchema = z.object({
     title: z.string().min(5), subtitle: z.string().min(10), imageUrl: z.string().url(),
+    storyImageUrl: z.string().url(),
     whatIsTitle: z.string().min(5), whatIsPara1: z.string().min(20), whatIsPara2: z.string().min(20),
     storyTitle: z.string().min(5), storyPara1: z.string().min(20), storyPara2: z.string().min(20),
 });
@@ -163,7 +164,7 @@ export default function PagesTab() {
     useEffect(() => { loadData(); }, [loadData]);
     
     const homeForm = useForm<z.infer<typeof homePageContentSchema>>({ resolver: zodResolver(homePageContentSchema), defaultValues: { heroTitle: "", heroSubtitle: "", heroImageUrl: "" } });
-    const aboutForm = useForm<z.infer<typeof aboutPageContentSchema>>({ resolver: zodResolver(aboutPageContentSchema), defaultValues: { title: "", subtitle: "", imageUrl: "", whatIsTitle: "", whatIsPara1: "", whatIsPara2: "", storyTitle: "", storyPara1: "", storyPara2: "" } });
+    const aboutForm = useForm<z.infer<typeof aboutPageContentSchema>>({ resolver: zodResolver(aboutPageContentSchema), defaultValues: { title: "", subtitle: "", imageUrl: "", whatIsTitle: "", whatIsPara1: "", whatIsPara2: "", storyTitle: "", storyPara1: "", storyPara2: "", storyImageUrl: "" } });
     const registrationForm = useForm<z.infer<typeof registrationPageContentSchema>>({ resolver: zodResolver(registrationPageContentSchema), defaultValues: { title: "", subtitle: "" } });
     const documentsForm = useForm<z.infer<typeof documentsPageContentSchema>>({ resolver: zodResolver(documentsPageContentSchema), defaultValues: { title: "", subtitle: "" } });
 
@@ -231,7 +232,7 @@ export default function PagesTab() {
                         <h4 className="font-semibold">Main Content</h4>
                         <div className="grid md:grid-cols-2 gap-4">
                             <FormField control={aboutForm.control} name="title" render={({ field }) => (<FormItem><FormLabel>Page Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={aboutForm.control} name="imageUrl" render={({ field }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={aboutForm.control} name="imageUrl" render={({ field }) => (<FormItem><FormLabel>Top Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                         </div>
                          <FormField control={aboutForm.control} name="subtitle" render={({ field }) => (<FormItem><FormLabel>Page Subtitle</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>)} />
                     </div>
@@ -247,7 +248,10 @@ export default function PagesTab() {
                       <Separator />
                      <div className="space-y-4">
                          <h4 className="font-semibold">Story of HARMUN Section</h4>
-                         <FormField control={aboutForm.control} name="storyTitle" render={({ field }) => (<FormItem><FormLabel>Section Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <FormField control={aboutForm.control} name="storyTitle" render={({ field }) => (<FormItem><FormLabel>Section Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={aboutForm.control} name="storyImageUrl" render={({ field }) => (<FormItem><FormLabel>Story Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                         </div>
                          <div className="grid md:grid-cols-2 gap-4">
                              <FormField control={aboutForm.control} name="storyPara1" render={({ field }) => (<FormItem><FormLabel>Paragraph 1</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
                              <FormField control={aboutForm.control} name="storyPara2" render={({ field }) => (<FormItem><FormLabel>Paragraph 2</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
@@ -288,3 +292,5 @@ export default function PagesTab() {
         </div>
     );
 }
+
+    
