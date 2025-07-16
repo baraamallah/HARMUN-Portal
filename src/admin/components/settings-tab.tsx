@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Papa from "papaparse";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -54,7 +54,7 @@ const navVisibilitySchema = z.object({
 
 const availablePlatforms = ['Twitter', 'Instagram', 'Facebook', 'Linkedin', 'Youtube', 'Tiktok'];
 
-function AddSocialLinkForm({ onAdd, existingPlatforms }: { onAdd: (link: T.SocialLink) => void; existingPlatforms: string[] }) {
+function AddSocialLinkForm({ onAdd, existingPlatforms }: { onAdd: (link: Partial<T.SocialLink>) => void; existingPlatforms: string[] }) {
     const form = useForm<z.infer<typeof socialLinkItemSchema>>({
         resolver: zodResolver(socialLinkItemSchema),
         defaultValues: { platform: '', url: '' },
@@ -133,7 +133,7 @@ export default function SettingsTab() {
         name: "socialLinks",
     });
 
-    const loadData = React.useCallback(async () => {
+    const loadData = useCallback(async () => {
         setLoading(true);
         try {
             const [siteConfig, committees, countries, gallery] = await Promise.all([
@@ -154,17 +154,14 @@ export default function SettingsTab() {
         }
     }, [toast, generalSettingsForm, replaceSocialLinks, navVisibilityForm]);
 
-    React.useEffect(() => {
-        loadData();
-    }, [loadData]);
+    useEffect(() => { loadData(); }, [loadData]);
 
 
-    const handleFormSubmit = async (updateFunction: Function, formValues: any, form: any) => {
+    const handleFormSubmit = async (updateFunction: Function, formValues: any) => {
         try {
             await updateFunction(formValues);
-            setData(prev => ({...prev, siteConfig: {...prev.siteConfig, ...formValues}}));
+            await loadData(); // Reload all data to reflect changes
             toast({ title: "Success!", description: "Settings updated." });
-            form.reset(formValues);
         } catch (error) {
             toast({ title: "Error", description: `Could not save data. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
         }
@@ -194,9 +191,9 @@ export default function SettingsTab() {
                     toast({ title: "Import Failed", description: error instanceof Error ? error.message : "An unknown error occurred.", variant: "destructive" });
                 } finally {
                     setIsImporting(false);
-                    setCommitteeImportFile(null); setCountryImportFile(null); setGalleryImportFile(null);
                     const fileInput = document.getElementById(`${type}ImportFile`) as HTMLInputElement;
                     if (fileInput) fileInput.value = '';
+                    setCommitteeImportFile(null); setCountryImportFile(null); setGalleryImportFile(null);
                 }
             },
             error: (err) => {
@@ -252,7 +249,7 @@ export default function SettingsTab() {
                 <CardContent>
                     <Form {...generalSettingsForm}>
                         <form onSubmit={generalSettingsForm.handleSubmit(async (values) => {
-                            await handleFormSubmit(firebaseService.updateSiteConfig, values, generalSettingsForm);
+                            await handleFormSubmit(firebaseService.updateSiteConfig, values);
                         })} className="space-y-4">
                             <FormField control={generalSettingsForm.control} name="conferenceDate" render={({ field }) => (<FormItem><FormLabel>Countdown Date</FormLabel><FormControl><Input {...field} /></FormControl><p className="text-xs text-muted-foreground">Format: YYYY-MM-DDTHH:mm:ss</p></FormItem>)} />
                             <FormField control={generalSettingsForm.control} name="mapEmbedUrl" render={({ field }) => (<FormItem><FormLabel>Google Maps Embed URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
@@ -266,10 +263,7 @@ export default function SettingsTab() {
                 <CardContent>
                     <Form {...socialLinksForm}>
                         <form onSubmit={socialLinksForm.handleSubmit(async (values) => {
-                            await handleFormSubmit(firebaseService.updateSiteConfig, values, socialLinksForm);
-                            const siteConfig = await firebaseService.getSiteConfig();
-                            setData((p: any) => ({...p, siteConfig}));
-
+                            await handleFormSubmit(firebaseService.updateSiteConfig, values);
                         })} className="space-y-4">
                             {socialLinkFields.map((field, index) => (
                                 <div key={field.id} className="flex items-end gap-2 p-2 border rounded-md">
@@ -309,7 +303,7 @@ export default function SettingsTab() {
                 <CardContent>
                     <Form {...navVisibilityForm}>
                         <form onSubmit={navVisibilityForm.handleSubmit(async (values) => {
-                             await handleFormSubmit(firebaseService.updateSiteConfig, values, navVisibilityForm);
+                             await handleFormSubmit(firebaseService.updateSiteConfig, values);
                         })} className="space-y-2">
                             {navLinksForAdmin.map((link) => (
                                 <FormField key={link.href} control={navVisibilityForm.control} name={`navVisibility.${link.href}` as const} render={({ field }) => (

@@ -40,6 +40,7 @@ export type Country = {
 };
 
 export type SocialLink = {
+  id?: string;
   platform: string;
   url: string;
 };

@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DndContext, closestCenter, type DragEndEvent, useSensor, PointerSensor, KeyboardSensor } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { arrayMove } from "@dnd-kit/sortable";
 
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -140,7 +141,7 @@ export default function GalleryTab() {
     const sensors = [useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })];
 
 
-    const loadData = React.useCallback(async () => {
+    const loadData = useCallback(async () => {
         setLoading(true);
         try {
             const [content, items] = await Promise.all([
@@ -160,39 +161,35 @@ export default function GalleryTab() {
 
     useEffect(() => { loadData(); }, [loadData]);
     
-    const handlePageContentSave = async (formData: z.infer<typeof galleryPageContentSchema>) => {
+    const handleAction = async (action: Promise<any>, successMessage: string, formToReset?: any) => {
         try {
-            await firebaseService.updateGalleryPageContent(formData);
-            setData(prev => ({ ...prev, content: { ...prev.content, ...formData } as T.GalleryPageContent }));
-            toast({ title: "Success!", description: "Gallery page content updated." });
-        } catch (error) { toast({ title: "Error", description: `Could not save data. ${error instanceof Error ? error.message : ''}`, variant: "destructive" }); }
+            await action;
+            toast({ title: "Success!", description: successMessage });
+            await loadData();
+            if (formToReset) {
+                formToReset.reset();
+            }
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+            toast({ title: "Error", description: `Action failed: ${errorMessage}`, variant: "destructive" });
+        }
     };
-    
+
+    const handlePageContentSave = async (formData: z.infer<typeof galleryPageContentSchema>) => {
+        await handleAction(firebaseService.updateGalleryPageContent(formData), "Gallery page content updated.");
+    };
+
     const handleUpdateItem = async (id: string, itemData: z.infer<typeof galleryItemSchema>) => {
-        try {
-            await firebaseService.updateGalleryItem(id, itemData);
-            setData(p => ({ ...p, items: p.items.map(i => i.id === id ? {...i, ...itemData} : i) }));
-            toast({ title: "Success!", description: "Item updated." });
-        } catch (error) { toast({ title: "Error", description: `Could not save item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" }); }
+        await handleAction(firebaseService.updateGalleryItem(id, itemData), "Gallery item updated.");
     };
 
     const handleDeleteItem = async (id: string) => {
         if (!confirm('Are you sure you want to delete this item?')) return;
-        try {
-            await firebaseService.deleteGalleryItem(id);
-            setData(prev => ({ ...prev, items: prev.items.filter(item => item.id !== id) }));
-            toast({ title: "Success!", description: "Item deleted." });
-        } catch (error) { toast({ title: "Error", description: `Could not delete item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" }); }
+        await handleAction(firebaseService.deleteGalleryItem(id), "Gallery item deleted.");
     };
-    
+
     const handleAddItem = async (addData: any, form: any) => {
-        try {
-            const newId = await firebaseService.addGalleryItem(addData);
-            const newItem = await firebaseService.getDocById('gallery', newId);
-            setData(prev => ({ ...prev, items: [...prev.items, newItem] }));
-            toast({ title: "Success!", description: "Item added!" });
-            if (form) form.reset();
-        } catch (error) { toast({ title: "Error", description: `Could not add item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" }); }
+        await handleAction(firebaseService.addGalleryItem(addData), "Gallery item added!", form);
     };
     
     const handleDragEnd = async (event: DragEndEvent) => {
@@ -200,12 +197,8 @@ export default function GalleryTab() {
         if (over && active.id !== over.id) {
             const oldIndex = data.items.findIndex((item) => item.id === active.id);
             const newIndex = data.items.findIndex((item) => item.id === over.id);
+            const newItems = arrayMove(data.items, oldIndex, newIndex);
             
-            const newItems = Array.from(data.items);
-            const [movedItem] = newItems.splice(oldIndex, 1);
-            newItems.splice(newIndex, 0, movedItem);
-            
-            const originalItems = data.items;
             setData(prev => ({...prev, items: newItems}));
 
             try {
@@ -213,8 +206,7 @@ export default function GalleryTab() {
                 toast({title: "Success", description: "Gallery order updated."});
             } catch (error) {
                 toast({title: "Error", description: "Failed to update order.", variant: "destructive"});
-                // Revert UI on failure
-                setData(prev => ({...prev, items: originalItems}));
+                setData(prev => ({...prev, items: data.items})); // Revert on failure
             }
         }
     };

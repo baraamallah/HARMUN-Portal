@@ -1,53 +1,16 @@
 
-
-"use client";
-
-import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Download, BookOpen } from "lucide-react";
 import { getDocumentsPageContent, getDownloadableDocuments } from '@/lib/firebase-service';
-import type { DocumentsPageContent, DownloadableDocument } from '@/lib/types';
-import { Skeleton } from '@/components/ui/skeleton';
 
-export default function DocumentsPage() {
-    const [content, setContent] = useState<DocumentsPageContent | null>(null);
-    const [documents, setDocuments] = useState<DownloadableDocument[]>([]);
-    const [loading, setLoading] = useState(true);
+export const dynamic = 'force-dynamic';
 
-    useEffect(() => {
-        async function fetchData() {
-            try {
-                const [pageContent, pageDocuments] = await Promise.all([
-                    getDocumentsPageContent(),
-                    getDownloadableDocuments()
-                ]);
-                setContent(pageContent);
-                setDocuments(pageDocuments);
-            } catch (error) {
-                console.error("Failed to load documents page data", error);
-            } finally {
-                setLoading(false);
-            }
-        }
-        fetchData();
-    }, []);
-
-    if (loading) {
-        return (
-            <div className="container mx-auto px-4 py-12 md:py-20">
-                <div className="text-center mb-12">
-                    <Skeleton className="h-12 w-3/4 mx-auto" />
-                    <Skeleton className="h-6 w-1/2 mx-auto mt-4" />
-                </div>
-                 <div className="space-y-4 max-w-4xl mx-auto">
-                    <Skeleton className="h-32 w-full" />
-                    <Skeleton className="h-32 w-full" />
-                    <Skeleton className="h-32 w-full" />
-                 </div>
-            </div>
-        )
-    }
+export default async function DocumentsPage() {
+    const [content, documents] = await Promise.all([
+        getDocumentsPageContent(),
+        getDownloadableDocuments()
+    ]);
 
   return (
     <div className="container mx-auto px-4 py-12 md:py-20">
@@ -62,7 +25,7 @@ export default function DocumentsPage() {
         {documents.length > 0 ? (
           documents.map((doc, index) => (
             <Card key={doc.id} className="animate-fade-in-up transition-all duration-300 hover:border-primary hover:-translate-y-1" style={{ animationDelay: `${index * 150}ms` }}>
-              <div className="flex items-center justify-between p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6">
                 <div className="flex items-center gap-4">
                   <BookOpen className="w-8 h-8 text-primary flex-shrink-0" />
                   <div>
@@ -70,7 +33,7 @@ export default function DocumentsPage() {
                     <p className="text-sm text-muted-foreground mt-1">{doc.description}</p>
                   </div>
                 </div>
-                <Button asChild>
+                <Button asChild className="w-full sm:w-auto flex-shrink-0">
                   <a href={doc.url} target="_blank" rel="noopener noreferrer">
                     <Download className="mr-2 h-4 w-4" />
                     Download

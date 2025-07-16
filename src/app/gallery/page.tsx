@@ -1,13 +1,10 @@
 
-"use client";
-
-import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { Skeleton } from '@/components/ui/skeleton';
 import { getGalleryPageContent, getGalleryItems } from '@/lib/firebase-service';
-import type { GalleryPageContent, GalleryItem } from '@/lib/types';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+
+export const dynamic = 'force-dynamic';
 
 const aspectRatios: Record<string, string> = {
     '1:1': 'aspect-square',
@@ -21,42 +18,11 @@ const colSpans: Record<string, string> = {
     'double': 'md:col-span-2',
 };
 
-export default function GalleryPage() {
-    const [content, setContent] = useState<GalleryPageContent | null>(null);
-    const [items, setItems] = useState<GalleryItem[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        async function fetchData() {
-            try {
-                const [pageContent, pageItems] = await Promise.all([
-                    getGalleryPageContent(),
-                    getGalleryItems()
-                ]);
-                setContent(pageContent);
-                setItems(pageItems);
-            } catch (error) {
-                console.error("Failed to load gallery data", error);
-            } finally {
-                setLoading(false);
-            }
-        }
-        fetchData();
-    }, []);
-
-    if (loading) {
-        return (
-            <div className="container mx-auto px-4 py-12 md:py-20">
-                <div className="text-center mb-12">
-                    <Skeleton className="h-12 w-3/4 mx-auto" />
-                    <Skeleton className="h-6 w-1/2 mx-auto mt-4" />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-64 w-full" />)}
-                </div>
-            </div>
-        );
-    }
+export default async function GalleryPage() {
+    const [content, items] = await Promise.all([
+        getGalleryPageContent(),
+        getGalleryItems()
+    ]);
 
     return (
         <div className="container mx-auto px-4 py-12 md:py-20">
@@ -74,9 +40,9 @@ export default function GalleryPage() {
                             <DialogTrigger asChild>
                                 <div className={cn(
                                     "group relative animate-fade-in-up cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl rounded-lg overflow-hidden",
-                                    colSpans[item.width || 'single']
+                                    colSpans[item.width]
                                     )} style={{ animationDelay: `${index * 100}ms` }}>
-                                    <div className={cn("relative w-full", aspectRatios[item.aspectRatio || '1:1'])}>
+                                    <div className={cn("relative w-full", aspectRatios[item.aspectRatio])}>
                                         <Image src={item.imageUrl} alt={item.title} fill className="object-cover" data-ai-hint="event photo"/>
                                     </div>
                                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity p-4">
@@ -89,7 +55,7 @@ export default function GalleryPage() {
                                     <DialogTitle className="text-2xl">{item.title}</DialogTitle>
                                     {item.description && <DialogDescription className="pt-2">{item.description}</DialogDescription>}
                                 </DialogHeader>
-                                <div className={cn("relative mt-4", aspectRatios[item.aspectRatio || '1:1'])}>
+                                <div className={cn("relative mt-4", aspectRatios[item.aspectRatio])}>
                                      <Image src={item.imageUrl} alt={item.title} fill className="object-contain rounded-md" data-ai-hint="event photo"/>
                                 </div>
                             </DialogContent>
