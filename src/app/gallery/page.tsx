@@ -1,8 +1,8 @@
 
 import Image from 'next/image';
 import { getGalleryPageContent, getGalleryItems } from '@/lib/firebase-service';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { Card, CardContent } from '@/components/ui/card';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,30 +36,18 @@ export default async function GalleryPage() {
             {items.length > 0 ? (
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {items.map((item, index) => (
-                        <Dialog key={item.id}>
-                            <DialogTrigger asChild>
-                                <div className={cn(
-                                    "group relative animate-fade-in-up cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl rounded-lg overflow-hidden",
-                                    colSpans[item.width]
-                                    )} style={{ animationDelay: `${index * 100}ms` }}>
-                                    <div className={cn("relative w-full", aspectRatios[item.aspectRatio])}>
-                                        <Image src={item.imageUrl} alt={item.title} fill className="object-cover" data-ai-hint="event photo"/>
-                                    </div>
-                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity p-4">
-                                        <h3 className="text-white font-bold text-lg text-center">{item.title}</h3>
-                                    </div>
-                                </div>
-                            </DialogTrigger>
-                             <DialogContent className="max-w-3xl">
-                                <DialogHeader>
-                                    <DialogTitle className="text-2xl">{item.title}</DialogTitle>
-                                    {item.description && <DialogDescription className="pt-2">{item.description}</DialogDescription>}
-                                </DialogHeader>
-                                <div className={cn("relative mt-4", aspectRatios[item.aspectRatio])}>
-                                     <Image src={item.imageUrl} alt={item.title} fill className="object-contain rounded-md" data-ai-hint="event photo"/>
-                                </div>
-                            </DialogContent>
-                        </Dialog>
+                        <Card key={item.id} className={cn(
+                            "group animate-fade-in-up overflow-hidden",
+                            colSpans[item.width]
+                            )} style={{ animationDelay: `${index * 100}ms` }}>
+                            <div className={cn("relative w-full overflow-hidden", aspectRatios[item.aspectRatio])}>
+                                <Image src={item.imageUrl} alt={item.title} fill className="object-cover transition-transform duration-500 ease-in-out group-hover:scale-105" data-ai-hint="event photo"/>
+                            </div>
+                           <CardContent className="p-4">
+                                <h3 className="font-bold text-lg">{item.title}</h3>
+                                {item.description && <p className="text-sm text-muted-foreground mt-1">{item.description}</p>}
+                           </CardContent>
+                        </Card>
                     ))}
                 </div>
             ) : (

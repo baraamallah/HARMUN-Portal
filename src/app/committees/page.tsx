@@ -1,9 +1,10 @@
+
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { getCommittees } from '@/lib/firebase-service';
 import type { Committee } from '@/lib/types';
-import { FileText, User } from 'lucide-react';
+import { FileText, User, Mic } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,37 +21,39 @@ export default async function CommitteesPage() {
       </div>
 
       {committees.length > 0 ? (
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
           {committees.map((committee, index) => (
-            <Card key={committee.id} className="flex flex-col animate-fade-in-up transition-all duration-300 hover:border-primary hover:-translate-y-1" style={{ animationDelay: `${index * 150}ms` }}>
+            <Card key={committee.id} className="flex flex-col animate-fade-in-up transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:-translate-y-1" style={{ animationDelay: `${index * 150}ms` }}>
               <CardHeader>
                 <CardTitle className="text-2xl font-headline text-foreground">{committee.name}</CardTitle>
-              </CardHeader>
-              <CardContent className="flex-grow">
-                <div className="flex items-start gap-6">
-                  <div className="flex-shrink-0">
+                <div className="flex items-center gap-3 pt-2">
+                   <div className="flex-shrink-0">
                     <Image
                       src={committee.chair.imageUrl}
                       alt={`Photo of ${committee.chair.name}`}
-                      width={100}
-                      height={100}
-                      className="rounded-full object-cover"
+                      width={64}
+                      height={64}
+                      className="rounded-full object-cover border-2 border-primary/50"
                       data-ai-hint="person portrait"
                     />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-lg flex items-center gap-2"><User className="w-5 h-5 text-primary" />{committee.chair.name} (Chair)</h3>
-                    <p className="text-sm text-muted-foreground mt-1 mb-4">{committee.chair.bio}</p>
-                    {committee.topics.length > 0 && (
-                        <>
-                            <h4 className="font-semibold mb-2">Topics:</h4>
-                            <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                            {committee.topics.map((topic) => <li key={topic}>{topic}</li>)}
-                            </ul>
-                        </>
-                    )}
+                    <h3 className="font-semibold text-lg flex items-center gap-2"><User className="w-5 h-5 text-primary" />{committee.chair.name}</h3>
+                    <p className="text-sm text-muted-foreground">Committee Chair</p>
                   </div>
                 </div>
+              </CardHeader>
+              <CardContent className="flex-grow space-y-4">
+                 <p className="text-sm text-muted-foreground italic leading-relaxed line-clamp-3">"{committee.chair.bio}"</p>
+                
+                {committee.topics.length > 0 && (
+                    <div>
+                        <h4 className="font-semibold mb-2 flex items-center gap-2"><Mic className="w-5 h-5 text-primary" /> Topics of Debate:</h4>
+                        <ul className="list-disc list-inside text-muted-foreground space-y-1 pl-2">
+                        {committee.topics.map((topic) => <li key={topic}>{topic}</li>)}
+                        </ul>
+                    </div>
+                )}
               </CardContent>
               <CardFooter>
                  {committee.backgroundGuideUrl ? (

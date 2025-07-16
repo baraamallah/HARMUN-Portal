@@ -1,7 +1,10 @@
+
 import { getPosts, formatTimestamp } from '@/lib/firebase-service';
 import type { Post } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Calendar, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +23,7 @@ export default async function NewsPage() {
       {newsPosts.length > 0 ? (
         <div className="space-y-8 max-w-4xl mx-auto">
           {newsPosts.map((post: Post, index) => (
-            <Card key={post.id} className="animate-fade-in-up transition-all duration-300 hover:border-primary hover:-translate-y-1" style={{ animationDelay: `${index * 150}ms` }}>
+            <Card key={post.id} className="animate-fade-in-up transition-all duration-300 hover:shadow-lg hover:border-primary/50 flex flex-col" style={{ animationDelay: `${index * 150}ms` }}>
               <CardHeader>
                 <CardTitle className="text-2xl font-headline">{post.title}</CardTitle>
                 <CardDescription className="flex items-center gap-2 pt-2">
@@ -28,9 +31,16 @@ export default async function NewsPage() {
                     {formatTimestamp(post.createdAt)}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground whitespace-pre-wrap">{post.content}</p>
+              <CardContent className="flex-grow">
+                <p className="text-muted-foreground whitespace-pre-wrap line-clamp-3">{post.content}</p>
               </CardContent>
+               <CardFooter>
+                 <Button variant="link" asChild className="p-0 h-auto">
+                    <Link href="#">
+                        Read More <ArrowRight className="w-4 h-4 ml-2"/>
+                    </Link>
+                 </Button>
+              </CardFooter>
             </Card>
           ))}
         </div>

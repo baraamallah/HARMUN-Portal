@@ -95,15 +95,19 @@ export default function DashboardTab() {
                 <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Countries</CardTitle><Globe className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{data.countries?.length || 0}</div><p className="text-xs text-muted-foreground">Registered in matrix</p></CardContent></Card>
                 <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Committees</CardTitle><Library className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{data.committees?.length || 0}</div><p className="text-xs text-muted-foreground">Available for registration</p></CardContent></Card>
             </div>
-            <Card>
-                <CardHeader><CardTitle>Create & Manage Posts</CardTitle><CardDescription>Publish news articles or notes from the Secretary-General.</CardDescription></CardHeader>
-                <CardContent>
-                    <div className="grid md:grid-cols-5 gap-8">
-                        <div className="md:col-span-2">
+            <div className="grid md:grid-cols-5 gap-8">
+                <div className="md:col-span-2">
+                    <Card>
+                        <CardHeader><CardTitle>Create Post</CardTitle><CardDescription>Publish news or SG notes.</CardDescription></CardHeader>
+                        <CardContent>
                              <CreatePostForm onAdd={(postData, form) => handleAction(firebaseService.addPost(postData), "Post created!", form)} />
-                        </div>
-                        <div className="md:col-span-3">
-                            <h3 className="text-lg font-semibold mb-4">Published Posts</h3>
+                        </CardContent>
+                    </Card>
+                </div>
+                <div className="md:col-span-3">
+                     <Card>
+                        <CardHeader><CardTitle>Published Posts</CardTitle><CardDescription>View and manage all published content.</CardDescription></CardHeader>
+                        <CardContent>
                             <div className="border rounded-md max-h-96 overflow-y-auto">
                                 <Table>
                                     <TableHeader><TableRow><TableHead>Title</TableHead><TableHead>Type</TableHead><TableHead>Date</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader>
@@ -119,10 +123,10 @@ export default function DashboardTab() {
                                     </TableBody>
                                 </Table>
                             </div>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
         </div>
     );
 }
