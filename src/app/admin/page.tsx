@@ -7,8 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardTab from './components/dashboard-tab';
 import PagesTab from './components/pages-tab';
 import ConferenceTab from './components/conference-tab';
-import TeamTab from './components/team-tab';
-import GalleryTab from './components/gallery-tab';
 import SettingsTab from './components/settings-tab';
 import SecurityTab from './components/security-tab';
 
@@ -21,12 +19,10 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
                 <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
                 <TabsTrigger value="pages">Pages</TabsTrigger>
                 <TabsTrigger value="conference">Conference</TabsTrigger>
-                <TabsTrigger value="team">Team</TabsTrigger>
-                <TabsTrigger value="gallery">Gallery</TabsTrigger>
                 <TabsTrigger value="settings">Settings</TabsTrigger>
                 <TabsTrigger value="security">Security</TabsTrigger>
             </TabsList>
@@ -41,14 +37,6 @@ export default function AdminPage() {
 
             <TabsContent value="conference" className="mt-6">
               <ConferenceTab />
-            </TabsContent>
-
-            <TabsContent value="team" className="mt-6">
-              <TeamTab />
-            </TabsContent>
-            
-            <TabsContent value="gallery" className="mt-6">
-              <GalleryTab />
             </TabsContent>
 
             <TabsContent value="settings" className="mt-6">

@@ -1,6 +1,7 @@
 
 
 
+
 import type { Timestamp } from 'firebase/firestore';
 
 export type Committee = {
@@ -105,22 +106,6 @@ export type DownloadableDocument = {
     url: string;
     order: number;
 }
-
-export type GalleryPageContent = {
-    title: string;
-    subtitle: string;
-};
-
-export type GalleryItem = {
-    id: string;
-    title: string;
-    type: 'image' | 'video';
-    display: '16:9' | '4:3' | '1:1' | '3:4' | '9:16' | '2:3' | 'circle';
-    columnSpan: 1 | 2;
-    imageUrl: string | null;
-    videoUrl: string | null;
-    order: number;
-};
 
 export type Post = {
   id: string;

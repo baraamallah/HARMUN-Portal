@@ -1,7 +1,8 @@
 
+
 import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc, writeBatch, documentId, runTransaction } from 'firebase/firestore';
 import { db } from './firebase';
-import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, SecretariatMember, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, DownloadableDocument, ConferenceHighlight, GalleryPageContent, GalleryItem } from './types';
+import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, SecretariatMember, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, DownloadableDocument, ConferenceHighlight } from './types';
 import { format } from 'date-fns';
 import { convertGoogleDriveLink } from './utils';
 
@@ -78,10 +79,6 @@ async function initializeDefaultData() {
                 title: "Conference Documents",
                 subtitle: "Access important resources and other downloadable materials here.",
             },
-            [GALLERY_PAGE_CONTENT_DOC_ID]: {
-                title: "Conference Gallery",
-                subtitle: "A collection of memorable moments from past and present HARMUN conferences.",
-            },
         },
         [SECRETARIAT_COLLECTION]: [
             { name: 'James Harrison', role: 'Secretary-General', bio: 'A senior at Harvard studying Government and Economics. This is his fourth and final HARMUN, and he is thrilled to lead an unforgettable conference experience.', imageUrl: 'https://placehold.co/400x400.png', order: 1 },
@@ -100,10 +97,6 @@ async function initializeDefaultData() {
         ],
         [SCHEDULE_EVENTS_COLLECTION]: [
             { dayId: 'day1', time: '2:00 PM - 5:00 PM', title: 'Delegate Registration', description: 'Pick up your credentials and welcome packet.', location: 'Main Hall', order: 1 },
-        ],
-        [GALLERY_COLLECTION]: [
-            { title: 'Opening Ceremony', imageUrl: 'https://placehold.co/600x400.png', videoUrl: null, type: 'image', display: '16:9', columnSpan: 1, order: 1 },
-            { title: 'Debate in Session', imageUrl: 'https://placehold.co/400x600.png', videoUrl: null, type: 'image', display: '2:3', columnSpan: 1, order: 2 },
         ],
     };
 
@@ -189,9 +182,6 @@ export const updateRegistrationPageContent = (content: Partial<RegistrationPageC
 export const getDocumentsPageContent = () => getConfigDoc<DocumentsPageContent>(DOCUMENTS_PAGE_CONTENT_DOC_ID, {} as DocumentsPageContent);
 export const updateDocumentsPageContent = (content: Partial<DocumentsPageContent>) => updateConfigDoc(DOCUMENTS_PAGE_CONTENT_DOC_ID, content);
 
-export const getGalleryPageContent = () => getConfigDoc<GalleryPageContent>(GALLERY_PAGE_CONTENT_DOC_ID, {} as GalleryPageContent);
-export const updateGalleryPageContent = (content: Partial<GalleryPageContent>) => updateConfigDoc(GALLERY_PAGE_CONTENT_DOC_ID, content);
-
 export const getSiteConfig = () => getConfigDoc<SiteConfig>(SITE_CONFIG_DOC_ID, { socialLinks: [] } as SiteConfig);
 export const updateSiteConfig = (config: Partial<SiteConfig>) => updateConfigDoc(SITE_CONFIG_DOC_ID, config);
 
@@ -254,44 +244,6 @@ export const getDownloadableDocuments = () => getCollection<DownloadableDocument
 export const addDownloadableDocument = (item: Omit<DownloadableDocument, 'id'>) => addCollectionDoc<DownloadableDocument>(DOCUMENTS_COLLECTION, item);
 export const updateDownloadableDocument = (id: string, item: Partial<DownloadableDocument>) => updateCollectionDoc<DownloadableDocument>(DOCUMENTS_COLLECTION, id, item);
 export const deleteDownloadableDocument = (id: string) => deleteCollectionDoc(DOCUMENTS_COLLECTION, id);
-
-
-// --- Gallery ---
-export const getGalleryItems = () => getCollection<GalleryItem>(GALLERY_COLLECTION);
-const processGalleryItemData = (item: Partial<GalleryItem>): Partial<GalleryItem> => {
-    const payload: Partial<GalleryItem> = { ...item };
-
-    if (item.columnSpan) payload.columnSpan = Number(item.columnSpan);
-
-    if (item.type === 'image' && item.imageUrl) {
-        payload.imageUrl = convertGoogleDriveLink(item.imageUrl);
-        payload.videoUrl = null;
-    } else if (item.type === 'video' && item.videoUrl) {
-        // Assuming video URLs are direct links for now
-        payload.videoUrl = item.videoUrl;
-        payload.imageUrl = null;
-    }
-    
-    return payload;
-};
-
-export const addGalleryItem = (item: Omit<GalleryItem, 'id'>) => {
-    const payload = processGalleryItemData(item);
-    return addCollectionDoc<GalleryItem>(GALLERY_COLLECTION, payload as Omit<GalleryItem, 'id'>);
-};
-export const updateGalleryItem = (id: string, item: Partial<GalleryItem>) => {
-    const payload = processGalleryItemData(item);
-    return updateCollectionDoc<GalleryItem>(GALLERY_COLLECTION, id, payload);
-};
-export const deleteGalleryItem = (id: string) => deleteCollectionDoc(GALLERY_COLLECTION, id);
-export const updateGalleryItemsOrder = async (items: GalleryItem[]) => {
-    const batch = writeBatch(db);
-    items.forEach((item, index) => {
-        const docRef = doc(db, GALLERY_COLLECTION, item.id);
-        batch.update(docRef, { order: index });
-    });
-    await batch.commit();
-};
 
 
 // --- Schedule (Special Handling) ---
@@ -412,24 +364,10 @@ const countryTransformer = (row: any): Omit<Country, 'id'> => ({
     status: (row.status === 'Assigned' ? 'Assigned' : 'Available') as 'Available' | 'Assigned',
 });
 
-const galleryTransformer = (row: any): Omit<GalleryItem, 'id'> => {
-    const type = row.type === 'video' ? 'video' : 'image';
-    const url = row.url || '';
-    return {
-        title: row.title || '',
-        type,
-        display: row.display || '4:3',
-        columnSpan: parseInt(row.columnSpan, 10) === 2 ? 2 : 1,
-        imageUrl: type === 'image' ? convertGoogleDriveLink(url) : null,
-        videoUrl: type === 'video' ? url : null,
-        order: parseInt(row.order, 10) || 0,
-    }
-};
 
 export const importCommittees = (data: any[]) => importData<Committee>(COMMITTEES_COLLECTION, data, committeeTransformer);
 export const importCountries = (data: any[]) => importData<Country>(COUNTRIES_COLLECTION, data, countryTransformer);
 export const importSecretariat = (data: any[]) => importData<SecretariatMember>(SECRETARIAT_COLLECTION, data, secretariatTransformer);
-export const importGallery = (data: any[]) => importData<GalleryItem>(GALLERY_COLLECTION, data, galleryTransformer);
 
 async function clearCollection(collectionPath: string) {
     const collectionRef = collection(db, collectionPath);
