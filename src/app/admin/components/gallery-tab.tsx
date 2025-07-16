@@ -60,9 +60,7 @@ function SortableGalleryItem({ item, onSave, onDelete }: { item: T.GalleryItem; 
             <Button variant="ghost" size="icon" {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing mt-8">
                 <GripVertical />
             </Button>
-            <div className="flex-grow">
-              <GalleryItemForm item={item} onSave={onSave} onDelete={onDelete} />
-            </div>
+            <GalleryItemForm item={item} onSave={onSave} onDelete={onDelete} />
         </div>
     );
 }
@@ -78,7 +76,7 @@ function GalleryItemForm({ item, onSave, onDelete }: { item: T.GalleryItem; onSa
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => onSave(item.id, data, form))} className="p-4 border rounded-md space-y-4">
+            <form onSubmit={form.handleSubmit((data) => onSave(item.id, data, form))} className="p-4 border rounded-md space-y-4 flex-grow">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                      <FormField control={form.control} name="title" render={({ field }) => <FormItem className="lg:col-span-4"><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                     <FormField control={form.control} name="type" render={({ field }) => (
