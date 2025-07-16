@@ -240,36 +240,33 @@ function AddGalleryItemForm({ onAdd }: { onAdd: (data: any, form: any) => Promis
 export default function GalleryTab() {
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
-    const [data, setData] = useState<{ galleryContent: T.GalleryPageContent, galleryItems: T.GalleryItem[] }>({
-        galleryContent: { title: "", subtitle: "" },
-        galleryItems: []
-    });
-    const [activeAccordion, setActiveAccordion] = useState<string | undefined>();
+    const [galleryContent, setGalleryContent] = useState<T.GalleryPageContent>({ title: "", subtitle: "" });
     const [galleryItems, setGalleryItems] = useState<T.GalleryItem[]>([]);
+    const [activeAccordion, setActiveAccordion] = useState<string | undefined>();
     const [hasReordered, setHasReordered] = useState(false);
     const sensors = useSensors(useSensor(PointerSensor));
 
-    useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const [galleryContent, items] = await Promise.all([
-                    firebaseService.getGalleryPageContent(),
-                    firebaseService.getGalleryItems()
-                ]);
-                setData({ galleryContent, galleryItems: items });
-                const sortedItems = [...items].sort((a,b) => (a.order || 0) - (b.order || 0));
-                setGalleryItems(sortedItems);
-            } catch (error) {
-                console.error("Failed to fetch gallery data:", error);
-                toast({ title: "Error", description: `Could not load gallery data.`, variant: "destructive" });
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
-        setHasReordered(false);
+    const loadData = React.useCallback(async () => {
+        setLoading(true);
+        try {
+            const [content, items] = await Promise.all([
+                firebaseService.getGalleryPageContent(),
+                firebaseService.getGalleryItems()
+            ]);
+            setGalleryContent(content);
+            setGalleryItems(items);
+            setHasReordered(false);
+        } catch (error) {
+            console.error("Failed to fetch gallery data:", error);
+            toast({ title: "Error", description: `Could not load gallery data.`, variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
     }, [toast]);
+    
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
     
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
@@ -277,6 +274,7 @@ export default function GalleryTab() {
             setGalleryItems((items) => {
                 const oldIndex = items.findIndex((item) => item.id === active.id);
                 const newIndex = items.findIndex((item) => item.id === over?.id);
+                if (oldIndex === -1 || newIndex === -1) return items;
                 const newOrder = arrayMove(items, oldIndex, newIndex);
                 setHasReordered(true);
                 return newOrder;
@@ -287,9 +285,8 @@ export default function GalleryTab() {
     const handleSaveOrder = async () => {
         try {
             await firebaseService.updateGalleryItemsOrder(galleryItems);
-            setData(prev => ({ ...prev, galleryItems }));
+            await loadData();
             toast({ title: "Success!", description: "Gallery order has been updated." });
-            setHasReordered(false);
         } catch (error) {
             toast({ title: "Error", description: `Could not save order. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
         }
@@ -297,37 +294,30 @@ export default function GalleryTab() {
 
     const handleFormSubmit = async (updateFunction: Function, successMessage: string, formData: any, form: any) => {
         try {
-            const payload = { ...formData };
-            await updateFunction(payload);
-            setData(prev => ({ ...prev, galleryContent: { ...prev.galleryContent, ...payload } }));
+            await updateFunction(formData);
+            await loadData();
             toast({ title: "Success!", description: successMessage });
-            form.reset(payload);
+            form.reset(formData);
         } catch (error) {
             toast({ title: "Error", description: `Could not save data. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
         }
     };
     
-    const handleUpdateItem = async (updateFunction: Function, id: string, itemData: any, stateKey: keyof typeof data, message: string, form?: any) => {
+    const handleUpdateItem = async (updateFunction: Function, id: string, itemData: any, message: string, form?: any) => {
         try {
             await updateFunction(id, itemData);
-            const updatedItem = await firebaseService.getDocById(stateKey as string, id);
-            const updatedItems = galleryItems.map((item) => item.id === id ? updatedItem : item);
-            setGalleryItems(updatedItems);
-            setData(prev => ({ ...prev, [stateKey]: updatedItems }));
+            await loadData();
             toast({ title: "Success!", description: message });
-            if (form) form.reset(updatedItem);
+            if (form) form.reset(itemData);
         } catch (error) {
             toast({ title: "Error", description: `Could not save item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
         }
     };
     
-    const handleAddItem = async (addFunction: Function, addData: any, stateKey: keyof typeof data, message: string, form?: any) => {
+    const handleAddItem = async (addFunction: Function, addData: any, message: string, form?: any) => {
         try {
-            const newId = await addFunction(addData);
-            const newItem = await firebaseService.getDocById(stateKey as string, newId);
-            const updatedItems = [...galleryItems, newItem].sort((a,b) => (a.order || 0) - (b.order || 0));
-            setGalleryItems(updatedItems);
-            setData(prev => ({ ...prev, [stateKey]: updatedItems }));
+            await addFunction(addData);
+            await loadData();
             toast({ title: "Success!", description: message });
             if (form) form.reset();
         } catch (error) {
@@ -335,13 +325,11 @@ export default function GalleryTab() {
         }
     };
 
-    const handleDeleteItem = async (deleteFunction: Function, id: string, stateKey: keyof typeof data, message: string) => {
+    const handleDeleteItem = async (deleteFunction: Function, id: string, message: string) => {
         if (!confirm('Are you sure you want to delete this item?')) return;
         try {
             await deleteFunction(id);
-            const updatedItems = galleryItems.filter((item) => item.id !== id);
-            setGalleryItems(updatedItems);
-            setData(prev => ({ ...prev, [stateKey]: updatedItems }));
+            await loadData();
             toast({ title: "Success!", description: message });
         } catch (error) {
             toast({ title: "Error", description: `Could not delete item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
@@ -350,9 +338,9 @@ export default function GalleryTab() {
     
     const galleryForm = useForm<z.infer<typeof galleryPageContentSchema>>({
         resolver: zodResolver(galleryPageContentSchema),
-        defaultValues: data.galleryContent,
+        defaultValues: galleryContent,
     });
-    React.useEffect(() => { galleryForm.reset(data.galleryContent); }, [data.galleryContent, galleryForm]);
+    React.useEffect(() => { galleryForm.reset(galleryContent); }, [galleryContent, galleryForm]);
 
     if (loading) {
         return <div className="space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-64 w-full" /></div>;
@@ -387,13 +375,13 @@ export default function GalleryTab() {
                                     <SortableGalleryItem
                                         key={item.id}
                                         item={item}
-                                        onSave={(id, saveData, form) => handleUpdateItem(firebaseService.updateGalleryItem, id, saveData, "galleryItems", "Media item updated.", form)}
-                                        onDelete={(id) => handleDeleteItem(firebaseService.deleteGalleryItem, id, "galleryItems", "Media item deleted.")}
+                                        onSave={(id, saveData, form) => handleUpdateItem(firebaseService.updateGalleryItem, id, saveData, "Media item updated.", form)}
+                                        onDelete={(id) => handleDeleteItem(firebaseService.deleteGalleryItem, id, "Media item deleted.")}
                                     />
                                 ))}
                             </SortableContext>
                         </DndContext>
-                        <AddGalleryItemForm onAdd={(addData, form) => handleAddItem(firebaseService.addGalleryItem, addData, "galleryItems", "Media item added!", form)} />
+                        <AddGalleryItemForm onAdd={(addData, form) => handleAddItem(firebaseService.addGalleryItem, addData, "Media item added!", form)} />
                     </CardContent></Card>
                 </AccordionContent>
             </AccordionItem>

@@ -115,77 +115,67 @@ export default function PagesTab() {
         homeContent: {}, aboutContent: {}, registrationContent: {}, documentsContent: {}, 
         highlights: [], documents: []
     });
-
-    useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const [homeContent, aboutContent, registrationContent, documentsContent, highlights, documents] = await Promise.all([
-                    firebaseService.getHomePageContent(),
-                    firebaseService.getAboutPageContent(),
-                    firebaseService.getRegistrationPageContent(),
-                    firebaseService.getDocumentsPageContent(),
-                    firebaseService.getHighlights(),
-                    firebaseService.getDownloadableDocuments()
-                ]);
-                setData({ homeContent, aboutContent, registrationContent, documentsContent, highlights, documents });
-            } catch (error) {
-                console.error("Failed to fetch page data:", error);
-                toast({ title: "Error", description: `Could not load page content.`, variant: "destructive" });
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
+    
+    const loadData = React.useCallback(async () => {
+        setLoading(true);
+        try {
+            const [homeContent, aboutContent, registrationContent, documentsContent, highlights, documents] = await Promise.all([
+                firebaseService.getHomePageContent(),
+                firebaseService.getAboutPageContent(),
+                firebaseService.getRegistrationPageContent(),
+                firebaseService.getDocumentsPageContent(),
+                firebaseService.getHighlights(),
+                firebaseService.getDownloadableDocuments()
+            ]);
+            setData({ homeContent, aboutContent, registrationContent, documentsContent, highlights, documents });
+        } catch (error) {
+            console.error("Failed to fetch page data:", error);
+            toast({ title: "Error", description: `Could not load page content.`, variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
     }, [toast]);
     
-    const handleFormSubmit = async (updateFunction: Function, stateKey: string, successMessage: string, formData: any, form: any) => {
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
+    
+    const handleFormSubmit = async (updateFunction: Function, successMessage: string, formData: any, form: any) => {
         try {
-            const payload = { ...formData };
-            await updateFunction(payload);
-            setData(prev => ({...prev, [stateKey]: {...prev[stateKey], ...payload}}))
+            await updateFunction(formData);
+            await loadData();
             toast({ title: "Success!", description: successMessage });
-            form.reset(payload);
+            form.reset(formData);
         } catch (error) {
             toast({ title: "Error", description: `Could not save data. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
         }
     };
     
-    const handleUpdateItem = async (updateFunction: Function, id: string, itemData: any, stateKey: keyof typeof data, message: string) => {
+    const handleUpdateItem = async (updateFunction: Function, id: string, itemData: any, message: string) => {
         try {
             await updateFunction(id, itemData);
-            setData(prev => ({
-                ...prev,
-                [stateKey]: (prev[stateKey] as any[]).map((item: any) => item.id === id ? { ...item, ...itemData } : item),
-            }));
+            await loadData();
             toast({ title: "Success!", description: message });
         } catch (error) {
             toast({ title: "Error", description: `Could not save item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
         }
     };
 
-    const handleDeleteItem = async (deleteFunction: Function, id: string, stateKey: keyof typeof data, message: string) => {
+    const handleDeleteItem = async (deleteFunction: Function, id: string, message: string) => {
         if (!confirm('Are you sure you want to delete this item?')) return;
         try {
             await deleteFunction(id);
-            setData(prev => ({
-                ...prev,
-                [stateKey]: (prev[stateKey] as any[]).filter((item: any) => item.id !== id),
-            }));
+            await loadData();
             toast({ title: "Success!", description: message });
         } catch (error) {
             toast({ title: "Error", description: `Could not delete item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
         }
     };
 
-    const handleAddItem = async (addFunction: Function, addData: any, stateKey: keyof typeof data, message: string, form?: any) => {
+    const handleAddItem = async (addFunction: Function, addData: any, message: string, form?: any) => {
         try {
-            const newId = await addFunction(addData);
-            const newItem = await firebaseService.getDocById(stateKey as string, newId);
-            setData(prev => ({
-                ...prev,
-                [stateKey]: [...(prev[stateKey] as any[]), newItem],
-            }));
+            await addFunction(addData);
+            await loadData();
             toast({ title: "Success!", description: message });
             if (form) form.reset();
         } catch (error) {
@@ -214,7 +204,7 @@ export default function PagesTab() {
                 <AccordionContent className="p-1 space-y-6">
                     <Card><CardHeader><CardTitle>Hero Section</CardTitle></CardHeader>
                     <CardContent>
-                        <Form {...homeForm}><form onSubmit={homeForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateHomePageContent, "homeContent", "Home page content updated.", d, homeForm))} className="space-y-4">
+                        <Form {...homeForm}><form onSubmit={homeForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateHomePageContent, "Home page content updated.", d, homeForm))} className="space-y-4">
                             <FormField control={homeForm.control} name="heroTitle" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                             <FormField control={homeForm.control} name="heroSubtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
                             <FormField control={homeForm.control} name="heroImageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Provide a direct image link.</FormDescription><FormMessage /></FormItem>} />
@@ -227,18 +217,18 @@ export default function PagesTab() {
                             <HighlightItemForm
                                 key={item.id}
                                 item={item}
-                                onSave={(id, saveData) => handleUpdateItem(firebaseService.updateHighlight, id, saveData, "highlights", "Highlight updated.")}
-                                onDelete={(id) => handleDeleteItem(firebaseService.deleteHighlight, id, "highlights", "Highlight deleted.")}
+                                onSave={(id, saveData) => handleUpdateItem(firebaseService.updateHighlight, id, saveData, "Highlight updated.")}
+                                onDelete={(id) => handleDeleteItem(firebaseService.deleteHighlight, id, "Highlight deleted.")}
                             />
                         ))}
-                        <AddHighlightForm onAdd={(addData, form) => handleAddItem(firebaseService.addHighlight, addData, "highlights", "Highlight added!", form)} />
+                        <AddHighlightForm onAdd={(addData, form) => handleAddItem(firebaseService.addHighlight, addData, "Highlight added!", form)} />
                     </CardContent></Card>
                 </AccordionContent>
             </AccordionItem>
             <AccordionItem value="about">
                 <AccordionTrigger><div className="flex items-center gap-2 text-lg"><FileBadge /> About Page</div></AccordionTrigger>
                 <AccordionContent className="p-1"><Card><CardContent className="pt-6">
-                    <Form {...aboutForm}><form onSubmit={aboutForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateAboutPageContent, "aboutContent", "About page content updated.", d, aboutForm))} className="space-y-4">
+                    <Form {...aboutForm}><form onSubmit={aboutForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateAboutPageContent, "About page content updated.", d, aboutForm))} className="space-y-4">
                         <FormField control={aboutForm.control} name="title" render={({ field }) => (<FormItem><FormLabel>Page Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={aboutForm.control} name="subtitle" render={({ field }) => (<FormItem><FormLabel>Page Subtitle</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={aboutForm.control} name="imageUrl" render={({ field }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Provide a direct image link.</FormDescription><FormMessage /></FormItem>)} /> <hr/>
@@ -255,7 +245,7 @@ export default function PagesTab() {
             <AccordionItem value="registration">
                 <AccordionTrigger><div className="flex items-center gap-2 text-lg"><UserSquare /> Registration Page</div></AccordionTrigger>
                 <AccordionContent className="p-1"><Card><CardContent className="pt-6">
-                    <Form {...registrationForm}><form onSubmit={registrationForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateRegistrationPageContent, "registrationContent", "Registration page updated.", d, registrationForm))} className="space-y-4">
+                    <Form {...registrationForm}><form onSubmit={registrationForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateRegistrationPageContent, "Registration page updated.", d, registrationForm))} className="space-y-4">
                         <FormField control={registrationForm.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                         <FormField control={registrationForm.control} name="subtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
                         <Button type="submit">Save</Button>
@@ -267,7 +257,7 @@ export default function PagesTab() {
                 <AccordionContent className="p-1 space-y-6">
                     <Card><CardHeader><CardTitle>Page Content</CardTitle></CardHeader>
                     <CardContent>
-                        <Form {...documentsForm}><form onSubmit={documentsForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateDocumentsPageContent, "documentsContent", "Documents page updated.", d, documentsForm))} className="space-y-4">
+                        <Form {...documentsForm}><form onSubmit={documentsForm.handleSubmit((d) => handleFormSubmit(firebaseService.updateDocumentsPageContent, "Documents page updated.", d, documentsForm))} className="space-y-4">
                             <FormField control={documentsForm.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                             <FormField control={documentsForm.control} name="subtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
                             <Button type="submit">Save Content</Button>
@@ -279,11 +269,11 @@ export default function PagesTab() {
                             <DownloadableDocumentForm
                                 key={item.id}
                                 item={item}
-                                onSave={(id, saveData) => handleUpdateItem(firebaseService.updateDownloadableDocument, id, saveData, "documents", "Document updated.")}
-                                onDelete={(id) => handleDeleteItem(firebaseService.deleteDownloadableDocument, id, "documents", "Document deleted.")}
+                                onSave={(id, saveData) => handleUpdateItem(firebaseService.updateDownloadableDocument, id, saveData, "Document updated.")}
+                                onDelete={(id) => handleDeleteItem(firebaseService.deleteDownloadableDocument, id, "Document deleted.")}
                             />
                         ))}
-                        <AddDownloadableDocumentForm onAdd={(addData, form) => handleAddItem(firebaseService.addDownloadableDocument, addData, "documents", "Document added!", form)} />
+                        <AddDownloadableDocumentForm onAdd={(addData, form) => handleAddItem(firebaseService.addDownloadableDocument, addData, "Document added!", form)} />
                     </CardContent></Card>
                 </AccordionContent>
             </AccordionItem>
