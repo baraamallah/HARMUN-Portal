@@ -52,6 +52,12 @@ export default async function Home() {
       {/* Highlights & Map Section */}
       <section className="bg-secondary/50 py-16 md:py-20 border-b">
         <div className="container mx-auto px-4">
+            <div className="text-center mb-12 animate-fade-in-up">
+              <h2 className="text-3xl font-bold font-headline text-foreground">{content.highlightsTitle}</h2>
+              <p className="mt-2 text-muted-foreground max-w-2xl mx-auto">
+                {content.highlightsSubtitle}
+              </p>
+            </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
             {/* Highlights */}
             <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-8 text-center">

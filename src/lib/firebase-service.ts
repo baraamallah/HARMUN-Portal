@@ -47,6 +47,8 @@ async function initializeDefaultData() {
                 heroTitle: "HARMUN 2025 Portal",
                 heroSubtitle: "Engage in diplomacy, foster international cooperation, and shape the future. Welcome, delegates!",
                 heroImageUrl: "https://placehold.co/1920x1080.png",
+                highlightsTitle: "Conference Highlights & Venue",
+                highlightsSubtitle: "Key information at a glance. Find details about our schedule, location, and what makes HARMUN unique.",
             },
             [ABOUT_PAGE_CONTENT_DOC_ID]: {
                 title: "About HARMUN",
@@ -87,8 +89,7 @@ async function initializeDefaultData() {
         },
         [HIGHLIGHTS_COLLECTION]: [
             { icon: 'Calendar', title: 'Conference Dates', description: 'January 30 - February 2, 2025', order: 1 },
-            { icon: 'MapPin', title: 'Location', description: 'Harvard University, Cambridge, MA', order: 2 },
-            { icon: 'Users', title: 'Delegates', description: 'Over 3,000 students from 50+ countries', order: 3 },
+            { icon: 'Users', title: 'Delegates', description: 'Over 3,000 students from 50+ countries', order: 2 },
         ],
         [DOCUMENTS_COLLECTION]: [
             { title: 'Conference Handbook', description: 'The official guide to rules, procedures, and conference etiquette.', url: '#', order: 1 },
@@ -425,5 +426,3 @@ async function clearCollection(collectionPath: string) {
     querySnapshot.docs.forEach(docSnapshot => batch.delete(docSnapshot.ref));
     await batch.commit();
 }
-
-    

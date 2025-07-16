@@ -58,6 +58,8 @@ export type HomePageContent = {
   heroTitle: string;
   heroSubtitle: string;
   heroImageUrl: string;
+  highlightsTitle: string;
+  highlightsSubtitle: string;
 };
 
 export type ConferenceHighlight = {
@@ -122,5 +124,3 @@ export type Post = {
   type: 'sg-note' | 'news';
   createdAt: Timestamp;
 };
-
-    
