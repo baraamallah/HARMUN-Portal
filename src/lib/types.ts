@@ -99,6 +99,9 @@ export type GalleryItem = {
     description?: string;
     imageUrl: string;
     order: number;
+    mediaType: 'image' | 'video';
+    aspectRatio: '1:1' | '16:9' | '4:3' | '3:4';
+    width: 'single' | 'double';
 };
 
 export type DownloadableDocument = {

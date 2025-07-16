@@ -93,8 +93,8 @@ async function initializeDefaultData() {
             { title: 'Background Guide: Security Council', description: 'Essential reading material for all delegates in the Security Council committee.', url: '#', order: 2 },
         ],
          [GALLERY_COLLECTION]: [
-            { title: 'Opening Ceremony', description: 'Delegates gather for the start of an exciting conference.', imageUrl: 'https://placehold.co/600x400.png', order: 1 },
-            { title: 'Debate in Action', description: 'Intense negotiations and diplomacy in one of the committee rooms.', imageUrl: 'https://placehold.co/600x400.png', order: 2 },
+            { title: 'Opening Ceremony', description: 'Delegates gather for the start of an exciting conference.', imageUrl: 'https://placehold.co/600x400.png', order: 1, mediaType: 'image', aspectRatio: '16:9', width: 'single' },
+            { title: 'Debate in Action', description: 'Intense negotiations and diplomacy in one of the committee rooms.', imageUrl: 'https://placehold.co/600x400.png', order: 2, mediaType: 'image', aspectRatio: '4:3', width: 'single' },
         ],
         [SCHEDULE_DAYS_COLLECTION]: [
             { title: 'Day 1: Thursday', date: 'January 30, 2025', order: 1, id: 'day1' },
@@ -156,7 +156,12 @@ export async function getDocById(collectionName: string, id: string): Promise<an
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
         const data = docSnap.data();
-        return { id: docSnap.id, ...data };
+        const defaultData: Partial<GalleryItem> = {
+            mediaType: 'image',
+            aspectRatio: '1:1',
+            width: 'single',
+        };
+        return { id: docSnap.id, ...defaultData, ...data };
     }
     throw new Error(`Document with id ${id} not found in ${collectionName}`);
 }
@@ -199,7 +204,13 @@ async function getCollection<T>(collectionName: string, orderByField: string = '
     const querySnapshot = await getDocs(q);
     const results = querySnapshot.docs.map(doc => {
         const data = doc.data();
-        return { id: doc.id, ...data } as T;
+         // Provide default values for new fields if they don't exist
+        const defaultData: Partial<GalleryItem> = {
+            mediaType: 'image',
+            aspectRatio: '1:1',
+            width: 'single',
+        };
+        return { id: doc.id, ...defaultData, ...data } as T;
     });
     return results;
 }
@@ -376,11 +387,13 @@ const countryTransformer = (row: any): Omit<Country, 'id'> => ({
     status: (row.status === 'Assigned' ? 'Assigned' : 'Available') as 'Available' | 'Assigned',
 });
 
-const galleryTransformer = (row: any): Omit<GalleryItem, 'id'> => ({
+const galleryTransformer = (row: any): Omit<GalleryItem, 'id'|'order'> => ({
     title: row.title || '',
     description: row.description || '',
     imageUrl: convertGoogleDriveLink(row.imageUrl || ''),
-    order: row.order ? parseInt(row.order, 10) : 0,
+    mediaType: ['image', 'video'].includes(row.mediaType) ? row.mediaType : 'image',
+    aspectRatio: ['1:1', '16:9', '4:3', '3:4'].includes(row.aspectRatio) ? row.aspectRatio : '1:1',
+    width: ['single', 'double'].includes(row.width) ? row.width : 'single',
 });
 
 export const importCommittees = (data: any[]) => importData<Committee>(COMMITTEES_COLLECTION, data, committeeTransformer);
@@ -396,5 +409,3 @@ async function clearCollection(collectionPath: string) {
     querySnapshot.docs.forEach(docSnapshot => batch.delete(docSnapshot.ref));
     await batch.commit();
 }
-
-    

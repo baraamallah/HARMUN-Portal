@@ -3,11 +3,23 @@
 
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getGalleryPageContent, getGalleryItems } from '@/lib/firebase-service';
 import type { GalleryPageContent, GalleryItem } from '@/lib/types';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
+
+const aspectRatios: Record<string, string> = {
+    '1:1': 'aspect-square',
+    '16:9': 'aspect-video',
+    '4:3': 'aspect-[4/3]',
+    '3:4': 'aspect-[3/4]',
+};
+
+const colSpans: Record<string, string> = {
+    'single': 'md:col-span-1',
+    'double': 'md:col-span-2',
+};
 
 export default function GalleryPage() {
     const [content, setContent] = useState<GalleryPageContent | null>(null);
@@ -56,17 +68,18 @@ export default function GalleryPage() {
             </div>
 
             {items.length > 0 ? (
-                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {items.map((item, index) => (
                         <Dialog key={item.id}>
                             <DialogTrigger asChild>
-                                <div className="group relative animate-fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
-                                    <Card className="overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl">
-                                        <div className="relative h-64 w-full">
-                                            <Image src={item.imageUrl} alt={item.title} fill className="object-cover" data-ai-hint="event photo"/>
-                                        </div>
-                                    </Card>
-                                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity p-4">
+                                <div className={cn(
+                                    "group relative animate-fade-in-up cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl rounded-lg overflow-hidden",
+                                    colSpans[item.width || 'single']
+                                    )} style={{ animationDelay: `${index * 100}ms` }}>
+                                    <div className={cn("relative w-full", aspectRatios[item.aspectRatio || '1:1'])}>
+                                        <Image src={item.imageUrl} alt={item.title} fill className="object-cover" data-ai-hint="event photo"/>
+                                    </div>
+                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity p-4">
                                         <h3 className="text-white font-bold text-lg text-center">{item.title}</h3>
                                     </div>
                                 </div>
@@ -76,7 +89,7 @@ export default function GalleryPage() {
                                     <DialogTitle className="text-2xl">{item.title}</DialogTitle>
                                     {item.description && <DialogDescription className="pt-2">{item.description}</DialogDescription>}
                                 </DialogHeader>
-                                <div className="relative mt-4 aspect-video">
+                                <div className={cn("relative mt-4", aspectRatios[item.aspectRatio || '1:1'])}>
                                      <Image src={item.imageUrl} alt={item.title} fill className="object-contain rounded-md" data-ai-hint="event photo"/>
                                 </div>
                             </DialogContent>
