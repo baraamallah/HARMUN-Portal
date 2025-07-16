@@ -49,7 +49,7 @@ function GalleryItemForm({ item, onSave, onDelete }: { item: T.GalleryItem; onSa
                 <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Provide a direct image link.</FormDescription><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="description" render={({ field }) => <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>} />
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
                     <FormField control={form.control} name="mediaType" render={({ field }) => (
                         <FormItem><FormLabel>Media Type</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -62,10 +62,10 @@ function GalleryItemForm({ item, onSave, onDelete }: { item: T.GalleryItem; onSa
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
                             <SelectContent>
-                                <SelectItem value="1:1">Square</SelectItem>
-                                <SelectItem value="16:9">Landscape</SelectItem>
-                                <SelectItem value="4:3">Standard</SelectItem>
-                                <SelectItem value="3:4">Portrait</SelectItem>
+                                <SelectItem value="1:1">Square (1:1)</SelectItem>
+                                <SelectItem value="16:9">Landscape (16:9)</SelectItem>
+                                <SelectItem value="4:3">Standard (4:3)</SelectItem>
+                                <SelectItem value="3:4">Portrait (3:4)</SelectItem>
                             </SelectContent>
                         </Select><FormMessage /></FormItem>
                     )} />
@@ -77,7 +77,7 @@ function GalleryItemForm({ item, onSave, onDelete }: { item: T.GalleryItem; onSa
                         </Select><FormMessage /></FormItem>
                     )} />
                 </div>
-                 <div className="flex justify-end gap-2"><Button type="submit">Save</Button><Button type="button" variant="destructive" onClick={() => onDelete(item.id)}>Delete</Button></div>
+                 <div className="flex justify-end gap-2 pt-4"><Button type="submit">Save</Button><Button type="button" variant="destructive" onClick={() => onDelete(item.id)}>Delete</Button></div>
             </form>
         </Form>
     );
@@ -108,12 +108,25 @@ function AddGalleryItemForm({ onAdd }: { onAdd: (data: any, form: any) => Promis
                  <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                  <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Provide a direct image link.</FormDescription><FormMessage /></FormItem>} />
                  <FormField control={form.control} name="description" render={({ field }) => <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl><FormMessage /></FormItem>} />
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                    <FormField control={form.control} name="mediaType" render={({ field }) => (
+                        <FormItem><FormLabel>Media Type</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
+                            <SelectContent><SelectItem value="image">Image</SelectItem><SelectItem value="video" disabled>Video (soon)</SelectItem></SelectContent>
+                        </Select><FormMessage /></FormItem>
+                    )} />
                     <FormField control={form.control} name="aspectRatio" render={({ field }) => (
                         <FormItem><FormLabel>Aspect Ratio</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
-                            <SelectContent><SelectItem value="1:1">Square</SelectItem><SelectItem value="16:9">Landscape</SelectItem><SelectItem value="4:3">Standard</SelectItem><SelectItem value="3:4">Portrait</SelectItem></SelectContent>
+                            <SelectContent>
+                                <SelectItem value="1:1">Square (1:1)</SelectItem>
+                                <SelectItem value="16:9">Landscape (16:9)</SelectItem>
+                                <SelectItem value="4:3">Standard (4:3)</SelectItem>
+                                <SelectItem value="3:4">Portrait (3:4)</SelectItem>
+                            </SelectContent>
                         </Select><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="width" render={({ field }) => (
@@ -247,3 +260,5 @@ export default function GalleryTab() {
         </div>
     );
 }
+
+    
