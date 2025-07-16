@@ -40,7 +40,11 @@ const galleryItemSchema = z.object({
     type: z.enum(["image", "video"], { required_error: "Please select a media type." }),
     display: z.enum(['16:9', '4:3', '1:1', '3:4', '9:16', '2:3', 'circle'], { required_error: "Please select a display style." }),
     columnSpan: z.enum(['1', '2'], { required_error: "Please select a width." }),
-    url: z.string().url("Must be a valid URL.").min(1, "URL is required."),
+    imageUrl: z.string().url("Must be a valid URL.").optional().or(z.literal("")).or(z.literal(null)),
+    videoUrl: z.string().url("Must be a valid URL.").optional().or(z.literal("")).or(z.literal(null)),
+}).refine(data => data.type === 'image' ? !!data.imageUrl : !!data.videoUrl, {
+    message: "A URL for the selected media type is required.",
+    path: ["imageUrl"], // Show error on one of the fields
 });
 
 
@@ -67,10 +71,10 @@ function SortableGalleryItem({ item, onSave, onDelete }: { item: T.GalleryItem; 
 function GalleryItemForm({ item, onSave, onDelete }: { item: T.GalleryItem; onSave: (id: string, data: any, form: any) => void; onDelete: (id: string) => void }) {
     const form = useForm({
         resolver: zodResolver(galleryItemSchema),
-        defaultValues: { ...item, columnSpan: String(item.columnSpan || 1) as '1' | '2', url: item.imageUrl || item.videoUrl || '' },
+        defaultValues: { ...item, columnSpan: String(item.columnSpan || 1) as '1' | '2' },
     });
     const itemType = form.watch("type");
-    React.useEffect(() => { form.reset({ ...item, columnSpan: String(item.columnSpan || 1) as '1' | '2', url: item.imageUrl || item.videoUrl || '' }); }, [item, form]);
+    React.useEffect(() => { form.reset({ ...item, columnSpan: String(item.columnSpan || 1) as '1' | '2' }); }, [item, form]);
 
     return (
         <Form {...form}>
@@ -122,13 +126,27 @@ function GalleryItemForm({ item, onSave, onDelete }: { item: T.GalleryItem; onSa
                         </FormItem>
                     )} />
                 </div>
-                 <FormField control={form.control} name="url" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>{itemType === 'video' ? "Video URL" : "Image URL"}</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
+                 {itemType === 'image' && (
+                    <FormField control={form.control} name="imageUrl" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Image URL</FormLabel>
+                            <FormControl><Input {...field} value={field.value || ''} /></FormControl>
+                            <FormDescription>Provide a direct image link.</FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                 />
+                )}
+                 {itemType === 'video' && (
+                    <FormField control={form.control} name="videoUrl" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Video URL</FormLabel>
+                            <FormControl><Input {...field} value={field.value || ''} /></FormControl>
+                             <FormDescription>Provide a direct video link.</FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                )}
 
                 <div className="flex gap-2 justify-end"><Button type="submit" size="sm">Save</Button><Button size="sm" variant="destructive" type="button" onClick={() => onDelete(item.id)}>Delete</Button></div>
             </form>
@@ -139,7 +157,7 @@ function GalleryItemForm({ item, onSave, onDelete }: { item: T.GalleryItem; onSa
 function AddGalleryItemForm({ onAdd }: { onAdd: (data: any, form: any) => Promise<void> }) {
     const form = useForm<z.infer<typeof galleryItemSchema>>({ 
         resolver: zodResolver(galleryItemSchema), 
-        defaultValues: { title: '', url: '', type: 'image', display: '4:3', columnSpan: '1' } 
+        defaultValues: { title: '', imageUrl: '', videoUrl: '', type: 'image', display: '4:3', columnSpan: '1' } 
     });
     const itemType = form.watch("type");
 
@@ -149,7 +167,11 @@ function AddGalleryItemForm({ onAdd }: { onAdd: (data: any, form: any) => Promis
             <FormField control={form.control} name="type" render={({ field }) => (
                 <FormItem>
                     <FormLabel>Media Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={(value) => {
+                        field.onChange(value);
+                        form.setValue('imageUrl', '');
+                        form.setValue('videoUrl', '');
+                    }} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select type..." /></SelectTrigger></FormControl>
                         <SelectContent>
                             <SelectItem value="image">Image</SelectItem>
@@ -191,14 +213,26 @@ function AddGalleryItemForm({ onAdd }: { onAdd: (data: any, form: any) => Promis
                 </FormItem>
             )} />
         </div>
-        <FormField control={form.control} name="url" render={({ field }) => (
-            <FormItem>
-                <FormLabel>{itemType === 'video' ? "Video URL" : "Image URL"}</FormLabel>
-                <FormControl><Input {...field} /></FormControl>
-                <FormDescription>Provide a direct image link.</FormDescription>
-                <FormMessage />
-            </FormItem>
-        )} />
+         {itemType === 'image' && (
+            <FormField control={form.control} name="imageUrl" render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Image URL</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
+                    <FormDescription>Provide a direct image link.</FormDescription>
+                    <FormMessage />
+                </FormItem>
+            )}
+         )}
+        {itemType === 'video' && (
+            <FormField control={form.control} name="videoUrl" render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Video URL</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
+                    <FormDescription>Provide a direct video link.</FormDescription>
+                    <FormMessage />
+                </FormItem>
+            )}
+        )}
         <Button type="submit" size="sm">Add Media</Button>
     </form></Form>;
 }
@@ -211,7 +245,6 @@ export default function GalleryTab() {
         galleryItems: []
     });
     const [activeAccordion, setActiveAccordion] = useState<string | undefined>();
-    const [galleryItems, setGalleryItems] = useState<T.GalleryItem[]>([]);
     const [hasReordered, setHasReordered] = useState(false);
     const sensors = useSensors(useSensor(PointerSensor));
 
@@ -224,8 +257,6 @@ export default function GalleryTab() {
                     firebaseService.getGalleryItems()
                 ]);
                 setData({ galleryContent, galleryItems: items });
-                const sortedItems = [...items].sort((a,b) => (a.order || 0) - (b.order || 0));
-                setGalleryItems(sortedItems);
             } catch (error) {
                 console.error("Failed to fetch gallery data:", error);
                 toast({ title: "Error", description: `Could not load gallery data.`, variant: "destructive" });
@@ -240,20 +271,20 @@ export default function GalleryTab() {
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
         if (active.id !== over?.id) {
-            setGalleryItems((items) => {
-                const oldIndex = items.findIndex((item) => item.id === active.id);
-                const newIndex = items.findIndex((item) => item.id === over?.id);
-                const newOrder = arrayMove(items, oldIndex, newIndex);
+            setData(prev => {
+                const oldIndex = prev.galleryItems.findIndex((item) => item.id === active.id);
+                const newIndex = prev.galleryItems.findIndex((item) => item.id === over?.id);
+                if (oldIndex === -1 || newIndex === -1) return prev;
+                const newOrder = arrayMove(prev.galleryItems, oldIndex, newIndex);
                 setHasReordered(true);
-                return newOrder;
+                return { ...prev, galleryItems: newOrder };
             });
         }
     };
     
     const handleSaveOrder = async () => {
         try {
-            await firebaseService.updateGalleryItemsOrder(galleryItems);
-            setData(prev => ({ ...prev, galleryItems }));
+            await firebaseService.updateGalleryItemsOrder(data.galleryItems);
             toast({ title: "Success!", description: "Gallery order has been updated." });
             setHasReordered(false);
         } catch (error) {
@@ -263,37 +294,34 @@ export default function GalleryTab() {
 
     const handleFormSubmit = async (updateFunction: Function, successMessage: string, formData: any, form: any) => {
         try {
-            const payload = { ...formData };
-            await updateFunction(payload);
-            setData(prev => ({ ...prev, galleryContent: { ...prev.galleryContent, ...payload } }));
+            await updateFunction(formData);
+            setData(prev => ({ ...prev, galleryContent: { ...prev.galleryContent, ...formData } }));
             toast({ title: "Success!", description: successMessage });
-            form.reset(payload);
+            form.reset(formData);
         } catch (error) {
             toast({ title: "Error", description: `Could not save data. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
         }
     };
     
-    const handleUpdateItem = async (updateFunction: Function, id: string, itemData: any, stateKey: keyof typeof data, message: string, form?: any) => {
+    const handleUpdateItem = async (updateFunction: Function, id: string, itemData: any, message: string, form?: any) => {
         try {
             await updateFunction(id, itemData);
-            const updatedItem = await firebaseService.getDocById(stateKey as string, id);
-            const updatedItems = galleryItems.map((item) => item.id === id ? updatedItem : item);
-            setGalleryItems(updatedItems);
-            setData(prev => ({ ...prev, [stateKey]: updatedItems }));
+            const updatedItem = await firebaseService.getDocById("galleryItems", id);
+            setData(prev => ({
+                ...prev,
+                galleryItems: prev.galleryItems.map(item => item.id === id ? updatedItem : item)
+            }));
             toast({ title: "Success!", description: message });
-            if (form) form.reset(updatedItem);
         } catch (error) {
             toast({ title: "Error", description: `Could not save item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
         }
     };
     
-    const handleAddItem = async (addFunction: Function, addData: any, stateKey: keyof typeof data, message: string, form?: any) => {
+    const handleAddItem = async (addFunction: Function, addData: any, message: string, form?: any) => {
         try {
             const newId = await addFunction(addData);
-            const newItem = await firebaseService.getDocById(stateKey as string, newId);
-            const updatedItems = [...galleryItems, newItem].sort((a,b) => (a.order || 0) - (b.order || 0));
-            setGalleryItems(updatedItems);
-            setData(prev => ({ ...prev, [stateKey]: updatedItems }));
+            const newItem = await firebaseService.getDocById("galleryItems", newId);
+            setData(prev => ({ ...prev, galleryItems: [...prev.galleryItems, newItem] }));
             toast({ title: "Success!", description: message });
             if (form) form.reset();
         } catch (error) {
@@ -301,13 +329,11 @@ export default function GalleryTab() {
         }
     };
 
-    const handleDeleteItem = async (deleteFunction: Function, id: string, stateKey: keyof typeof data, message: string) => {
+    const handleDeleteItem = async (deleteFunction: Function, id: string, message: string) => {
         if (!confirm('Are you sure you want to delete this item?')) return;
         try {
             await deleteFunction(id);
-            const updatedItems = galleryItems.filter((item) => item.id !== id);
-            setGalleryItems(updatedItems);
-            setData(prev => ({ ...prev, [stateKey]: updatedItems }));
+            setData(prev => ({ ...prev, galleryItems: prev.galleryItems.filter(item => item.id !== id) }));
             toast({ title: "Success!", description: message });
         } catch (error) {
             toast({ title: "Error", description: `Could not delete item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
@@ -348,18 +374,18 @@ export default function GalleryTab() {
                             </div>
                         )}
                         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                            <SortableContext items={galleryItems.map((item) => item.id)} strategy={verticalListSortingStrategy}>
-                                {galleryItems.map((item) => (
+                            <SortableContext items={data.galleryItems.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+                                {data.galleryItems.map((item) => (
                                     <SortableGalleryItem
                                         key={item.id}
                                         item={item}
-                                        onSave={(id, saveData, form) => handleUpdateItem(firebaseService.updateGalleryItem, id, saveData, "galleryItems", "Media item updated.", form)}
-                                        onDelete={(id) => handleDeleteItem(firebaseService.deleteGalleryItem, id, "galleryItems", "Media item deleted.")}
+                                        onSave={(id, saveData, form) => handleUpdateItem(firebaseService.updateGalleryItem, id, saveData, "Media item updated.", form)}
+                                        onDelete={(id) => handleDeleteItem(firebaseService.deleteGalleryItem, id, "Media item deleted.")}
                                     />
                                 ))}
                             </SortableContext>
                         </DndContext>
-                        <AddGalleryItemForm onAdd={(addData, form) => handleAddItem(firebaseService.addGalleryItem, addData, "galleryItems", "Media item added!", form)} />
+                        <AddGalleryItemForm onAdd={(addData, form) => handleAddItem(firebaseService.addGalleryItem, addData, "Media item added!", form)} />
                     </CardContent></Card>
                 </AccordionContent>
             </AccordionItem>

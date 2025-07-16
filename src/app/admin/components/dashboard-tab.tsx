@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -17,9 +17,9 @@ import type * as T from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
-function CreatePostForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
+function CreatePostForm({ onAdd }: { onAdd: (data: any, form: any) => Promise<void> }) {
     const form = useForm({ defaultValues: { title: '', content: '', type: undefined } });
-    return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd(d); form.reset(); })} className="space-y-4 mb-6">
+    return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd(d, form); })} className="space-y-4 mb-6">
         <FormField control={form.control} name="title" rules={{required: true}} render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
         <FormField control={form.control} name="type" rules={{required: true}} render={({ field }) => ( <FormItem><FormLabel>Type</FormLabel><Select onValueChange={field.onChange}><FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl><SelectContent><SelectItem value="news">News</SelectItem><SelectItem value="sg-note">SG Note</SelectItem></SelectContent></Select></FormItem> )} />
         <FormField control={form.control} name="content" rules={{required: true}} render={({ field }) => (<FormItem><FormLabel>Content</FormLabel><FormControl><Textarea {...field} rows={5} /></FormControl></FormItem>)} />
@@ -37,7 +37,7 @@ export default function DashboardTab() {
         secretariat: []
     });
 
-    React.useEffect(() => {
+    useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
@@ -58,12 +58,13 @@ export default function DashboardTab() {
         fetchData();
     }, [toast]);
     
-    const handleAddItem = async (addFunction: Function, itemData: any, stateKey: keyof typeof data, message: string) => {
+    const handleAddItem = async (addFunction: Function, itemData: any, stateKey: keyof typeof data, message: string, form?: any) => {
         try {
             const newId = await addFunction(itemData);
-            const newItem = await firebaseService.getDocById(stateKey, newId);
+            const newItem = await firebaseService.getDocById(stateKey as string, newId);
             setData(prev => ({ ...prev, [stateKey]: [newItem, ...prev[stateKey] as any[]] }));
             toast({ title: "Success!", description: message });
+            if (form) form.reset();
         } catch (error) {
             toast({ title: "Error", description: `Could not add item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
         }
@@ -105,7 +106,7 @@ export default function DashboardTab() {
             <Card className="mt-6">
                 <CardHeader><CardTitle className="flex items-center gap-2"><Newspaper /> Create & Manage Posts</CardTitle></CardHeader>
                 <CardContent>
-                    <CreatePostForm onAdd={(postData) => handleAddItem(firebaseService.addPost, postData, "posts", "Post created!")} />
+                    <CreatePostForm onAdd={(postData, form) => handleAddItem(firebaseService.addPost, postData, "posts", "Post created!", form)} />
                     <h3 className="text-lg font-semibold mb-4">Published Posts</h3>
                     <div className="border rounded-md max-h-96 overflow-y-auto">
                         <Table>

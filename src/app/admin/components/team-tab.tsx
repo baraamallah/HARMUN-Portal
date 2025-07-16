@@ -35,7 +35,7 @@ function SecretariatMemberForm({ member, onSave, onDelete }: { member: T.Secreta
             <form onSubmit={form.handleSubmit((data) => onSave(member.id, data, form))} className="flex flex-wrap gap-2 items-start p-2 border rounded-md mb-2">
                 <FormField control={form.control} name="name" render={({ field }) => <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="role" render={({ field }) => <FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-                <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Provide a direct image link.</FormDescription><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="bio" render={({ field }) => <FormItem className="flex-grow w-full lg:w-auto"><FormLabel>Bio</FormLabel><FormControl><Textarea {...field} rows={1} /></FormControl><FormMessage /></FormItem>} />
                 <div className="flex gap-1 pt-6"><Button type="submit" size="sm">Save</Button><Button size="sm" variant="destructive" type="button" onClick={() => onDelete(member.id)}>Delete</Button></div>
             </form>
@@ -77,18 +77,17 @@ export default function TeamTab() {
         fetchData();
     }, [toast]);
     
-    const handleUpdateItem = async (updateFunction: Function, id: string, data: any, stateKey: string, message: string, form: any) => {
+    const handleUpdateItem = async (updateFunction: Function, id: string, data: any, message: string, form: any) => {
         try {
-            const payload = { ...data };
-            await updateFunction(id, payload);
-            setSecretariat(prev => prev.map(item => item.id === id ? { ...item, ...payload } : item));
+            await updateFunction(id, data);
+            setSecretariat(prev => prev.map(item => item.id === id ? { ...item, ...data } : item));
             toast({ title: "Success!", description: message });
         } catch (error) {
             toast({ title: "Error", description: `Could not save item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
         }
     };
     
-    const handleDeleteItem = async (deleteFunction: Function, id: string, stateKey: string, message: string) => {
+    const handleDeleteItem = async (deleteFunction: Function, id: string, message: string) => {
         if (!confirm('Are you sure you want to delete this item?')) return;
         try {
             await deleteFunction(id);
@@ -99,11 +98,10 @@ export default function TeamTab() {
         }
     };
     
-    const handleAddItem = async (addFunction: Function, data: any, stateKey: string, message: string, form: any) => {
+    const handleAddItem = async (addFunction: Function, data: any, message: string, form: any) => {
         try {
-            const payload = { ...data };
-            const newId = await addFunction(payload);
-            const newItem = await firebaseService.getDocById(stateKey as string, newId);
+            const newId = await addFunction(data);
+            const newItem = await firebaseService.getDocById("secretariat", newId);
             setSecretariat(prev => [...prev, newItem].sort((a,b) => (a.order || 0) - (b.order || 0)));
             toast({ title: "Success!", description: message });
             if (form) form.reset();
@@ -124,11 +122,11 @@ export default function TeamTab() {
                     <SecretariatMemberForm
                         key={member.id}
                         member={member}
-                        onSave={(id, saveData, form) => handleUpdateItem(firebaseService.updateSecretariatMember, id, saveData, "secretariat", "Member updated.", form)}
-                        onDelete={(id) => handleDeleteItem(firebaseService.deleteSecretariatMember, id, "secretariat", "Member deleted.")}
+                        onSave={(id, saveData, form) => handleUpdateItem(firebaseService.updateSecretariatMember, id, saveData, "Member updated.", form)}
+                        onDelete={(id) => handleDeleteItem(firebaseService.deleteSecretariatMember, id, "Member deleted.")}
                     />
                 ))}
-                <AddSecretariatMemberForm onAdd={(addData, form) => handleAddItem(firebaseService.addSecretariatMember, addData, "secretariat", "Member added!", form)} />
+                <AddSecretariatMemberForm onAdd={(addData, form) => handleAddItem(firebaseService.addSecretariatMember, addData, "Member added!", form)} />
             </CardContent>
         </Card>
     );

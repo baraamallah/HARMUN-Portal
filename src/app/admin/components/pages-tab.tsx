@@ -115,7 +115,7 @@ export default function PagesTab() {
         homeContent: {}, aboutContent: {}, registrationContent: {}, documentsContent: {}, 
         highlights: [], documents: []
     });
-
+    
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
@@ -141,12 +141,10 @@ export default function PagesTab() {
     
     const handleFormSubmit = async (updateFunction: Function, stateKey: string, successMessage: string, formData: any, form: any) => {
         try {
-            const payload = { ...formData };
-            
-            await updateFunction(payload);
-            setData(prev => ({...prev, [stateKey]: {...prev[stateKey], ...payload}}))
+            await updateFunction(formData);
+            setData(prev => ({...prev, [stateKey]: {...prev[stateKey], ...formData}}))
             toast({ title: "Success!", description: successMessage });
-            form.reset(payload);
+            form.reset(formData);
         } catch (error) {
             toast({ title: "Error", description: `Could not save data. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
         }
