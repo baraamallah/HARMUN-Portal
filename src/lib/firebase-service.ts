@@ -3,6 +3,7 @@ import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, quer
 import { db } from './firebase';
 import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, SecretariatMember, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, DownloadableDocument, ConferenceHighlight, GalleryPageContent, GalleryItem } from './types';
 import { format } from 'date-fns';
+import { convertGoogleDriveLink } from './utils';
 
 
 // Collection & Document Names
@@ -165,10 +166,22 @@ export async function getDocById(collectionName: string, id: string): Promise<an
 
 // --- Specific Content Getters/Setters ---
 export const getHomePageContent = () => getConfigDoc<HomePageContent>(HOME_PAGE_CONTENT_DOC_ID, {} as HomePageContent);
-export const updateHomePageContent = (content: Partial<HomePageContent>) => updateConfigDoc(HOME_PAGE_CONTENT_DOC_ID, content);
+export const updateHomePageContent = (content: Partial<HomePageContent>) => {
+    const payload = { ...content };
+    if (payload.heroImageUrl) {
+        payload.heroImageUrl = convertGoogleDriveLink(payload.heroImageUrl);
+    }
+    return updateConfigDoc(HOME_PAGE_CONTENT_DOC_ID, payload);
+}
 
 export const getAboutPageContent = () => getConfigDoc<AboutPageContent>(ABOUT_PAGE_CONTENT_DOC_ID, {} as AboutPageContent);
-export const updateAboutPageContent = (content: Partial<AboutPageContent>) => updateConfigDoc(ABOUT_PAGE_CONTENT_DOC_ID, content);
+export const updateAboutPageContent = (content: Partial<AboutPageContent>) => {
+    const payload = { ...content };
+    if (payload.imageUrl) {
+        payload.imageUrl = convertGoogleDriveLink(payload.imageUrl);
+    }
+    return updateConfigDoc(ABOUT_PAGE_CONTENT_DOC_ID, payload);
+}
 
 export const getRegistrationPageContent = () => getConfigDoc<RegistrationPageContent>(REGISTRATION_PAGE_CONTENT_DOC_ID, {} as RegistrationPageContent);
 export const updateRegistrationPageContent = (content: Partial<RegistrationPageContent>) => updateConfigDoc(REGISTRATION_PAGE_CONTENT_DOC_ID, content);
@@ -220,8 +233,16 @@ async function deleteCollectionDoc(collectionName: string, id: string): Promise<
 
 // --- Specific Collection Functions ---
 export const getSecretariat = () => getCollection<SecretariatMember>(SECRETARIAT_COLLECTION);
-export const addSecretariatMember = (member: Omit<SecretariatMember, 'id' | 'order'>) => addCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, member);
-export const updateSecretariatMember = (id: string, member: Omit<SecretariatMember, 'id' | 'order'>) => updateCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, id, member);
+export const addSecretariatMember = (member: Omit<SecretariatMember, 'id' | 'order'>) => {
+    const payload = {...member};
+    payload.imageUrl = convertGoogleDriveLink(payload.imageUrl);
+    return addCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, payload);
+};
+export const updateSecretariatMember = (id: string, member: Omit<SecretariatMember, 'id' | 'order'>) => {
+    const payload = {...member};
+    payload.imageUrl = convertGoogleDriveLink(payload.imageUrl);
+    return updateCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, id, payload);
+};
 export const deleteSecretariatMember = (id: string) => deleteCollectionDoc(SECRETARIAT_COLLECTION, id);
 
 export const getHighlights = () => getCollection<ConferenceHighlight>(HIGHLIGHTS_COLLECTION);
@@ -238,13 +259,18 @@ export const deleteDownloadableDocument = (id: string) => deleteCollectionDoc(DO
 // --- Gallery ---
 export const getGalleryItems = () => getCollection<GalleryItem>(GALLERY_COLLECTION);
 export const addGalleryItem = (item: Omit<GalleryItem, 'id'>) => {
-    const { columnSpan, ...rest } = item;
-    const payload = { ...rest, columnSpan: Number(columnSpan) };
-    return addCollectionDoc<GalleryItem>(GALLERY_COLLECTION, payload);
+    const { columnSpan, imageUrl, videoUrl, ...rest } = item;
+    const payload: Partial<GalleryItem> = { ...rest, columnSpan: Number(columnSpan) };
+    if (imageUrl) payload.imageUrl = convertGoogleDriveLink(imageUrl);
+    if (videoUrl) payload.videoUrl = videoUrl; // Assuming videos are not from GDrive for now
+    return addCollectionDoc<GalleryItem>(GALLERY_COLLECTION, payload as Omit<GalleryItem, 'id'>);
 };
 export const updateGalleryItem = (id: string, item: Partial<GalleryItem>) => {
-    const { columnSpan, ...rest } = item;
-    const payload = { ...rest, columnSpan: Number(columnSpan) };
+    const { columnSpan, imageUrl, videoUrl, ...rest } = item;
+    const payload: Partial<GalleryItem> = { ...rest };
+    if (columnSpan) payload.columnSpan = Number(columnSpan);
+    if (imageUrl) payload.imageUrl = convertGoogleDriveLink(imageUrl);
+    if (videoUrl) payload.videoUrl = videoUrl;
     return updateCollectionDoc<GalleryItem>(GALLERY_COLLECTION, id, payload);
 };
 export const deleteGalleryItem = (id: string) => deleteCollectionDoc(GALLERY_COLLECTION, id);
@@ -321,7 +347,13 @@ export const updateCountryStatus = (id: string, data: { status: 'Available' | 'A
 export const deleteCountry = (id: string) => deleteDoc(doc(db, COUNTRIES_COLLECTION, id));
 
 // --- Committees (Existing) ---
-export const addCommittee = (committee: Omit<Committee, 'id'>) => addDoc(collection(db, COMMITTEES_COLLECTION), committee).then(ref => ref.id);
+export const addCommittee = (committee: Omit<Committee, 'id'>) => {
+    const payload = {...committee};
+    if (payload.chair?.imageUrl) {
+        payload.chair.imageUrl = convertGoogleDriveLink(payload.chair.imageUrl);
+    }
+    return addDoc(collection(db, COMMITTEES_COLLECTION), payload).then(ref => ref.id);
+};
 export async function getCommittees(): Promise<Committee[]> {
     const q = query(collection(db, COMMITTEES_COLLECTION), orderBy('name'));
     const querySnapshot = await getDocs(q);
@@ -350,7 +382,7 @@ const committeeTransformer = (row: any): Omit<Committee, 'id'> => ({
     chair: {
         name: row.chairName || '',
         bio: row.chairBio || '',
-        imageUrl: row.chairImageUrl || ''
+        imageUrl: convertGoogleDriveLink(row.chairImageUrl || '')
     },
     topics: (row.topics || '').split('\\n').join('\n').split('\n').filter(Boolean),
     backgroundGuideUrl: row.backgroundGuideUrl || ''
@@ -360,7 +392,7 @@ const secretariatTransformer = (row: any): Omit<SecretariatMember, 'id'> => ({
     name: row.name || '',
     role: row.role || '',
     bio: row.bio || '',
-    imageUrl: row.imageUrl || '',
+    imageUrl: convertGoogleDriveLink(row.imageUrl || ''),
     order: parseInt(row.order, 10) || 0,
 });
 
@@ -378,7 +410,7 @@ const galleryTransformer = (row: any): Omit<GalleryItem, 'id'> => {
         type,
         display: row.display || '4:3',
         columnSpan: parseInt(row.columnSpan, 10) === 2 ? 2 : 1,
-        imageUrl: type === 'image' ? url : null,
+        imageUrl: type === 'image' ? convertGoogleDriveLink(url) : null,
         videoUrl: type === 'video' ? url : null,
         order: parseInt(row.order, 10) || 0,
     }
@@ -398,5 +430,3 @@ async function clearCollection(collectionPath: string) {
     querySnapshot.docs.forEach(docSnapshot => batch.delete(docSnapshot.ref));
     await batch.commit();
 }
-
-    
