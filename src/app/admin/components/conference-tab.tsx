@@ -19,7 +19,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
 
 const scheduleEventSchema = z.object({
     time: z.string().min(1, "Time is required."),
@@ -95,26 +94,6 @@ function AddCommitteeForm({ onAdd }: { onAdd: (data: any, form: any) => Promise<
     </form></Form>;
 }
 
-const SectionCard: React.FC<{
-  title: string;
-  description: string;
-  icon: React.ElementType;
-  children: React.ReactNode;
-}> = ({ title, description, icon: Icon, children }) => (
-    <Card>
-        <CardHeader>
-            <div className="flex items-start gap-4">
-                 <Icon className="h-8 w-8 text-muted-foreground" />
-                 <div>
-                    <CardTitle>{title}</CardTitle>
-                    <CardDescription>{description}</CardDescription>
-                 </div>
-            </div>
-        </CardHeader>
-        <CardContent>{children}</CardContent>
-    </Card>
-);
-
 export default function ConferenceTab() {
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
@@ -168,85 +147,120 @@ export default function ConferenceTab() {
     
     return (
         <div className="space-y-6">
-             <SectionCard title="Committees" description="Manage committees, chairs, and topics." icon={Library}>
-                <div className="grid md:grid-cols-5 gap-8">
-                     <div className="md:col-span-2">
-                        <h4 className="font-semibold mb-4 text-center">Add New Committee</h4>
-                        <AddCommitteeForm onAdd={(values, form) => handleAction(firebaseService.addCommittee(values), "Committee Added!", form)}/>
-                    </div>
-                     <div className="md:col-span-3">
-                         <h4 className="font-semibold mb-4 text-center">Existing Committees</h4>
-                        <div className="border rounded-md max-h-96 overflow-y-auto">
-                            <Table><TableHeader><TableRow><TableHead>Committee</TableHead><TableHead>Chair</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {data.committees?.map((c: T.Committee) => (
-                                    <TableRow key={c.id}>
-                                        <TableCell>{c.name}</TableCell><TableCell>{c.chair.name}</TableCell>
-                                        <TableCell className="text-right">
-                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(firebaseService.deleteCommittee, c.id, "committee")}>
-                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody></Table>
+             <Card>
+                <CardHeader>
+                    <div className="flex items-start gap-4">
+                        <Library className="h-8 w-8 text-muted-foreground" />
+                        <div>
+                        <CardTitle>Committees</CardTitle>
+                        <CardDescription>Manage committees, chairs, and topics.</CardDescription>
                         </div>
                     </div>
-                </div>
-            </SectionCard>
-
-            <SectionCard title="Country Matrix" description="Manage country assignments for each committee." icon={Globe}>
-                <AddCountryForm committees={data.committees} onAdd={(values, form) => handleAction(firebaseService.addCountry(values), "Country Added!", form)} />
-                <div className="border rounded-md max-h-[30rem] overflow-y-auto">
-                    <Table><TableHeader><TableRow><TableHead>Country</TableHead><TableHead>Committee</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                        {data.countries?.map((country: T.Country) => (
-                            <TableRow key={country.id}>
-                                <TableCell>{country.name}</TableCell><TableCell>{country.committee}</TableCell>
-                                <TableCell><Badge variant={country.status === 'Available' ? 'secondary' : 'default'}>{country.status}</Badge></TableCell>
-                                <TableCell className="text-right flex items-center justify-end gap-2">
-                                    <Switch title={`Mark as ${country.status === 'Available' ? 'Assigned' : 'Available'}`} checked={country.status === 'Assigned'} onCheckedChange={() => {
-                                        const newStatus = country.status === 'Available' ? 'Assigned' : 'Available';
-                                        handleAction(firebaseService.updateCountryStatus(country.id, { status: newStatus }), "Country status updated.");
-                                    }} />
-                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(firebaseService.deleteCountry, country.id, "country")}> <Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody></Table>
-                </div>
-            </SectionCard>
-
-            <SectionCard title="Conference Schedule" description="Manage the event schedule for each day of the conference." icon={CalendarDays}>
-                <div className="grid md:grid-cols-2 gap-8">
-                    <div className="space-y-4">
-                        {data.schedule?.map((day: T.ScheduleDay) => (
-                            <Card key={day.id} className="w-full">
-                                <CardHeader>
-                                    <CardTitle>{day.title} - {day.date}</CardTitle>
-                                    <CardDescription>
-                                        <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => handleDeleteItem(firebaseService.deleteScheduleDay, day.id, 'day')}>Delete Day</Button>
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    {day.events.length > 0 ? day.events.map((event: T.ScheduleEvent) => (
-                                        <ScheduleEventForm
-                                            key={event.id} day={day} event={event}
-                                            onSave={(id, saveData) => handleAction(firebaseService.updateScheduleEvent(id, saveData), "Event updated.")}
-                                            onDelete={(id) => handleDeleteItem(firebaseService.deleteScheduleEvent, id, "event")}
-                                        />
-                                    )) : <p className="text-sm text-muted-foreground text-center py-4">No events for this day.</p>}
-                                    <AddScheduleEventForm dayId={day.id} onAdd={(eventData, form) => handleAction(firebaseService.addScheduleEvent(eventData), "Event added.", form)} />
-                                </CardContent>
-                            </Card>
-                        ))}
+                </CardHeader>
+                <CardContent>
+                    <div className="grid md:grid-cols-5 gap-8">
+                        <div className="md:col-span-2">
+                            <h4 className="font-semibold mb-4 text-center">Add New Committee</h4>
+                            <AddCommitteeForm onAdd={(values, form) => handleAction(firebaseService.addCommittee(values), "Committee Added!", form)}/>
+                        </div>
+                        <div className="md:col-span-3">
+                            <h4 className="font-semibold mb-4 text-center">Existing Committees</h4>
+                            <div className="border rounded-md max-h-96 overflow-y-auto">
+                                <Table><TableHeader><TableRow><TableHead>Committee</TableHead><TableHead>Chair</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                                <TableBody>
+                                    {data.committees?.map((c: T.Committee) => (
+                                        <TableRow key={c.id}>
+                                            <TableCell>{c.name}</TableCell><TableCell>{c.chair.name}</TableCell>
+                                            <TableCell className="text-right">
+                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(firebaseService.deleteCommittee, c.id, "committee")}>
+                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody></Table>
+                            </div>
+                        </div>
                     </div>
-                     <div>
-                        <h4 className="font-semibold mb-4 text-center">Add New Day</h4>
-                        <AddScheduleDayForm onAdd={(dayData, form) => handleAction(firebaseService.addScheduleDay(dayData), "Day Added!", form)} />
-                     </div>
-                </div>
-            </SectionCard>
+                </CardContent>
+            </Card>
+
+            <Card>
+                 <CardHeader>
+                    <div className="flex items-start gap-4">
+                        <Globe className="h-8 w-8 text-muted-foreground" />
+                        <div>
+                        <CardTitle>Country Matrix</CardTitle>
+                        <CardDescription>Manage country assignments for each committee.</CardDescription>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <AddCountryForm committees={data.committees} onAdd={(values, form) => handleAction(firebaseService.addCountry(values), "Country Added!", form)} />
+                    <div className="border rounded-md max-h-[30rem] overflow-y-auto">
+                        <Table><TableHeader><TableRow><TableHead>Country</TableHead><TableHead>Committee</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                        <TableBody>
+                            {data.countries?.map((country: T.Country) => (
+                                <TableRow key={country.id}>
+                                    <TableCell>{country.name}</TableCell><TableCell>{country.committee}</TableCell>
+                                    <TableCell><Badge variant={country.status === 'Available' ? 'secondary' : 'default'}>{country.status}</Badge></TableCell>
+                                    <TableCell className="text-right flex items-center justify-end gap-2">
+                                        <Switch title={`Mark as ${country.status === 'Available' ? 'Assigned' : 'Available'}`} checked={country.status === 'Assigned'} onCheckedChange={() => {
+                                            const newStatus = country.status === 'Available' ? 'Assigned' : 'Available';
+                                            handleAction(firebaseService.updateCountryStatus(country.id, { status: newStatus }), "Country status updated.");
+                                        }} />
+                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(firebaseService.deleteCountry, country.id, "country")}> <Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody></Table>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <div className="flex items-start gap-4">
+                        <CalendarDays className="h-8 w-8 text-muted-foreground" />
+                        <div>
+                        <CardTitle>Conference Schedule</CardTitle>
+                        <CardDescription>Manage the event schedule for each day of the conference.</CardDescription>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-4">
+                            {data.schedule?.map((day: T.ScheduleDay) => (
+                                <Card key={day.id} className="w-full">
+                                    <CardHeader>
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <CardTitle>{day.title} - {day.date}</CardTitle>
+                                            </div>
+                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(firebaseService.deleteScheduleDay, day.id, 'day')}><Trash2 className="text-destructive h-4 w-4"/></Button>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {day.events.length > 0 ? day.events.map((event: T.ScheduleEvent) => (
+                                            <ScheduleEventForm
+                                                key={event.id} day={day} event={event}
+                                                onSave={(id, saveData) => handleAction(firebaseService.updateScheduleEvent(id, saveData), "Event updated.")}
+                                                onDelete={(id) => handleDeleteItem(firebaseService.deleteScheduleEvent, id, "event")}
+                                            />
+                                        )) : <p className="text-sm text-muted-foreground text-center py-4">No events for this day.</p>}
+                                        <AddScheduleEventForm dayId={day.id} onAdd={(eventData, form) => handleAction(firebaseService.addScheduleEvent(eventData), "Event added.", form)} />
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                        <div>
+                            <h4 className="font-semibold mb-4 text-center">Add New Day</h4>
+                            <AddScheduleDayForm onAdd={(dayData, form) => handleAction(firebaseService.addScheduleDay(dayData), "Day Added!", form)} />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }

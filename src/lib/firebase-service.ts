@@ -170,7 +170,7 @@ export async function getDocById(collectionName: string, id: string): Promise<an
         }
         return { id: docSnap.id, ...defaultData, ...data };
     }
-    throw new Error(`Document with id ${id} not found in ${collectionName}`);
+    return null;
 }
 
 // --- Specific Content Getters/Setters ---
@@ -345,7 +345,8 @@ export async function getPostById(id: string): Promise<Post | null> {
     return null;
 }
 export async function getPosts(type: 'sg-note' | 'news'): Promise<Post[]> {
-  return (await getAllPosts()).filter(post => post.type === type);
+    const allPosts = await getAllPosts();
+    return allPosts.filter(post => post.type === type);
 }
 export async function getRecentNewsPosts(count: number): Promise<Post[]> {
     const allNews = await getPosts('news');
@@ -379,10 +380,24 @@ export const deleteCountry = (id: string) => deleteDoc(doc(db, COUNTRIES_COLLECT
 
 // --- Committees (Existing) ---
 export const addCommittee = (committee: Omit<Committee, 'id'>) => {
-    const payload = {...committee};
-    if (payload.chair?.imageUrl) {
-        payload.chair.imageUrl = convertGoogleDriveLink(payload.chair.imageUrl);
-    }
+    const topics = typeof committee.topics === 'string'
+        ? committee.topics.split('\n').filter(Boolean)
+        : committee.topics;
+
+    const payload = {
+        ...committee,
+        topics: topics,
+        chair: {
+            name: committee.chairName || '',
+            bio: committee.chairBio || '',
+            imageUrl: convertGoogleDriveLink(committee.chairImageUrl || ''),
+        }
+    };
+    // remove legacy fields before saving
+    delete (payload as any).chairName;
+    delete (payload as any).chairBio;
+    delete (payload as any).chairImageUrl;
+
     return addDoc(collection(db, COMMITTEES_COLLECTION), payload).then(ref => ref.id);
 };
 export async function getCommittees(): Promise<Committee[]> {
