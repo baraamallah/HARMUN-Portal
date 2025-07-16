@@ -1,42 +1,27 @@
-
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Countdown } from '@/components/countdown';
-import { MapPin, type LucideIcon, type LucideProps } from 'lucide-react';
-import * as icons from 'lucide-react';
 import Image from 'next/image';
-import { getHomePageContent, getSiteConfig, getHighlights } from '@/lib/firebase-service';
-import type { ConferenceHighlight } from '@/lib/types';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { ArrowRight, Library, Calendar } from 'lucide-react';
+import { getHomePageContent, getRecentGalleryItems } from '@/lib/firebase-service';
+import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-const Icon = ({ name, ...props }: { name: string } & LucideProps) => {
-  const LucideIcon = (icons as unknown as Record<string, LucideIcon>)[name];
-  if (!LucideIcon) {
-    return <icons.HelpCircle {...props} />; // Fallback icon
-  }
-  return <LucideIcon {...props} />;
-};
-
-
 export default async function Home() {
-  const [content, siteConfig, highlights] = await Promise.all([
+  const [content, recentItems] = await Promise.all([
     getHomePageContent(),
-    getSiteConfig(),
-    getHighlights(),
+    getRecentGalleryItems(3),
   ]);
-
-  const conferenceDate = new Date(siteConfig.conferenceDate);
 
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative h-[60vh] md:h-[80vh] w-full flex items-center justify-center text-center text-white overflow-hidden">
+      <section className="relative h-[60vh] md:h-[70vh] w-full flex items-center justify-center text-center text-white overflow-hidden">
         <div className="absolute inset-0 bg-black/50 z-10" />
         <Image
           src={content.heroImageUrl}
-          alt="Conference hall"
+          alt="Delegates at a Model UN conference"
           fill
           className="z-0 object-cover"
           data-ai-hint="conference hall"
@@ -57,64 +42,71 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Countdown Section */}
-      <section className="bg-background py-16 animate-fade-in-up border-b" style={{ animationDelay: '500ms' }}>
-        <div className="container mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-2 font-headline text-foreground">Conference Countdown</h2>
-          <p className="text-muted-foreground mb-8">The next session is just around the corner.</p>
-          <Countdown targetDate={conferenceDate} />
+      {/* Action Buttons Section */}
+      <section className="bg-secondary/50 py-12 border-b">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-center">
+             <Card className="p-6 flex flex-col items-center justify-center hover:border-primary/50 hover:-translate-y-1 transition-transform duration-300">
+                <Library className="w-10 h-10 mb-2 text-primary"/>
+                <h3 className="text-xl font-bold mb-2">Explore Committees</h3>
+                <p className="text-muted-foreground mb-4">Discover the topics and chairs for each committee.</p>
+                <Button asChild variant="outline">
+                    <Link href="/committees">View Committees</Link>
+                </Button>
+             </Card>
+             <Card className="p-6 flex flex-col items-center justify-center hover:border-primary/50 hover:-translate-y-1 transition-transform duration-300">
+                <Calendar className="w-10 h-10 mb-2 text-primary"/>
+                <h3 className="text-xl font-bold mb-2">Conference Schedule</h3>
+                <p className="text-muted-foreground mb-4">Plan your days with our detailed event schedule.</p>
+                <Button asChild variant="outline">
+                    <Link href="/schedule">See Schedule</Link>
+                </Button>
+             </Card>
+          </div>
         </div>
       </section>
 
-      {/* Highlights Section */}
-      <section className="bg-secondary/50 py-20 border-b">
-        <div className="container mx-auto px-4">
-           <div className="text-center mb-12 animate-fade-in-up">
-            <h2 className="text-3xl font-bold font-headline text-foreground">Key Information</h2>
-            <p className="mt-2 text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to know at a glance.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {highlights.map((highlight, index) => (
-               <Card key={highlight.id} className="animate-fade-in-up transition-all duration-300 hover:border-primary/50 hover:-translate-y-1 text-center bg-background" style={{ animationDelay: `${index * 150}ms` }}>
-                <CardHeader>
-                  <div className="mx-auto bg-primary text-primary-foreground rounded-full w-16 h-16 flex items-center justify-center mb-4 shadow-lg">
-                    <Icon name={highlight.icon} className="w-8 h-8" />
-                  </div>
-                  <CardTitle className="font-headline">{highlight.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-lg text-muted-foreground">{highlight.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-      
-       {/* Map Section */}
+      {/* Gallery Preview Section */}
+      {recentItems.length > 0 && (
         <section className="bg-background py-20">
-            <div className="container mx-auto px-4">
-                 <div className="text-center mb-12 animate-fade-in-up">
-                    <h2 className="text-3xl font-bold font-headline text-foreground">Find Your Way</h2>
-                    <p className="mt-2 text-muted-foreground max-w-2xl mx-auto">
-                      Our conference is held at the heart of Harvard University.
-                    </p>
-                </div>
-                <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-                    <Card className="overflow-hidden">
-                        <iframe 
-                            src={siteConfig.mapEmbedUrl} 
-                            className="w-full h-96 border-0"
-                            allowFullScreen={true}
-                            loading="lazy" 
-                            referrerPolicy="no-referrer-when-downgrade">
-                        </iframe>
-                    </Card>
-                </div>
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12 animate-fade-in-up">
+              <h2 className="text-3xl font-bold font-headline text-foreground">From the Gallery</h2>
+              <p className="mt-2 text-muted-foreground max-w-2xl mx-auto">
+                A glimpse into the memorable moments of our conference.
+              </p>
             </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {recentItems.map((item, index) => (
+                <Card key={item.id} className={cn(
+                  "group animate-fade-in-up overflow-hidden",
+                )} style={{ animationDelay: `${index * 100}ms` }}>
+                  <div className="relative w-full aspect-video overflow-hidden">
+                    <Image
+                      src={item.imageUrl}
+                      alt={item.title}
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className="object-cover transition-transform duration-500 ease-in-out group-hover:scale-105"
+                      data-ai-hint="event photo"
+                    />
+                  </div>
+                  <CardContent className="p-4">
+                    <h3 className="font-bold text-lg truncate">{item.title}</h3>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <div className="text-center mt-12">
+                <Button asChild size="lg" variant="ghost">
+                    <Link href="/gallery">
+                        View Full Gallery <ArrowRight className="w-4 h-4 ml-2"/>
+                    </Link>
+                </Button>
+            </div>
+          </div>
         </section>
+      )}
     </div>
   );
 }

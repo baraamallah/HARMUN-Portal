@@ -1,6 +1,4 @@
-
-
-import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc, writeBatch, documentId, runTransaction } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc, writeBatch, documentId, runTransaction, limit } from 'firebase/firestore';
 import { db } from './firebase';
 import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, DownloadableDocument, ConferenceHighlight, GalleryPageContent, GalleryItem } from './types';
 import { format } from 'date-fns';
@@ -252,6 +250,11 @@ export const updateDownloadableDocument = (id: string, item: Partial<Downloadabl
 export const deleteDownloadableDocument = (id: string) => deleteCollectionDoc(DOCUMENTS_COLLECTION, id);
 
 export const getGalleryItems = () => getCollection<GalleryItem>(GALLERY_COLLECTION);
+export async function getRecentGalleryItems(count: number): Promise<GalleryItem[]> {
+    const q = query(collection(db, GALLERY_COLLECTION), orderBy('order', 'desc'), limit(count));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GalleryItem));
+}
 export const addGalleryItem = (item: Omit<GalleryItem, 'id'>) => {
     const payload = {...item};
     if (payload.imageUrl) {
