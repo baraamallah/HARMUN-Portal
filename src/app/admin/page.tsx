@@ -3,6 +3,7 @@
 
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LayoutDashboard, FileText, Settings, ShieldCheck, Library, Globe, GalleryHorizontal } from "lucide-react";
 
 import DashboardTab from './components/dashboard-tab';
 import PagesTab from './components/pages-tab';
@@ -21,37 +22,37 @@ export default function AdminPage() {
             <p className="text-muted-foreground">Manage your conference website content and settings here.</p>
         </div>
 
-        <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
-                <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-                <TabsTrigger value="pages">Pages</TabsTrigger>
-                <TabsTrigger value="conference">Conference</TabsTrigger>
-                <TabsTrigger value="gallery">Gallery</TabsTrigger>
-                <TabsTrigger value="settings">Settings</TabsTrigger>
-                <TabsTrigger value="security">Security</TabsTrigger>
+        <Tabs defaultValue="dashboard" className="w-full" orientation="vertical">
+            <TabsList className="grid h-full grid-cols-1 w-full md:w-48 lg:w-56 p-2">
+                <TabsTrigger value="dashboard" className="justify-start gap-2"><LayoutDashboard/> Dashboard</TabsTrigger>
+                <TabsTrigger value="pages" className="justify-start gap-2"><FileText/> Pages</TabsTrigger>
+                <TabsTrigger value="conference" className="justify-start gap-2"><Library/> Conference</TabsTrigger>
+                <TabsTrigger value="gallery" className="justify-start gap-2"><GalleryHorizontal/> Gallery</TabsTrigger>
+                <TabsTrigger value="settings" className="justify-start gap-2"><Settings/> Settings</TabsTrigger>
+                <TabsTrigger value="security" className="justify-start gap-2"><ShieldCheck/> Security</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="dashboard" className="mt-6">
+            <TabsContent value="dashboard" className="mt-0 ml-4">
               <DashboardTab />
             </TabsContent>
 
-            <TabsContent value="pages" className="mt-6">
+            <TabsContent value="pages" className="mt-0 ml-4">
               <PagesTab />
             </TabsContent>
 
-            <TabsContent value="conference" className="mt-6">
+            <TabsContent value="conference" className="mt-0 ml-4">
               <ConferenceTab />
             </TabsContent>
 
-             <TabsContent value="gallery" className="mt-6">
+             <TabsContent value="gallery" className="mt-0 ml-4">
               <GalleryTab />
             </TabsContent>
 
-            <TabsContent value="settings" className="mt-6">
+            <TabsContent value="settings" className="mt-0 ml-4">
               <SettingsTab />
             </TabsContent>
             
-            <TabsContent value="security" className="mt-6">
+            <TabsContent value="security" className="mt-0 ml-4">
               <SecurityTab toast={toast}/>
             </TabsContent>
         </Tabs>
