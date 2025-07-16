@@ -236,22 +236,17 @@ export const deleteDownloadableDocument = (id: string) => deleteCollectionDoc(DO
 
 
 // --- Gallery ---
-function processGalleryItemDataForSave(data: any) {
-    const { url, type, columnSpan, ...rest } = data;
-    const processedData: any = { ...rest, type, columnSpan: parseInt(columnSpan, 10) };
-    if (type === 'image') {
-        processedData.imageUrl = url;
-        processedData.videoUrl = null;
-    } else {
-        processedData.imageUrl = null;
-        processedData.videoUrl = url;
-    }
-    return processedData;
-}
-
 export const getGalleryItems = () => getCollection<GalleryItem>(GALLERY_COLLECTION);
-export const addGalleryItem = (item: any) => addCollectionDoc<GalleryItem>(GALLERY_COLLECTION, processGalleryItemDataForSave(item));
-export const updateGalleryItem = (id: string, item: any) => updateCollectionDoc<GalleryItem>(GALLERY_COLLECTION, id, processGalleryItemDataForSave(item));
+export const addGalleryItem = (item: Omit<GalleryItem, 'id'>) => {
+    const { columnSpan, ...rest } = item;
+    const payload = { ...rest, columnSpan: Number(columnSpan) };
+    return addCollectionDoc<GalleryItem>(GALLERY_COLLECTION, payload);
+};
+export const updateGalleryItem = (id: string, item: Partial<GalleryItem>) => {
+    const { columnSpan, ...rest } = item;
+    const payload = { ...rest, columnSpan: Number(columnSpan) };
+    return updateCollectionDoc<GalleryItem>(GALLERY_COLLECTION, id, payload);
+};
 export const deleteGalleryItem = (id: string) => deleteCollectionDoc(GALLERY_COLLECTION, id);
 export const updateGalleryItemsOrder = async (items: GalleryItem[]) => {
     const batch = writeBatch(db);
@@ -403,3 +398,5 @@ async function clearCollection(collectionPath: string) {
     querySnapshot.docs.forEach(docSnapshot => batch.delete(docSnapshot.ref));
     await batch.commit();
 }
+
+    

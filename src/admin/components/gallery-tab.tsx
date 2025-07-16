@@ -40,7 +40,11 @@ const galleryItemSchema = z.object({
     type: z.enum(["image", "video"], { required_error: "Please select a media type." }),
     display: z.enum(['16:9', '4:3', '1:1', '3:4', '9:16', '2:3', 'circle'], { required_error: "Please select a display style." }),
     columnSpan: z.enum(['1', '2'], { required_error: "Please select a width." }),
-    url: z.string().url("Must be a valid URL.").min(1, "URL is required."),
+    imageUrl: z.string().url("Must be a valid URL.").optional().or(z.literal("")).or(z.literal(null)),
+    videoUrl: z.string().url("Must be a valid URL.").optional().or(z.literal("")).or(z.literal(null)),
+}).refine(data => data.type === 'image' ? !!data.imageUrl : !!data.videoUrl, {
+    message: "A URL for the selected media type is required.",
+    path: ["imageUrl"], // Show error on one of the fields
 });
 
 
@@ -67,10 +71,10 @@ function SortableGalleryItem({ item, onSave, onDelete }: { item: T.GalleryItem; 
 function GalleryItemForm({ item, onSave, onDelete }: { item: T.GalleryItem; onSave: (id: string, data: any, form: any) => void; onDelete: (id: string) => void }) {
     const form = useForm({
         resolver: zodResolver(galleryItemSchema),
-        defaultValues: { ...item, columnSpan: String(item.columnSpan || 1) as '1' | '2', url: item.imageUrl || item.videoUrl || '' },
+        defaultValues: { ...item, columnSpan: String(item.columnSpan || 1) as '1' | '2' },
     });
     const itemType = form.watch("type");
-    React.useEffect(() => { form.reset({ ...item, columnSpan: String(item.columnSpan || 1) as '1' | '2', url: item.imageUrl || item.videoUrl || '' }); }, [item, form]);
+    React.useEffect(() => { form.reset({ ...item, columnSpan: String(item.columnSpan || 1) as '1' | '2' }); }, [item, form]);
 
     return (
         <Form {...form}>
@@ -122,13 +126,27 @@ function GalleryItemForm({ item, onSave, onDelete }: { item: T.GalleryItem; onSa
                         </FormItem>
                     )} />
                 </div>
-                 <FormField control={form.control} name="url" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>{itemType === 'video' ? "Video URL" : "Image URL"}</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
+                 {itemType === 'image' && (
+                    <FormField control={form.control} name="imageUrl" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Image URL</FormLabel>
+                            <FormControl><Input {...field} value={field.value || ''} /></FormControl>
+                            <FormDescription>Provide a direct image link.</FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                 />
+                )}
+                 {itemType === 'video' && (
+                    <FormField control={form.control} name="videoUrl" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Video URL</FormLabel>
+                            <FormControl><Input {...field} value={field.value || ''} /></FormControl>
+                             <FormDescription>Provide a direct video link.</FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                )}
 
                 <div className="flex gap-2 justify-end"><Button type="submit" size="sm">Save</Button><Button size="sm" variant="destructive" type="button" onClick={() => onDelete(item.id)}>Delete</Button></div>
             </form>
@@ -139,7 +157,7 @@ function GalleryItemForm({ item, onSave, onDelete }: { item: T.GalleryItem; onSa
 function AddGalleryItemForm({ onAdd }: { onAdd: (data: any, form: any) => Promise<void> }) {
     const form = useForm<z.infer<typeof galleryItemSchema>>({ 
         resolver: zodResolver(galleryItemSchema), 
-        defaultValues: { title: '', url: '', type: 'image', display: '4:3', columnSpan: '1' } 
+        defaultValues: { title: '', imageUrl: '', videoUrl: '', type: 'image', display: '4:3', columnSpan: '1' } 
     });
     const itemType = form.watch("type");
 
@@ -149,7 +167,11 @@ function AddGalleryItemForm({ onAdd }: { onAdd: (data: any, form: any) => Promis
             <FormField control={form.control} name="type" render={({ field }) => (
                 <FormItem>
                     <FormLabel>Media Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={(value) => {
+                        field.onChange(value);
+                        form.setValue('imageUrl', '');
+                        form.setValue('videoUrl', '');
+                    }} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select type..." /></SelectTrigger></FormControl>
                         <SelectContent>
                             <SelectItem value="image">Image</SelectItem>
@@ -191,14 +213,26 @@ function AddGalleryItemForm({ onAdd }: { onAdd: (data: any, form: any) => Promis
                 </FormItem>
             )} />
         </div>
-        <FormField control={form.control} name="url" render={({ field }) => (
-            <FormItem>
-                <FormLabel>{itemType === 'video' ? "Video URL" : "Image URL"}</FormLabel>
-                <FormControl><Input {...field} /></FormControl>
-                <FormDescription>Provide a direct URL for the image or video.</FormDescription>
-                <FormMessage />
-            </FormItem>
-        )} />
+         {itemType === 'image' && (
+            <FormField control={form.control} name="imageUrl" render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Image URL</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
+                    <FormDescription>Provide a direct image link.</FormDescription>
+                    <FormMessage />
+                </FormItem>
+            )}
+         )}
+        {itemType === 'video' && (
+            <FormField control={form.control} name="videoUrl" render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Video URL</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
+                    <FormDescription>Provide a direct video link.</FormDescription>
+                    <FormMessage />
+                </FormItem>
+            )}
+        )}
         <Button type="submit" size="sm">Add Media</Button>
     </form></Form>;
 }
@@ -366,3 +400,5 @@ export default function GalleryTab() {
         </Accordion>
     );
 }
+
+    
