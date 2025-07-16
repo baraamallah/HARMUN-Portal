@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowRight, Library, Calendar } from 'lucide-react';
+import { ArrowRight, Library, Calendar, MapPin } from 'lucide-react';
 import { getHomePageContent, getHighlights, getRecentGalleryItems, getSiteConfig } from '@/lib/firebase-service';
 import { cn } from '@/lib/utils';
 import { Countdown } from '@/components/countdown';
@@ -105,9 +105,37 @@ export default async function Home() {
         </div>
       </section>
 
+       {/* Venue Map Section */}
+      {siteConfig.mapEmbedUrl && (
+        <section className="bg-background py-16 md:py-20 border-b">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12 animate-fade-in-up">
+              <h2 className="text-3xl font-bold font-headline text-foreground">Venue & Map</h2>
+              <p className="mt-2 text-muted-foreground max-w-2xl mx-auto">
+                Find your way to the heart of the conference.
+              </p>
+            </div>
+            <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+                <div className="aspect-video w-full rounded-lg overflow-hidden border shadow-lg">
+                    <iframe
+                        src={siteConfig.mapEmbedUrl}
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        allowFullScreen
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        title="Conference Venue Map"
+                    ></iframe>
+                </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Gallery Preview Section */}
       {recentItems.length > 0 && (
-        <section className="bg-background py-20">
+        <section className="bg-secondary/50 py-20">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12 animate-fade-in-up">
               <h2 className="text-3xl font-bold font-headline text-foreground">From the Gallery</h2>
@@ -149,5 +177,3 @@ export default async function Home() {
     </div>
   );
 }
-
-    
