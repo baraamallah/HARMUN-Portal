@@ -26,7 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 const navLinksForAdmin = [
   { href: '/about', label: 'About' }, { href: '/committees', label: 'Committees' }, { href: '/news', label: 'News' },
   { href: '/sg-notes', label: 'SG Notes' }, { href: '/registration', label: 'Registration' }, { href: '/schedule', label: 'Schedule' },
-  { href: '/secretariat', label: 'Secretariat' }, { href: '/documents', label: 'Documents' }, { href: '/gallery', label: 'Gallery'}
+  { href: '/documents', label: 'Documents' }
 ];
 
 const generalSettingsSchema = z.object({
@@ -192,7 +192,7 @@ export default function SettingsTab() {
                     toast({ title: "Import Failed", description: error instanceof Error ? error.message : "An unknown error occurred.", variant: "destructive" });
                 } finally {
                     setIsImporting(false);
-                    setCommitteeImportFile(null); setCountryImportFile(null); 
+                    setCommitteeImportFile(null); setCountryImportFile(null);
                     const fileInput = document.getElementById(`${type}ImportFile`) as HTMLInputElement;
                     if (fileInput) fileInput.value = '';
                 }
@@ -320,7 +320,7 @@ export default function SettingsTab() {
                 </CardContent></Card>
             </AccordionContent></AccordionItem>
             <AccordionItem value="import-export"><AccordionTrigger><div className="flex items-center gap-2 text-lg"><Download /> Import / Export</div></AccordionTrigger>
-            <AccordionContent className="p-1"><Card><CardContent className="pt-6 grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <AccordionContent className="p-1"><Card><CardContent className="pt-6 grid md:grid-cols-2 gap-6">
                 <div className="space-y-2 p-4 border rounded-lg">
                     <h3 className="font-semibold flex items-center gap-2"><Library/> Committees</h3>
                     <Button onClick={() => handleExport(data.committees, 'committees.csv')} className="w-full">Export to CSV</Button>

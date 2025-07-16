@@ -103,5 +103,3 @@ export type Post = {
   type: 'sg-note' | 'news';
   createdAt: Timestamp;
 };
-
-// Types for GalleryItem and SecretariatMember are removed.

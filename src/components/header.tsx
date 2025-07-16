@@ -18,9 +18,7 @@ const navLinks = [
   { href: '/sg-notes', label: 'SG Notes' },
   { href: '/registration', label: 'Registration' },
   { href: '/schedule', label: 'Schedule' },
-  { href: '/secretariat', label: 'Secretariat' },
   { href: '/documents', label: 'Documents' },
-  { href: '/gallery', label: 'Gallery' },
 ];
 
 export function AppHeader({ siteConfig }: { siteConfig: SiteConfig }) {
