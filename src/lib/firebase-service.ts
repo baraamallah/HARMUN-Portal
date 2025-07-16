@@ -288,7 +288,7 @@ export async function getSchedule(): Promise<ScheduleDay[]> {
 }
 export const addScheduleDay = (day: Omit<ScheduleDay, 'id' | 'events'>) => addCollectionDoc<ScheduleDay>(SCHEDULE_DAYS_COLLECTION, day);
 export const updateScheduleDay = (id: string, day: Partial<ScheduleDay>) => updateCollectionDoc<ScheduleDay>(SCHEDULE_DAYS_COLLECTION, id, day);
-export async function deleteScheduleDay(id: string): Promise<void> {
+export const deleteScheduleDay = async (id: string): Promise<void> => {
     await runTransaction(db, async (transaction) => {
         const dayRef = doc(db, SCHEDULE_DAYS_COLLECTION, id);
         transaction.delete(dayRef);
