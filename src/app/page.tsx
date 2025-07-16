@@ -3,16 +3,20 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowRight, Library, Calendar } from 'lucide-react';
-import { getHomePageContent, getRecentGalleryItems } from '@/lib/firebase-service';
+import { getHomePageContent, getRecentGalleryItems, getSiteConfig } from '@/lib/firebase-service';
 import { cn } from '@/lib/utils';
+import { Countdown } from '@/components/countdown';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const [content, recentItems] = await Promise.all([
+  const [content, recentItems, siteConfig] = await Promise.all([
     getHomePageContent(),
     getRecentGalleryItems(3),
+    getSiteConfig()
   ]);
+  
+  const targetDate = new Date(siteConfig.conferenceDate);
 
   return (
     <div className="flex flex-col">
@@ -39,6 +43,21 @@ export default async function Home() {
               <Link href="/registration">Register Now</Link>
             </Button>
           </div>
+        </div>
+      </section>
+
+      {/* Countdown Section */}
+      <section className="bg-background py-16 md:py-20 border-b">
+         <div className="container mx-auto px-4">
+            <div className="text-center mb-12 animate-fade-in-up">
+              <h2 className="text-3xl font-bold font-headline text-foreground">The Countdown Begins</h2>
+              <p className="mt-2 text-muted-foreground max-w-2xl mx-auto">
+                Join us for an unforgettable experience. The next session is just around the corner.
+              </p>
+            </div>
+            <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+                <Countdown targetDate={targetDate} />
+            </div>
         </div>
       </section>
 
