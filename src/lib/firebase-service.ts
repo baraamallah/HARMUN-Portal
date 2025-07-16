@@ -258,19 +258,29 @@ export const deleteDownloadableDocument = (id: string) => deleteCollectionDoc(DO
 
 // --- Gallery ---
 export const getGalleryItems = () => getCollection<GalleryItem>(GALLERY_COLLECTION);
+const processGalleryItemData = (item: Partial<GalleryItem>): Partial<GalleryItem> => {
+    const payload: Partial<GalleryItem> = { ...item };
+
+    if (item.columnSpan) payload.columnSpan = Number(item.columnSpan);
+
+    if (item.type === 'image' && item.imageUrl) {
+        payload.imageUrl = convertGoogleDriveLink(item.imageUrl);
+        payload.videoUrl = null;
+    } else if (item.type === 'video' && item.videoUrl) {
+        // Assuming video URLs are direct links for now
+        payload.videoUrl = item.videoUrl;
+        payload.imageUrl = null;
+    }
+    
+    return payload;
+};
+
 export const addGalleryItem = (item: Omit<GalleryItem, 'id'>) => {
-    const { columnSpan, imageUrl, videoUrl, ...rest } = item;
-    const payload: Partial<GalleryItem> = { ...rest, columnSpan: Number(columnSpan) };
-    if (imageUrl) payload.imageUrl = convertGoogleDriveLink(imageUrl);
-    if (videoUrl) payload.videoUrl = videoUrl; // Assuming videos are not from GDrive for now
+    const payload = processGalleryItemData(item);
     return addCollectionDoc<GalleryItem>(GALLERY_COLLECTION, payload as Omit<GalleryItem, 'id'>);
 };
 export const updateGalleryItem = (id: string, item: Partial<GalleryItem>) => {
-    const { columnSpan, imageUrl, videoUrl, ...rest } = item;
-    const payload: Partial<GalleryItem> = { ...rest };
-    if (columnSpan) payload.columnSpan = Number(columnSpan);
-    if (imageUrl) payload.imageUrl = convertGoogleDriveLink(imageUrl);
-    if (videoUrl) payload.videoUrl = videoUrl;
+    const payload = processGalleryItemData(item);
     return updateCollectionDoc<GalleryItem>(GALLERY_COLLECTION, id, payload);
 };
 export const deleteGalleryItem = (id: string) => deleteCollectionDoc(GALLERY_COLLECTION, id);
