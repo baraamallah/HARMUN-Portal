@@ -2,7 +2,7 @@
 
 import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc, writeBatch, documentId, runTransaction } from 'firebase/firestore';
 import { db } from './firebase';
-import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, SecretariatMember, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, DownloadableDocument, ConferenceHighlight } from './types';
+import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, DownloadableDocument, ConferenceHighlight } from './types';
 import { format } from 'date-fns';
 import { convertGoogleDriveLink } from './utils';
 
@@ -12,19 +12,16 @@ const CONFIG_COLLECTION = 'config';
 const POSTS_COLLECTION = 'posts';
 const COUNTRIES_COLLECTION = 'countries';
 const COMMITTEES_COLLECTION = 'committees';
-const SECRETARIAT_COLLECTION = 'secretariat';
 const SCHEDULE_DAYS_COLLECTION = 'scheduleDays';
 const SCHEDULE_EVENTS_COLLECTION = 'scheduleEvents';
 const HIGHLIGHTS_COLLECTION = 'highlights';
 const DOCUMENTS_COLLECTION = 'documents';
-const GALLERY_COLLECTION = 'galleryItems';
 
 const HOME_PAGE_CONTENT_DOC_ID = 'homePage';
 const ABOUT_PAGE_CONTENT_DOC_ID = 'aboutPage';
 const SITE_CONFIG_DOC_ID = 'siteConfig';
 const REGISTRATION_PAGE_CONTENT_DOC_ID = 'registrationPage';
 const DOCUMENTS_PAGE_CONTENT_DOC_ID = 'documentsPage';
-const GALLERY_PAGE_CONTENT_DOC_ID = 'galleryPage';
 
 
 // --- Default Data ---
@@ -69,7 +66,7 @@ async function initializeDefaultData() {
                 ],
                 footerText: "This is a fictional event created for demonstration purposes.",
                 mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2925.733553224765!2d-71.1194179234839!3d42.37361573426569!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89e377427d73825b%3A0x5e567c1d7756919a!2sHarvard%20University!5e0!3m2!1sen!2sus!4v1709876543210!5m2!1sen!2sus",
-                navVisibility: { '/about': true, '/committees': true, '/news': true, '/sg-notes': true, '/registration': true, '/schedule': true, '/secretariat': true, '/documents': true, '/gallery': true },
+                navVisibility: { '/about': true, '/committees': true, '/news': true, '/sg-notes': true, '/registration': true, '/schedule': true, '/documents': true },
             },
             [REGISTRATION_PAGE_CONTENT_DOC_ID]: {
                 title: "Delegate Registration",
@@ -80,10 +77,6 @@ async function initializeDefaultData() {
                 subtitle: "Access important resources and other downloadable materials here.",
             },
         },
-        [SECRETARIAT_COLLECTION]: [
-            { name: 'James Harrison', role: 'Secretary-General', bio: 'A senior at Harvard studying Government and Economics. This is his fourth and final HARMUN, and he is thrilled to lead an unforgettable conference experience.', imageUrl: 'https://placehold.co/400x400.png', order: 1 },
-            { name: 'Chloe Davis', role: 'Director-General', bio: 'A junior concentrating in History & Literature. Chloe oversees all committee operations and is dedicated to ensuring a high level of debate and engagement.', imageUrl: 'https://placehold.co/400x400.png', order: 2 },
-        ],
         [HIGHLIGHTS_COLLECTION]: [
             { icon: 'Calendar', title: 'Conference Dates', description: 'January 30 - February 2, 2025', order: 1 },
             { icon: 'MapPin', title: 'Location', description: 'Harvard University, Cambridge, MA', order: 2 },
@@ -222,18 +215,6 @@ async function deleteCollectionDoc(collectionName: string, id: string): Promise<
 }
 
 // --- Specific Collection Functions ---
-export const getSecretariat = () => getCollection<SecretariatMember>(SECRETARIAT_COLLECTION);
-export const addSecretariatMember = (member: Omit<SecretariatMember, 'id' | 'order'>) => {
-    const payload = {...member};
-    payload.imageUrl = convertGoogleDriveLink(payload.imageUrl);
-    return addCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, payload);
-};
-export const updateSecretariatMember = (id: string, member: Omit<SecretariatMember, 'id' | 'order'>) => {
-    const payload = {...member};
-    payload.imageUrl = convertGoogleDriveLink(payload.imageUrl);
-    return updateCollectionDoc<SecretariatMember>(SECRETARIAT_COLLECTION, id, payload);
-};
-export const deleteSecretariatMember = (id: string) => deleteCollectionDoc(SECRETARIAT_COLLECTION, id);
 
 export const getHighlights = () => getCollection<ConferenceHighlight>(HIGHLIGHTS_COLLECTION);
 export const addHighlight = (highlight: Omit<ConferenceHighlight, 'id'>) => addCollectionDoc<ConferenceHighlight>(HIGHLIGHTS_COLLECTION, highlight);
@@ -350,14 +331,6 @@ const committeeTransformer = (row: any): Omit<Committee, 'id'> => ({
     backgroundGuideUrl: row.backgroundGuideUrl || ''
 });
 
-const secretariatTransformer = (row: any): Omit<SecretariatMember, 'id'> => ({
-    name: row.name || '',
-    role: row.role || '',
-    bio: row.bio || '',
-    imageUrl: convertGoogleDriveLink(row.imageUrl || ''),
-    order: parseInt(row.order, 10) || 0,
-});
-
 const countryTransformer = (row: any): Omit<Country, 'id'> => ({
     name: row.name || '',
     committee: row.committee || '',
@@ -367,7 +340,6 @@ const countryTransformer = (row: any): Omit<Country, 'id'> => ({
 
 export const importCommittees = (data: any[]) => importData<Committee>(COMMITTEES_COLLECTION, data, committeeTransformer);
 export const importCountries = (data: any[]) => importData<Country>(COUNTRIES_COLLECTION, data, countryTransformer);
-export const importSecretariat = (data: any[]) => importData<SecretariatMember>(SECRETARIAT_COLLECTION, data, secretariatTransformer);
 
 async function clearCollection(collectionPath: string) {
     const collectionRef = collection(db, collectionPath);

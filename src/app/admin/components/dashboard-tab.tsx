@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, FileText, Globe, Library, Users, Newspaper, Trash2 } from "lucide-react";
+import { PlusCircle, FileText, Globe, Library, Newspaper, Trash2 } from "lucide-react";
 import * as firebaseService from "@/lib/firebase-service";
 import type * as T from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -30,24 +30,22 @@ function CreatePostForm({ onAdd }: { onAdd: (data: any, form: any) => Promise<vo
 export default function DashboardTab() {
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
-    const [data, setData] = useState<{ posts: T.Post[], countries: T.Country[], committees: T.Committee[], secretariat: T.SecretariatMember[] }>({
+    const [data, setData] = useState<{ posts: T.Post[], countries: T.Country[], committees: T.Committee[] }>({
         posts: [],
         countries: [],
         committees: [],
-        secretariat: []
     });
 
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const [posts, countries, committees, secretariat] = await Promise.all([
+                const [posts, countries, committees] = await Promise.all([
                     firebaseService.getAllPosts(),
                     firebaseService.getCountries(),
                     firebaseService.getCommittees(),
-                    firebaseService.getSecretariat()
                 ]);
-                setData({ posts, countries, committees, secretariat });
+                setData({ posts, countries, committees });
             } catch (error) {
                 console.error("Failed to fetch dashboard data:", error);
                 toast({ title: "Error", description: `Could not load dashboard data.`, variant: "destructive" });
@@ -84,8 +82,7 @@ export default function DashboardTab() {
     if (loading) {
         return (
             <>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    <Skeleton className="h-24" />
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     <Skeleton className="h-24" />
                     <Skeleton className="h-24" />
                     <Skeleton className="h-24" />
@@ -97,11 +94,10 @@ export default function DashboardTab() {
     
     return (
         <>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Published Posts</CardTitle><FileText className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{data.posts?.length || 0}</div></CardContent></Card>
                 <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Countries</CardTitle><Globe className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{data.countries?.length || 0}</div></CardContent></Card>
                 <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Committees</CardTitle><Library className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{data.committees?.length || 0}</div></CardContent></Card>
-                <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Secretariat</CardTitle><Users className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{data.secretariat?.length || 0}</div></CardContent></Card>
             </div>
             <Card className="mt-6">
                 <CardHeader><CardTitle className="flex items-center gap-2"><Newspaper /> Create & Manage Posts</CardTitle></CardHeader>

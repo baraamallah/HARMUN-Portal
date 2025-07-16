@@ -1,7 +1,5 @@
 
 
-
-
 import type { Timestamp } from 'firebase/firestore';
 
 export type Committee = {
@@ -14,15 +12,6 @@ export type Committee = {
   };
   topics: string[];
   backgroundGuideUrl: string;
-};
-
-export type SecretariatMember = {
-  id: string;
-  name: string;
-  role: string;
-  bio: string;
-  imageUrl: string;
-  order: number;
 };
 
 export type ScheduleDay = {
@@ -114,3 +103,5 @@ export type Post = {
   type: 'sg-note' | 'news';
   createdAt: Timestamp;
 };
+
+// Types for GalleryItem and SecretariatMember are removed.

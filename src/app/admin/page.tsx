@@ -9,8 +9,10 @@ import PagesTab from './components/pages-tab';
 import ConferenceTab from './components/conference-tab';
 import SettingsTab from './components/settings-tab';
 import SecurityTab from './components/security-tab';
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminPage() {
+  const { toast } = useToast();
   return (
     <div className="space-y-8">
         <div className="text-left">
@@ -44,11 +46,9 @@ export default function AdminPage() {
             </TabsContent>
             
             <TabsContent value="security" className="mt-6">
-              <SecurityTab toast={() => {}}/>
+              <SecurityTab toast={toast}/>
             </TabsContent>
         </Tabs>
     </div>
   );
 }
-
-    
