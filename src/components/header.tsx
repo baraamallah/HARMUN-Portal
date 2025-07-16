@@ -19,6 +19,7 @@ const navLinks = [
   { href: '/registration', label: 'Registration' },
   { href: '/schedule', label: 'Schedule' },
   { href: '/documents', label: 'Documents' },
+  { href: '/gallery', label: 'Gallery' },
 ];
 
 export function AppHeader({ siteConfig }: { siteConfig: SiteConfig }) {

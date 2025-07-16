@@ -88,6 +88,19 @@ export type DocumentsPageContent = {
     subtitle: string;
 }
 
+export type GalleryPageContent = {
+    title: string;
+    subtitle: string;
+};
+
+export type GalleryItem = {
+    id: string;
+    title: string;
+    description?: string;
+    imageUrl: string;
+    order: number;
+};
+
 export type DownloadableDocument = {
     id: string;
     title: string;

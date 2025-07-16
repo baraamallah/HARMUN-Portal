@@ -4,6 +4,7 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { useToast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
@@ -18,7 +19,6 @@ import type * as T from "@/lib/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const scheduleEventSchema = z.object({
@@ -76,10 +76,10 @@ function AddCountryForm({ committees, onAdd }: { committees: T.Committee[]; onAd
     </form></Form>;
 }
 
-function AddCommitteeForm({ onAdd }: { onAdd: (data: any) => Promise<void> }) {
+function AddCommitteeForm({ onAdd }: { onAdd: (data: any, form: any) => Promise<void> }) {
     const form = useForm({ defaultValues: { name: '', chairName: '', chairBio: '', chairImageUrl: '', topics: '', backgroundGuideUrl: '' } });
     
-    return <Form {...form}><form onSubmit={form.handleSubmit(async (d) => { await onAdd(d); form.reset(); })} className="space-y-4">
+    return <Form {...form}><form onSubmit={form.handleSubmit(async (d, e) => { e?.preventDefault(); await onAdd(d, form); })} className="space-y-4">
         <div className="grid md:grid-cols-2 gap-4">
             <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Committee Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
             <FormField control={form.control} name="chairName" render={({ field }) => ( <FormItem><FormLabel>Chair Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
@@ -120,46 +120,48 @@ export default function ConferenceTab() {
         }
     }, [toast]);
 
-    React.useEffect(() => {
-        loadData();
-    }, [loadData]);
+    useEffect(() => { loadData(); }, [loadData]);
     
 
-    const handleAddItem = async (addFunction: Function, itemData: any, message: string, form?: any) => {
+    const handleAddItem = async (addFunction: Function, itemData: any, stateKey: keyof typeof data, message: string, form?: any) => {
         try {
-            await addFunction(itemData);
-            await loadData();
+            const newId = await addFunction(itemData);
+            const newItem = stateKey === 'schedule'
+                ? { ...await firebaseService.getDocById('scheduleDays', newId), events: [] }
+                : await firebaseService.getDocById(stateKey, newId);
+
+            setData(prev => ({ ...prev, [stateKey]: [...prev[stateKey] as any[], newItem] }));
             toast({ title: "Success!", description: message });
             if (form) form.reset();
-        } catch (error) {
-            toast({ title: "Error", description: `Could not add item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
-        }
+        } catch (error) { toast({ title: "Error", description: `Could not add item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" }); }
     };
 
-    const handleUpdateItem = async (updateFunction: Function, id: string, itemData: any, message: string) => {
+    const handleUpdateItem = async (updateFunction: Function, id: string, itemData: any, message: string, stateUpdate: (prev: typeof data) => typeof data) => {
         try {
             await updateFunction(id, itemData);
-            await loadData();
+            setData(stateUpdate);
             toast({ title: "Success!", description: message });
-        } catch (error) {
-            toast({ title: "Error", description: `Could not save item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
-        }
+        } catch (error) { toast({ title: "Error", description: `Could not save item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" }); }
     };
     
-    const handleDeleteItem = async (deleteFunction: Function, id: string, message: string) => {
+    const handleDeleteItem = async (deleteFunction: Function, id: string, stateKey: keyof typeof data | 'scheduleEvents', message: string, dayId?: string) => {
         if (!confirm('Are you sure you want to delete this item?')) return;
         try {
             await deleteFunction(id);
-            await loadData();
+            if (stateKey === 'scheduleEvents' && dayId) {
+                setData(p => ({ ...p, schedule: p.schedule.map(d => d.id === dayId ? {...d, events: d.events.filter(e => e.id !== id)} : d) }));
+            } else {
+                setData(prev => ({ ...prev, [stateKey]: (prev[stateKey as keyof typeof data] as any[]).filter((item: {id: string}) => item.id !== id) }));
+            }
             toast({ title: "Success!", description: message });
-        } catch (error) {
-            toast({ title: "Error", description: `Could not delete item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
-        }
+        } catch (error) { toast({ title: "Error", description: `Could not delete item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" }); }
     };
     
     const handleSwitchChange = async (country: T.Country) => {
         const newStatus = country.status === 'Available' ? 'Assigned' : 'Available';
-        await handleUpdateItem(firebaseService.updateCountryStatus, country.id, { status: newStatus }, "Country status updated.");
+        await handleUpdateItem(firebaseService.updateCountryStatus, country.id, { status: newStatus }, "Country status updated.",
+            (prev) => ({...prev, countries: prev.countries.map(c => c.id === country.id ? {...c, status: newStatus} : c)})
+        );
     };
 
     if (loading) {
@@ -171,15 +173,7 @@ export default function ConferenceTab() {
             <AccordionItem value="committees"><AccordionTrigger><div className="flex items-center gap-2 text-lg"><Library /> Committees</div></AccordionTrigger>
             <AccordionContent className="p-1 space-y-6">
                 <Card><CardHeader><CardTitle>Add New Committee</CardTitle></CardHeader>
-                <CardContent>
-                    <AddCommitteeForm onAdd={async(values) => {
-                        await handleAddItem(
-                            firebaseService.addCommittee,
-                            values,
-                            "Committee Added!"
-                        );
-                    }}/>
-                </CardContent></Card>
+                <CardContent><AddCommitteeForm onAdd={(values, form) => handleAddItem(firebaseService.addCommittee, values, "committees", "Committee Added!", form)}/></CardContent></Card>
                 <Card><CardHeader><CardTitle>Existing Committees</CardTitle></CardHeader>
                 <CardContent>
                     <div className="border rounded-md max-h-96 overflow-y-auto">
@@ -189,7 +183,7 @@ export default function ConferenceTab() {
                                 <TableRow key={c.id}>
                                     <TableCell>{c.name}</TableCell><TableCell>{c.chair.name}</TableCell>
                                     <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(firebaseService.deleteCommittee, c.id, "Committee deleted.")}>
+                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(firebaseService.deleteCommittee, c.id, "committees", "Committee deleted.")}>
                                             <Trash2 className="h-4 w-4 text-destructive" />
                                         </Button>
                                     </TableCell>
@@ -201,7 +195,7 @@ export default function ConferenceTab() {
             </AccordionContent></AccordionItem>
             <AccordionItem value="countries"><AccordionTrigger><div className="flex items-center gap-2 text-lg"><Globe /> Country Matrix</div></AccordionTrigger>
             <AccordionContent className="p-1"><Card><CardContent className="pt-6">
-                <AddCountryForm committees={data.committees} onAdd={(values, form) => handleAddItem(firebaseService.addCountry, values, "Country Added!", form)} />
+                <AddCountryForm committees={data.committees} onAdd={(values, form) => handleAddItem(firebaseService.addCountry, values, "countries", "Country Added!", form)} />
                 <div className="border rounded-md max-h-96 overflow-y-auto">
                     <Table><TableHeader><TableRow><TableHead>Country</TableHead><TableHead>Committee</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
                     <TableBody>
@@ -211,7 +205,7 @@ export default function ConferenceTab() {
                                 <TableCell><Badge variant={country.status === 'Available' ? 'secondary' : 'default'}>{country.status}</Badge></TableCell>
                                 <TableCell className="text-right flex items-center justify-end gap-2">
                                     <Switch checked={country.status === 'Assigned'} onCheckedChange={() => handleSwitchChange(country)} />
-                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(firebaseService.deleteCountry, country.id, "Country deleted.")}> <Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(firebaseService.deleteCountry, country.id, "countries", "Country deleted.")}> <Trash2 className="h-4 w-4 text-destructive" /></Button>
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -225,19 +219,27 @@ export default function ConferenceTab() {
                 <CardContent>
                 {day.events.map((event: T.ScheduleEvent) => (
                     <ScheduleEventForm
-                        key={event.id}
-                        day={day}
-                        event={event}
-                        onSave={(id, saveData) => handleUpdateItem(firebaseService.updateScheduleEvent, id, saveData, "Event updated.")}
-                        onDelete={(id) => handleDeleteItem(firebaseService.deleteScheduleEvent, id, "Event deleted.")}
+                        key={event.id} day={day} event={event}
+                        onSave={(id, saveData) => handleUpdateItem(firebaseService.updateScheduleEvent, id, saveData, "Event updated.", 
+                            (p) => ({...p, schedule: p.schedule.map(d => d.id === day.id ? {...d, events: d.events.map(e => e.id === id ? {...e, ...saveData} : e)} : d)})
+                        )}
+                        onDelete={(id) => handleDeleteItem(firebaseService.deleteScheduleEvent, id, "scheduleEvents", "Event deleted.", day.id)}
                     />
                 ))}
-                <AddScheduleEventForm dayId={day.id} onAdd={(eventData, form) => handleAddItem(firebaseService.addScheduleEvent, eventData, "Event added!", form)} />
+                <AddScheduleEventForm dayId={day.id} onAdd={async(eventData, form) => {
+                     try {
+                        const newId = await firebaseService.addScheduleEvent(eventData);
+                        const newEvent = await firebaseService.getDocById('scheduleEvents', newId);
+                        setData(p => ({...p, schedule: p.schedule.map(d => d.id === eventData.dayId ? {...d, events: [...d.events, newEvent]} : d)}));
+                        toast({ title: "Success!", description: "Event added." });
+                        if (form) form.reset();
+                    } catch (error) { toast({ title: "Error", description: `Could not add item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" }); }
+                }} />
                 </CardContent></Card>
             ))}
             <Card><CardHeader><CardTitle>Add New Day</CardTitle></CardHeader>
             <CardContent>
-                <AddScheduleDayForm onAdd={(dayData, form) => handleAddItem(firebaseService.addScheduleDay, dayData, "Day Added!", form)} />
+                <AddScheduleDayForm onAdd={(dayData, form) => handleAddItem(firebaseService.addScheduleDay, dayData, "schedule", "Day Added!", form)} />
             </CardContent>
             </Card>
             </AccordionContent></AccordionItem>

@@ -2,7 +2,7 @@
 
 import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc, writeBatch, documentId, runTransaction } from 'firebase/firestore';
 import { db } from './firebase';
-import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, DownloadableDocument, ConferenceHighlight } from './types';
+import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, DownloadableDocument, ConferenceHighlight, GalleryPageContent, GalleryItem } from './types';
 import { format } from 'date-fns';
 import { convertGoogleDriveLink } from './utils';
 
@@ -16,12 +16,15 @@ const SCHEDULE_DAYS_COLLECTION = 'scheduleDays';
 const SCHEDULE_EVENTS_COLLECTION = 'scheduleEvents';
 const HIGHLIGHTS_COLLECTION = 'highlights';
 const DOCUMENTS_COLLECTION = 'documents';
+const GALLERY_COLLECTION = 'gallery';
+
 
 const HOME_PAGE_CONTENT_DOC_ID = 'homePage';
 const ABOUT_PAGE_CONTENT_DOC_ID = 'aboutPage';
 const SITE_CONFIG_DOC_ID = 'siteConfig';
 const REGISTRATION_PAGE_CONTENT_DOC_ID = 'registrationPage';
 const DOCUMENTS_PAGE_CONTENT_DOC_ID = 'documentsPage';
+const GALLERY_PAGE_CONTENT_DOC_ID = 'galleryPage';
 
 
 // --- Default Data ---
@@ -66,7 +69,7 @@ async function initializeDefaultData() {
                 ],
                 footerText: "This is a fictional event created for demonstration purposes.",
                 mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2925.733553224765!2d-71.1194179234839!3d42.37361573426569!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89e377427d73825b%3A0x5e567c1d7756919a!2sHarvard%20University!5e0!3m2!1sen!2sus!4v1709876543210!5m2!1sen!2sus",
-                navVisibility: { '/about': true, '/committees': true, '/news': true, '/sg-notes': true, '/registration': true, '/schedule': true, '/documents': true },
+                navVisibility: { '/about': true, '/committees': true, '/news': true, '/sg-notes': true, '/registration': true, '/schedule': true, '/documents': true, '/gallery': true },
             },
             [REGISTRATION_PAGE_CONTENT_DOC_ID]: {
                 title: "Delegate Registration",
@@ -76,6 +79,10 @@ async function initializeDefaultData() {
                 title: "Conference Documents",
                 subtitle: "Access important resources and other downloadable materials here.",
             },
+             [GALLERY_PAGE_CONTENT_DOC_ID]: {
+                title: "Event Gallery",
+                subtitle: "A look back at the memorable moments from our conference.",
+            },
         },
         [HIGHLIGHTS_COLLECTION]: [
             { icon: 'Calendar', title: 'Conference Dates', description: 'January 30 - February 2, 2025', order: 1 },
@@ -84,6 +91,10 @@ async function initializeDefaultData() {
         [DOCUMENTS_COLLECTION]: [
             { title: 'Conference Handbook', description: 'The official guide to rules, procedures, and conference etiquette.', url: '#', order: 1 },
             { title: 'Background Guide: Security Council', description: 'Essential reading material for all delegates in the Security Council committee.', url: '#', order: 2 },
+        ],
+         [GALLERY_COLLECTION]: [
+            { title: 'Opening Ceremony', description: 'Delegates gather for the start of an exciting conference.', imageUrl: 'https://placehold.co/600x400.png', order: 1 },
+            { title: 'Debate in Action', description: 'Intense negotiations and diplomacy in one of the committee rooms.', imageUrl: 'https://placehold.co/600x400.png', order: 2 },
         ],
         [SCHEDULE_DAYS_COLLECTION]: [
             { title: 'Day 1: Thursday', date: 'January 30, 2025', order: 1, id: 'day1' },
@@ -178,6 +189,9 @@ export const updateDocumentsPageContent = (content: Partial<DocumentsPageContent
 export const getSiteConfig = () => getConfigDoc<SiteConfig>(SITE_CONFIG_DOC_ID, { socialLinks: [] } as SiteConfig);
 export const updateSiteConfig = (config: Partial<SiteConfig>) => updateConfigDoc(SITE_CONFIG_DOC_ID, config);
 
+export const getGalleryPageContent = () => getConfigDoc<GalleryPageContent>(GALLERY_PAGE_CONTENT_DOC_ID, {} as GalleryPageContent);
+export const updateGalleryPageContent = (content: Partial<GalleryPageContent>) => updateConfigDoc(GALLERY_PAGE_CONTENT_DOC_ID, content);
+
 
 // --- Generic Collection CRUD ---
 async function getCollection<T>(collectionName: string, orderByField: string = 'order'): Promise<T[]> {
@@ -225,6 +239,31 @@ export const getDownloadableDocuments = () => getCollection<DownloadableDocument
 export const addDownloadableDocument = (item: Omit<DownloadableDocument, 'id'>) => addCollectionDoc<DownloadableDocument>(DOCUMENTS_COLLECTION, item);
 export const updateDownloadableDocument = (id: string, item: Partial<DownloadableDocument>) => updateCollectionDoc<DownloadableDocument>(DOCUMENTS_COLLECTION, id, item);
 export const deleteDownloadableDocument = (id: string) => deleteCollectionDoc(DOCUMENTS_COLLECTION, id);
+
+export const getGalleryItems = () => getCollection<GalleryItem>(GALLERY_COLLECTION);
+export const addGalleryItem = (item: Omit<GalleryItem, 'id'>) => {
+    const payload = {...item};
+    if (payload.imageUrl) {
+        payload.imageUrl = convertGoogleDriveLink(payload.imageUrl);
+    }
+    return addCollectionDoc<GalleryItem>(GALLERY_COLLECTION, payload);
+};
+export const updateGalleryItem = (id: string, item: Partial<GalleryItem>) => {
+    const payload = {...item};
+    if (payload.imageUrl) {
+        payload.imageUrl = convertGoogleDriveLink(payload.imageUrl);
+    }
+    return updateCollectionDoc<GalleryItem>(GALLERY_COLLECTION, id, payload);
+};
+export const deleteGalleryItem = (id: string) => deleteCollectionDoc(GALLERY_COLLECTION, id);
+export const updateGalleryItemsOrder = async (items: GalleryItem[]) => {
+    const batch = writeBatch(db);
+    items.forEach((item, index) => {
+        const docRef = doc(db, GALLERY_COLLECTION, item.id);
+        batch.update(docRef, { order: index });
+    });
+    await batch.commit();
+};
 
 
 // --- Schedule (Special Handling) ---

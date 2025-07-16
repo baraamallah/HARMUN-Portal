@@ -1,3 +1,4 @@
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -14,19 +15,18 @@ export function convertGoogleDriveLink(url: string | null | undefined): string {
   if (!url || typeof url !== 'string') {
     return '';
   }
-
-  // Check if it's already a direct link
-  if (url.startsWith('https://lh3.googleusercontent.com/d/')) {
-    return url;
-  }
   
-  // Regex to extract file ID from '.../file/d/FILE_ID/...'
-  const fileIdMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  // Regex to extract file ID from '.../file/d/FILE_ID/...' or '.../uc?id=FILE_ID...'
+  const fileIdMatch = url.match(/drive\.google\.com\/(?:file\/d\/|uc\?id=)([a-zA-Z0-9_-]+)/);
   if (fileIdMatch && fileIdMatch[1]) {
     const fileId = fileIdMatch[1];
     return `https://lh3.googleusercontent.com/d/${fileId}`;
   }
 
-  // Return the original URL if no match is found
+  // Return the original URL if no match is found or it's already a direct link
+  if (url.startsWith('https://lh3.googleusercontent.com/d/')) {
+    return url;
+  }
+
   return url;
 }

@@ -26,7 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 const navLinksForAdmin = [
   { href: '/about', label: 'About' }, { href: '/committees', label: 'Committees' }, { href: '/news', label: 'News' },
   { href: '/sg-notes', label: 'SG Notes' }, { href: '/registration', label: 'Registration' }, { href: '/schedule', label: 'Schedule' },
-  { href: '/documents', label: 'Documents' }
+  { href: '/documents', label: 'Documents' }, { href: '/gallery', label: 'Gallery' }
 ];
 
 const generalSettingsSchema = z.object({
@@ -343,3 +343,4 @@ export default function SettingsTab() {
         </Accordion>
     );
 }
+
