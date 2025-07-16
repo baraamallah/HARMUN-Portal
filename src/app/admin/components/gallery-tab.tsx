@@ -6,8 +6,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { DndContext, closestCenter, type DragEndEvent } from "@dnd-kit/core";
-import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { DndContext, closestCenter, type DragEndEvent, useSensor, PointerSensor, KeyboardSensor } from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
 import { Button } from "@/components/ui/button";
@@ -33,12 +33,13 @@ const galleryItemSchema = z.object({
 });
 
 // Components
-function GalleryItemForm({ item, onSave, onDelete, form }: { item: T.GalleryItem; onSave: (id: string, data: z.infer<typeof galleryItemSchema>, form: any) => void; onDelete: (id: string) => void; form: any }) {
+function GalleryItemForm({ item, onSave, onDelete }: { item: T.GalleryItem; onSave: (id: string, data: z.infer<typeof galleryItemSchema>) => void; onDelete: (id: string) => void; }) {
+    const form = useForm<z.infer<typeof galleryItemSchema>>({ resolver: zodResolver(galleryItemSchema), defaultValues: item });
     React.useEffect(() => { form.reset(item); }, [item, form]);
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit((data: z.infer<typeof galleryItemSchema>) => onSave(item.id, data, form))} className="p-4 border rounded-md space-y-4 flex-grow">
+            <form onSubmit={form.handleSubmit((data: z.infer<typeof galleryItemSchema>) => onSave(item.id, data))} className="p-4 border rounded-md space-y-4 flex-grow">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                      <FormField control={form.control} name="title" render={({ field }) => <FormItem className="lg:col-span-4"><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                      <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem className="lg:col-span-4"><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Provide a direct image link.</FormDescription><FormMessage /></FormItem>} />
@@ -50,16 +51,15 @@ function GalleryItemForm({ item, onSave, onDelete, form }: { item: T.GalleryItem
     );
 }
 
-function SortableGalleryItem({ item, onSave, onDelete }: { item: T.GalleryItem; onSave: (id: string, data: z.infer<typeof galleryItemSchema>, form: any) => void; onDelete: (id: string) => void; }) {
+function SortableGalleryItem({ item, onSave, onDelete }: { item: T.GalleryItem; onSave: (id: string, data: z.infer<typeof galleryItemSchema>) => void; onDelete: (id: string) => void; }) {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: item.id });
-    const form = useForm<z.infer<typeof galleryItemSchema>>({ resolver: zodResolver(galleryItemSchema), defaultValues: item });
 
     const style = { transform: CSS.Transform.toString(transform), transition };
 
     return (
-        <div ref={setNodeRef} style={style} className="flex items-start gap-2 mb-4">
-            <button {...attributes} {...listeners} className="p-2 mt-10 shrink-0 text-muted-foreground hover:text-foreground"><GripVertical /></button>
-            <GalleryItemForm item={item} onSave={onSave} onDelete={onDelete} form={form} />
+        <div ref={setNodeRef} style={style} className="flex items-start gap-2 mb-4 bg-card">
+            <button {...attributes} {...listeners} className="p-2 mt-10 shrink-0 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"><GripVertical /></button>
+            <GalleryItemForm item={item} onSave={onSave} onDelete={onDelete} />
         </div>
     );
 }
@@ -87,6 +87,9 @@ export default function GalleryTab() {
     const [data, setData] = useState<{ content: T.GalleryPageContent | null; items: T.GalleryItem[] }>({ content: null, items: [] });
     
     const pageContentForm = useForm<z.infer<typeof galleryPageContentSchema>>({ resolver: zodResolver(galleryPageContentSchema) });
+    
+    const sensors = [useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })];
+
 
     const loadData = React.useCallback(async () => {
         setLoading(true);
@@ -96,7 +99,9 @@ export default function GalleryTab() {
                 firebaseService.getGalleryItems(),
             ]);
             setData({ content, items });
-            pageContentForm.reset(content);
+            if (content) {
+                pageContentForm.reset(content);
+            }
         } catch (error) {
             toast({ title: "Error", description: `Could not load gallery data.`, variant: "destructive" });
         } finally {
@@ -114,7 +119,7 @@ export default function GalleryTab() {
         } catch (error) { toast({ title: "Error", description: `Could not save data. ${error instanceof Error ? error.message : ''}`, variant: "destructive" }); }
     };
     
-    const handleUpdateItem = async (id: string, itemData: T.GalleryItem, form: any) => {
+    const handleUpdateItem = async (id: string, itemData: z.infer<typeof galleryItemSchema>) => {
         try {
             await firebaseService.updateGalleryItem(id, itemData);
             setData(p => ({ ...p, items: p.items.map(i => i.id === id ? {...i, ...itemData} : i) }));
@@ -143,14 +148,15 @@ export default function GalleryTab() {
     
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
-        if (active.id !== over?.id) {
+        if (over && active.id !== over.id) {
             const oldIndex = data.items.findIndex((item) => item.id === active.id);
-            const newIndex = data.items.findIndex((item) => item.id === over!.id);
+            const newIndex = data.items.findIndex((item) => item.id === over.id);
             
             const newItems = Array.from(data.items);
             const [movedItem] = newItems.splice(oldIndex, 1);
             newItems.splice(newIndex, 0, movedItem);
             
+            const originalItems = data.items;
             setData(prev => ({...prev, items: newItems}));
 
             try {
@@ -159,7 +165,7 @@ export default function GalleryTab() {
             } catch (error) {
                 toast({title: "Error", description: "Failed to update order.", variant: "destructive"});
                 // Revert UI on failure
-                setData(prev => ({...prev, items: prev.items}));
+                setData(prev => ({...prev, items: originalItems}));
             }
         }
     };
@@ -185,8 +191,8 @@ export default function GalleryTab() {
             <Card>
                 <CardHeader><CardTitle>Manage Gallery Items</CardTitle></CardHeader>
                 <CardContent>
-                    <DndContext sensors={[]} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                        <SortableContext items={data.items} strategy={verticalListSortingStrategy}>
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                        <SortableContext items={data.items.map(i => i.id)} strategy={verticalListSortingStrategy}>
                             {data.items.map((item) => (
                                 <SortableGalleryItem key={item.id} item={item} onSave={handleUpdateItem} onDelete={handleDeleteItem} />
                             ))}
