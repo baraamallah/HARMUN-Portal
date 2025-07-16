@@ -2,21 +2,24 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowRight, Library, Calendar, MapPin } from 'lucide-react';
-import { getHomePageContent, getHighlights, getRecentGalleryItems, getSiteConfig } from '@/lib/firebase-service';
+import { getHomePageContent, getHighlights, getRecentGalleryItems, getSiteConfig, getRecentNewsPosts, formatTimestamp } from '@/lib/firebase-service';
 import { cn } from '@/lib/utils';
 import { Countdown } from '@/components/countdown';
 import { createDynamicIcon } from '@/components/dynamic-icon';
+import type * as T from '@/lib/types';
+
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const [content, highlights, recentItems, siteConfig] = await Promise.all([
+  const [content, highlights, recentItems, siteConfig, recentNews] = await Promise.all([
     getHomePageContent(),
     getHighlights(),
     getRecentGalleryItems(3),
-    getSiteConfig()
+    getSiteConfig(),
+    getRecentNewsPosts(3)
   ]);
   
   const targetDate = new Date(siteConfig.conferenceDate);
@@ -48,8 +51,8 @@ export default async function Home() {
           </div>
         </div>
       </section>
-
-      {/* Highlights & Map Section */}
+      
+       {/* Highlights & Map Section */}
       <section className="bg-secondary/50 py-16 md:py-20 border-b">
         <div className="container mx-auto px-4">
             <div className="text-center mb-12 animate-fade-in-up">
@@ -91,7 +94,6 @@ export default async function Home() {
         </div>
       </section>
 
-
       {/* Countdown Section */}
       <section className="bg-background py-16 md:py-20 border-b">
          <div className="container mx-auto px-4">
@@ -131,9 +133,53 @@ export default async function Home() {
         </div>
       </section>
 
+       {/* News Preview Section */}
+      {recentNews.length > 0 && (
+        <section className="bg-background py-20 border-b">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12 animate-fade-in-up">
+              <h2 className="text-3xl font-bold font-headline text-foreground">Latest News</h2>
+              <p className="mt-2 text-muted-foreground max-w-2xl mx-auto">
+                Stay up to date with the latest announcements from the HARMUN team.
+              </p>
+            </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recentNews.map((post: T.Post, index) => (
+                <Card key={post.id} className="animate-fade-in-up flex flex-col" style={{ animationDelay: `${index * 150}ms` }}>
+                  <CardHeader>
+                    <CardTitle className="text-xl font-headline">{post.title}</CardTitle>
+                    <CardDescription className="flex items-center gap-2 pt-1">
+                        <Calendar className="w-4 h-4"/>
+                        {formatTimestamp(post.createdAt)}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-grow">
+                    <p className="text-muted-foreground line-clamp-3">{post.content}</p>
+                  </CardContent>
+                  <CardFooter>
+                    <Button variant="link" asChild className="p-0 h-auto">
+                        <Link href={`/news/${post.id}`}>
+                            Read More <ArrowRight className="w-4 h-4 ml-2"/>
+                        </Link>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+            <div className="text-center mt-12">
+                <Button asChild size="lg" variant="ghost">
+                    <Link href="/news">
+                        View All News <ArrowRight className="w-4 h-4 ml-2"/>
+                    </Link>
+                </Button>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Gallery Preview Section */}
       {recentItems.length > 0 && (
-        <section className="bg-background py-20">
+        <section className="bg-secondary/50 py-20">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12 animate-fade-in-up">
               <h2 className="text-3xl font-bold font-headline text-foreground">From the Gallery</h2>

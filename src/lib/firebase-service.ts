@@ -159,11 +159,15 @@ export async function getDocById(collectionName: string, id: string): Promise<an
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
         const data = docSnap.data();
-        const defaultData: Partial<GalleryItem> = {
-            mediaType: 'image',
-            aspectRatio: '1:1',
-            width: 'single',
-        };
+        let defaultData = {};
+        // Only apply defaults if the collection is 'gallery'
+        if (collectionName === GALLERY_COLLECTION) {
+            defaultData = {
+                mediaType: 'image',
+                aspectRatio: '1:1',
+                width: 'single',
+            };
+        }
         return { id: docSnap.id, ...defaultData, ...data };
     }
     throw new Error(`Document with id ${id} not found in ${collectionName}`);
@@ -217,11 +221,14 @@ async function getCollection<T>(collectionName: string, orderByField: string = '
     const results = querySnapshot.docs.map(doc => {
         const data = doc.data();
          // Provide default values for new fields if they don't exist
-        const defaultData: Partial<GalleryItem> = {
-            mediaType: 'image',
-            aspectRatio: '1:1',
-            width: 'single',
-        };
+        let defaultData = {};
+        if (collectionName === GALLERY_COLLECTION) {
+             defaultData = {
+                mediaType: 'image',
+                aspectRatio: '1:1',
+                width: 'single',
+            };
+        }
         return { id: doc.id, ...defaultData, ...data } as T;
     });
     return results;
@@ -329,9 +336,23 @@ export async function getAllPosts(): Promise<Post[]> {
   const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
 }
+export async function getPostById(id: string): Promise<Post | null> {
+    const docRef = doc(db, POSTS_COLLECTION, id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() } as Post;
+    }
+    return null;
+}
 export async function getPosts(type: 'sg-note' | 'news'): Promise<Post[]> {
   return (await getAllPosts()).filter(post => post.type === type);
 }
+export async function getRecentNewsPosts(count: number): Promise<Post[]> {
+    const allNews = await getPosts('news');
+    return allNews.slice(0, count);
+}
+
+
 export const deletePost = (id: string) => deleteCollectionDoc(POSTS_COLLECTION, id);
 
 export function formatTimestamp(timestamp: any, dateFormat: string = 'PPP'): string {
@@ -368,7 +389,8 @@ export async function getCommittees(): Promise<Committee[]> {
     const q = query(collection(db, COMMITTEES_COLLECTION), orderBy('name'));
     const querySnapshot = await getDocs(q);
     const committees = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Omit<Committee, 'id'> }));
-    return committees;
+    // Ensure topics is always an array
+    return committees.map(c => ({ ...c, topics: Array.isArray(c.topics) ? c.topics : [] }));
 }
 export const deleteCommittee = (id: string) => deleteDoc(doc(db, COMMITTEES_COLLECTION, id));
 
