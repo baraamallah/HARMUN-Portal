@@ -195,9 +195,10 @@ export default function GalleryTab() {
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
         if (over && active.id !== over.id) {
-            const oldIndex = data.items.findIndex((item) => item.id === active.id);
-            const newIndex = data.items.findIndex((item) => item.id === over.id);
-            const newItems = arrayMove(data.items, oldIndex, newIndex);
+            const oldItems = data.items;
+            const oldIndex = oldItems.findIndex((item) => item.id === active.id);
+            const newIndex = oldItems.findIndex((item) => item.id === over.id);
+            const newItems = arrayMove(oldItems, oldIndex, newIndex);
             
             setData(prev => ({...prev, items: newItems}));
 
@@ -206,7 +207,7 @@ export default function GalleryTab() {
                 toast({title: "Success", description: "Gallery order updated."});
             } catch (error) {
                 toast({title: "Error", description: "Failed to update order.", variant: "destructive"});
-                setData(prev => ({...prev, items: data.items})); // Revert on failure
+                setData(prev => ({...prev, items: oldItems})); // Revert on failure
             }
         }
     };
