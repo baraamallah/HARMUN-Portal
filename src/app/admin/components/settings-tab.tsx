@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Download, Upload, Settings, Trash2, Library, Globe } from "lucide-react";
+import { Download, Upload, Settings, Trash2, Library, Globe, GalleryHorizontal } from "lucide-react";
 import * as firebaseService from "@/lib/firebase-service";
 import type * as T from "@/lib/types";
 import { Switch } from "@/components/ui/switch";
@@ -115,12 +115,13 @@ export default function SettingsTab() {
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<any>({
         siteConfig: { socialLinks: [], navVisibility: {} },
-        committees: [], countries: []
+        committees: [], countries: [], gallery: []
     });
     
     const [activeAccordion, setActiveAccordion] = useState<string | undefined>();
     const [committeeImportFile, setCommitteeImportFile] = useState<File | null>(null);
     const [countryImportFile, setCountryImportFile] = useState<File | null>(null);
+    const [galleryImportFile, setGalleryImportFile] = useState<File | null>(null);
     const [isImporting, setIsImporting] = useState(false);
 
     const generalSettingsForm = useForm<z.infer<typeof generalSettingsSchema>>({ resolver: zodResolver(generalSettingsSchema), defaultValues: data.siteConfig });
@@ -135,12 +136,13 @@ export default function SettingsTab() {
     const loadData = React.useCallback(async () => {
         setLoading(true);
         try {
-            const [siteConfig, committees, countries] = await Promise.all([
+            const [siteConfig, committees, countries, gallery] = await Promise.all([
                 firebaseService.getSiteConfig(),
                 firebaseService.getCommittees(),
                 firebaseService.getCountries(),
+                firebaseService.getGalleryItems(),
             ]);
-            setData({ siteConfig, committees, countries });
+            setData({ siteConfig, committees, countries, gallery });
             generalSettingsForm.reset(siteConfig);
             replaceSocialLinks(siteConfig.socialLinks || []);
             navVisibilityForm.reset({ navVisibility: siteConfig.navVisibility || {} });
@@ -192,7 +194,7 @@ export default function SettingsTab() {
                     toast({ title: "Import Failed", description: error instanceof Error ? error.message : "An unknown error occurred.", variant: "destructive" });
                 } finally {
                     setIsImporting(false);
-                    setCommitteeImportFile(null); setCountryImportFile(null);
+                    setCommitteeImportFile(null); setCountryImportFile(null); setGalleryImportFile(null);
                     const fileInput = document.getElementById(`${type}ImportFile`) as HTMLInputElement;
                     if (fileInput) fileInput.value = '';
                 }
@@ -219,6 +221,9 @@ export default function SettingsTab() {
                 break;
             case 'countries.csv':
                 flattenedData = dataToExport.map(({id, ...rest}: T.Country) => rest);
+                break;
+            case 'gallery.csv':
+                 flattenedData = dataToExport.map(({id, ...rest}: T.GalleryItem) => rest);
                 break;
             default:
                 flattenedData = dataToExport;
@@ -320,7 +325,7 @@ export default function SettingsTab() {
                 </CardContent></Card>
             </AccordionContent></AccordionItem>
             <AccordionItem value="import-export"><AccordionTrigger><div className="flex items-center gap-2 text-lg"><Download /> Import / Export</div></AccordionTrigger>
-            <AccordionContent className="p-1"><Card><CardContent className="pt-6 grid md:grid-cols-2 gap-6">
+            <AccordionContent className="p-1"><Card><CardContent className="pt-6 grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="space-y-2 p-4 border rounded-lg">
                     <h3 className="font-semibold flex items-center gap-2"><Library/> Committees</h3>
                     <Button onClick={() => handleExport(data.committees, 'committees.csv')} className="w-full">Export to CSV</Button>
@@ -339,8 +344,18 @@ export default function SettingsTab() {
                         <Button onClick={() => handleImport(countryImportFile, firebaseService.importCountries, 'countries')} disabled={!countryImportFile || isImporting}><Upload/></Button></div>
                     </div>
                 </div>
+                 <div className="space-y-2 p-4 border rounded-lg">
+                    <h3 className="font-semibold flex items-center gap-2"><GalleryHorizontal/> Gallery</h3>
+                    <Button onClick={() => handleExport(data.gallery, 'gallery.csv')} className="w-full">Export to CSV</Button>
+                    <div className="border-t pt-2 mt-2"><h4 className="font-semibold mb-2">Import</h4>
+                        <p className="text-xs text-muted-foreground mb-2">CSV must have columns: title, description, imageUrl, order.</p>
+                        <div className="flex gap-2"><Input id="galleryImportFile" type="file" accept=".csv" onChange={handleFileChange(setGalleryImportFile)}/>
+                        <Button onClick={() => handleImport(galleryImportFile, firebaseService.importGallery, 'gallery')} disabled={!galleryImportFile || isImporting}><Upload/></Button></div>
+                    </div>
+                </div>
             </CardContent></Card></AccordionContent></AccordionItem>
         </Accordion>
     );
 }
 
+    

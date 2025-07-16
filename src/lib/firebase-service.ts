@@ -376,9 +376,16 @@ const countryTransformer = (row: any): Omit<Country, 'id'> => ({
     status: (row.status === 'Assigned' ? 'Assigned' : 'Available') as 'Available' | 'Assigned',
 });
 
+const galleryTransformer = (row: any): Omit<GalleryItem, 'id'> => ({
+    title: row.title || '',
+    description: row.description || '',
+    imageUrl: convertGoogleDriveLink(row.imageUrl || ''),
+    order: row.order ? parseInt(row.order, 10) : 0,
+});
 
 export const importCommittees = (data: any[]) => importData<Committee>(COMMITTEES_COLLECTION, data, committeeTransformer);
 export const importCountries = (data: any[]) => importData<Country>(COUNTRIES_COLLECTION, data, countryTransformer);
+export const importGallery = (data: any[]) => importData<GalleryItem>(GALLERY_COLLECTION, data, galleryTransformer);
 
 async function clearCollection(collectionPath: string) {
     const collectionRef = collection(db, collectionPath);
@@ -389,3 +396,5 @@ async function clearCollection(collectionPath: string) {
     querySnapshot.docs.forEach(docSnapshot => batch.delete(docSnapshot.ref));
     await batch.commit();
 }
+
+    
