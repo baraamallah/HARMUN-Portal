@@ -49,24 +49,42 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Highlights Section */}
-        {highlights.length > 0 && (
-            <section className="bg-secondary/50 py-16 md:py-20 border-b">
-                <div className="container mx-auto px-4">
-                    <div className="flex justify-center">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 md:gap-16 lg:gap-24 text-center">
-                            {highlights.map((highlight, index) => (
-                                <div key={highlight.id} className="flex flex-col items-center animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
-                                    {createDynamicIcon(highlight.icon, "w-10 h-10 mb-3 text-primary")}
-                                    <h3 className="text-xl font-bold">{highlight.title}</h3>
-                                    <p className="text-muted-foreground mt-1">{highlight.description}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+      {/* Highlights & Map Section */}
+      <section className="bg-secondary/50 py-16 md:py-20 border-b">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+            {/* Highlights */}
+            <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-8 text-center">
+              {highlights.slice(0, 2).map((highlight, index) => (
+                <div key={highlight.id} className="flex flex-col items-center animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
+                  {createDynamicIcon(highlight.icon, "w-10 h-10 mb-3 text-primary")}
+                  <h3 className="text-xl font-bold">{highlight.title}</h3>
+                  <p className="text-muted-foreground mt-1">{highlight.description}</p>
                 </div>
-            </section>
-        )}
+              ))}
+            </div>
+
+            {/* Venue Map */}
+            {siteConfig.mapEmbedUrl && (
+              <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+                <div className="aspect-video w-full rounded-lg overflow-hidden border shadow-lg">
+                  <iframe
+                    src={siteConfig.mapEmbedUrl}
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    title="Conference Venue Map"
+                  ></iframe>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
 
       {/* Countdown Section */}
       <section className="bg-background py-16 md:py-20 border-b">
@@ -107,37 +125,9 @@ export default async function Home() {
         </div>
       </section>
 
-       {/* Venue Map Section */}
-      {siteConfig.mapEmbedUrl && (
-        <section className="bg-background py-16 md:py-20 border-b">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12 animate-fade-in-up">
-              <h2 className="text-3xl font-bold font-headline text-foreground">Venue & Map</h2>
-              <p className="mt-2 text-muted-foreground max-w-2xl mx-auto">
-                Find your way to the heart of the conference.
-              </p>
-            </div>
-            <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-                <div className="aspect-video w-full rounded-lg overflow-hidden border shadow-lg">
-                    <iframe
-                        src={siteConfig.mapEmbedUrl}
-                        width="100%"
-                        height="100%"
-                        style={{ border: 0 }}
-                        allowFullScreen
-                        loading="lazy"
-                        referrerPolicy="no-referrer-when-downgrade"
-                        title="Conference Venue Map"
-                    ></iframe>
-                </div>
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* Gallery Preview Section */}
       {recentItems.length > 0 && (
-        <section className="bg-secondary/50 py-20">
+        <section className="bg-background py-20">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12 animate-fade-in-up">
               <h2 className="text-3xl font-bold font-headline text-foreground">From the Gallery</h2>
