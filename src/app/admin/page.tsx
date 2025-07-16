@@ -3,7 +3,7 @@
 
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutDashboard, FileText, Settings, ShieldCheck, Library, Globe, GalleryHorizontal } from "lucide-react";
+import { LayoutDashboard, FileText, Settings, ShieldCheck, Library, GalleryHorizontal } from "lucide-react";
 
 import DashboardTab from './components/dashboard-tab';
 import PagesTab from './components/pages-tab';

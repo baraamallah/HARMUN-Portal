@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { KeyRound } from "lucide-react";
+import { KeyRound, ShieldCheck } from "lucide-react";
 import * as authService from "@/lib/auth-service";
 
 const changePasswordSchema = z.object({
@@ -45,53 +45,66 @@ export default function SecurityTab({ toast }: any) {
     }
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><KeyRound /> Change Password</CardTitle>
-                <CardDescription>Update the password for your admin account.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Form {...changePasswordForm}>
-                    <form onSubmit={changePasswordForm.handleSubmit(handleChangePassword)} className="space-y-4 max-w-sm">
-                        <FormField
-                            control={changePasswordForm.control}
-                            name="currentPassword"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Current Password</FormLabel>
-                                    <FormControl><Input type="password" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={changePasswordForm.control}
-                            name="newPassword"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>New Password</FormLabel>
-                                    <FormControl><Input type="password" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={changePasswordForm.control}
-                            name="confirmPassword"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Confirm New Password</FormLabel>
-                                    <FormControl><Input type="password" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <Button type="submit" disabled={changePasswordForm.formState.isSubmitting}>
-                            {changePasswordForm.formState.isSubmitting ? "Updating..." : "Update Password"}
-                        </Button>
-                    </form>
-                </Form>
-            </CardContent>
-        </Card>
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <div className="flex items-start gap-4">
+                        <ShieldCheck className="h-8 w-8 text-muted-foreground" />
+                        <div>
+                            <CardTitle>Security</CardTitle>
+                            <CardDescription>Manage your account security settings.</CardDescription>
+                        </div>
+                    </div>
+                </CardHeader>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><KeyRound /> Change Password</CardTitle>
+                    <CardDescription>Update the password for your admin account.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Form {...changePasswordForm}>
+                        <form onSubmit={changePasswordForm.handleSubmit(handleChangePassword)} className="space-y-4 max-w-sm">
+                            <FormField
+                                control={changePasswordForm.control}
+                                name="currentPassword"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Current Password</FormLabel>
+                                        <FormControl><Input type="password" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={changePasswordForm.control}
+                                name="newPassword"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>New Password</FormLabel>
+                                        <FormControl><Input type="password" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={changePasswordForm.control}
+                                name="confirmPassword"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Confirm New Password</FormLabel>
+                                        <FormControl><Input type="password" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <Button type="submit" disabled={changePasswordForm.formState.isSubmitting}>
+                                {changePasswordForm.formState.isSubmitting ? "Updating..." : "Update Password"}
+                            </Button>
+                        </form>
+                    </Form>
+                </CardContent>
+            </Card>
+        </div>
     );
 }

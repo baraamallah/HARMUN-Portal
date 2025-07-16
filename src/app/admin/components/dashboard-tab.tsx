@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, FileText, Globe, Library, Newspaper, Trash2 } from "lucide-react";
+import { PlusCircle, Globe, Library, Newspaper, Trash2 } from "lucide-react";
 import * as firebaseService from "@/lib/firebase-service";
 import type * as T from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -36,91 +36,93 @@ export default function DashboardTab() {
         committees: [],
     });
 
-    useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const [posts, countries, committees] = await Promise.all([
-                    firebaseService.getAllPosts(),
-                    firebaseService.getCountries(),
-                    firebaseService.getCommittees(),
-                ]);
-                setData({ posts, countries, committees });
-            } catch (error) {
-                console.error("Failed to fetch dashboard data:", error);
-                toast({ title: "Error", description: `Could not load dashboard data.`, variant: "destructive" });
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
+     const loadData = useCallback(async () => {
+        setLoading(true);
+        try {
+            const [posts, countries, committees] = await Promise.all([
+                firebaseService.getAllPosts(),
+                firebaseService.getCountries(),
+                firebaseService.getCommittees(),
+            ]);
+            setData({ posts, countries, committees });
+        } catch (error) {
+            console.error("Failed to fetch dashboard data:", error);
+            toast({ title: "Error", description: `Could not load dashboard data.`, variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
     }, [toast]);
+
+    useEffect(() => { loadData(); }, [loadData]);
     
-    const handleAddItem = async (addFunction: Function, itemData: any, stateKey: keyof typeof data, message: string, form?: any) => {
+    const handleAction = async (action: Promise<any>, successMessage: string, formToReset?: any) => {
         try {
-            const newId = await addFunction(itemData);
-            const newItem = await firebaseService.getDocById(stateKey as string, newId);
-            setData(prev => ({ ...prev, [stateKey]: [newItem, ...prev[stateKey] as any[]] }));
-            toast({ title: "Success!", description: message });
-            if (form) form.reset();
+            await action;
+            toast({ title: "Success!", description: successMessage });
+            await loadData();
+             if (formToReset) {
+                formToReset.reset();
+            }
         } catch (error) {
-            toast({ title: "Error", description: `Could not add item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
+            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+            toast({ title: "Error", description: `Action failed: ${errorMessage}`, variant: "destructive" });
         }
     };
-    
-    const handleDeleteItem = async (deleteFunction: Function, id: string, stateKey: keyof typeof data, message: string) => {
-        if (!confirm('Are you sure you want to delete this item?')) return;
-        try {
-            await deleteFunction(id);
-            setData(prev => ({ ...prev, [stateKey]: (prev[stateKey] as any[]).filter((item: {id: string}) => item.id !== id) }));
-            toast({ title: "Success!", description: message });
-        } catch (error) {
-            toast({ title: "Error", description: `Could not delete item. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
-        }
+
+    const handleDeleteItem = async (deleteFunction: Function, id: string, itemName: string) => {
+        if (!confirm(`Are you sure you want to delete this ${itemName}?`)) return;
+        await handleAction(deleteFunction(id), `${itemName} deleted.`);
     };
+
     
     if (loading) {
         return (
-            <>
+            <div className="space-y-6">
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    <Skeleton className="h-24" />
-                    <Skeleton className="h-24" />
-                    <Skeleton className="h-24" />
+                    <Skeleton className="h-28" />
+                    <Skeleton className="h-28" />
+                    <Skeleton className="h-28" />
                 </div>
                 <Skeleton className="h-96 mt-6" />
-            </>
+            </div>
         );
     }
     
     return (
-        <>
+        <div className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Published Posts</CardTitle><FileText className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{data.posts?.length || 0}</div></CardContent></Card>
-                <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Countries</CardTitle><Globe className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{data.countries?.length || 0}</div></CardContent></Card>
-                <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Committees</CardTitle><Library className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{data.committees?.length || 0}</div></CardContent></Card>
+                <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Published Posts</CardTitle><Newspaper className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{data.posts?.length || 0}</div><p className="text-xs text-muted-foreground">News & SG Notes</p></CardContent></Card>
+                <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Countries</CardTitle><Globe className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{data.countries?.length || 0}</div><p className="text-xs text-muted-foreground">Registered in matrix</p></CardContent></Card>
+                <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Committees</CardTitle><Library className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{data.committees?.length || 0}</div><p className="text-xs text-muted-foreground">Available for registration</p></CardContent></Card>
             </div>
-            <Card className="mt-6">
-                <CardHeader><CardTitle className="flex items-center gap-2"><Newspaper /> Create & Manage Posts</CardTitle></CardHeader>
+            <Card>
+                <CardHeader><CardTitle>Create & Manage Posts</CardTitle><CardDescription>Publish news articles or notes from the Secretary-General.</CardDescription></CardHeader>
                 <CardContent>
-                    <CreatePostForm onAdd={(postData, form) => handleAddItem(firebaseService.addPost, postData, "posts", "Post created!", form)} />
-                    <h3 className="text-lg font-semibold mb-4">Published Posts</h3>
-                    <div className="border rounded-md max-h-96 overflow-y-auto">
-                        <Table>
-                            <TableHeader><TableRow><TableHead>Title</TableHead><TableHead>Type</TableHead><TableHead>Date</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {data.posts?.map((post: T.Post) => (
-                                    <TableRow key={post.id}>
-                                        <TableCell>{post.title}</TableCell>
-                                        <TableCell>{post.type}</TableCell>
-                                        <TableCell>{firebaseService.formatTimestamp(post.createdAt)}</TableCell>
-                                        <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleDeleteItem(firebaseService.deletePost, post.id, "posts", "Post deleted.")}> <Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                    <div className="grid md:grid-cols-5 gap-8">
+                        <div className="md:col-span-2">
+                             <CreatePostForm onAdd={(postData, form) => handleAction(firebaseService.addPost(postData), "Post created!", form)} />
+                        </div>
+                        <div className="md:col-span-3">
+                            <h3 className="text-lg font-semibold mb-4">Published Posts</h3>
+                            <div className="border rounded-md max-h-96 overflow-y-auto">
+                                <Table>
+                                    <TableHeader><TableRow><TableHead>Title</TableHead><TableHead>Type</TableHead><TableHead>Date</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader>
+                                    <TableBody>
+                                        {data.posts?.map((post: T.Post) => (
+                                            <TableRow key={post.id}>
+                                                <TableCell className="font-medium">{post.title}</TableCell>
+                                                <TableCell><span className="capitalize">{post.type}</span></TableCell>
+                                                <TableCell>{firebaseService.formatTimestamp(post.createdAt)}</TableCell>
+                                                <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleDeleteItem(firebaseService.deletePost, post.id, "post")}> <Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
-        </>
+        </div>
     );
 }
