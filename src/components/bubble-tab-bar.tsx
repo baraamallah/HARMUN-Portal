@@ -22,45 +22,50 @@ const BubbleTabBar = () => {
     const isInitialMount = useRef(true);
 
     useEffect(() => {
-        const currentItem = navItems.find(item => item.href === pathname);
+        const currentItem = navItems.find(item => pathname.startsWith(item.href) && (item.href === '/' ? pathname.length === 1 : true));
         const initialId = currentItem ? currentItem.id : 1;
         setActiveId(initialId);
         
-        // Skip animation on initial render, but set initial position and color
-        if (isInitialMount.current) {
-            const position = `${(initialId - 1) * 25 + 12.5}%`;
-            gsap.set("#bgBubble", { left: position, backgroundColor: currentItem?.color || '#1E3A8A' });
-            gsap.set("#bg", { backgroundColor: currentItem?.color || '#1E3A8A' });
-            gsap.set(`#bubble${initialId}`, { y: "0%", opacity: 1, boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)'});
-            gsap.set(`#bubble${initialId} > .icon`, { opacity: 0.7 });
-            isInitialMount.current = false;
-        }
+        const position = `${(initialId - 1) * 25 + 12.5}%`;
+        const initialColor = currentItem?.color || '#1E3A8A';
+
+        gsap.set("#bgBubble", { left: position, backgroundColor: initialColor });
+        gsap.set("#bg", { backgroundColor: initialColor });
+        
+        gsap.set(".bubble", { y: "120%", boxShadow: 'none' });
+        gsap.set(".icon", { opacity: 0 });
+
+        gsap.set(`#bubble${initialId}`, { y: "0%", opacity: 1, boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)'});
+        gsap.set(`#bubble${initialId} .icon`, { opacity: 0.7 });
+        
+        isInitialMount.current = false;
     }, [pathname]);
 
     const move = (id: number, href: string, color: string) => {
         if (id === activeId) return;
 
         const position = `${(id - 1) * 25 + 12.5}%`;
+        const previousId = activeId;
         setActiveId(id);
 
         const tl = gsap.timeline();
         tl.to("#bgBubble", {duration: 0.15, bottom: "-30px", ease: "ease-out"}, 0)
-          .to(".bubble", { duration: 0.1, y: "120%", boxShadow: 'none', ease: "ease-out" }, 0)
-          .to(".icon", { duration: 0.05, opacity: 0, ease: "ease-out" }, 0)
-          .to("#bgBubble", { duration: 0.2, left: position, ease: "ease-in-out" }, 0.1)
-          .to("#bgBubble", { duration: 0.15, bottom: "-50px", ease: "ease-out" }, '-=0.2')
-          .to(`#bubble${id}`, { duration: 0.15, y: "0%", opacity: 1, boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)', ease: "ease-out" }, '-=0.1')
-          .to(`#bubble${id} > .icon`, { duration: 0.15, opacity: 0.7, ease: "ease-out" }, '-=0.1')
-          .to("#bg", { duration: 0.3, backgroundColor: color, ease: "ease-in-out" }, 0)
-          .to("#bgBubble", { duration: 0.3, backgroundColor: color, ease: "ease-in-out" }, 0);
+          .to(`#bubble${previousId}`, {duration: 0.1, y: "120%", boxShadow: 'none', ease: "ease-out"}, 0)
+          .to(`#bubble${previousId} .icon`, {duration: 0.05, opacity: 0, ease: "ease-out"}, 0)
+          .to("#bgBubble", {duration: 0.2, left: position, ease: "ease-in-out"}, 0.1)
+          .to("#bgBubble", {duration: 0.15, bottom: "-50px", ease: "ease-out"}, '-=0.2')
+          .to(`#bubble${id}`, {duration: 0.15, y: "0%", opacity: 1, boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)', ease: "ease-out"}, '-=0.1')
+          .to(`#bubble${id} .icon`, {duration: 0.15, opacity: 0.7, ease: "ease-out"}, '-=0.1')
+          .to("#bg", {duration: 0.3, backgroundColor: color, ease: "ease-in-out"}, 0)
+          .to("#bgBubble", {duration: 0.3, backgroundColor: color, ease: "ease-in-out"}, 0);
         
         setTimeout(() => router.push(href), 150);
     };
 
     return (
         <div className="md:hidden">
-            <div ref={navbarRef} id="navbarContainer" className="fixed bottom-0 left-0 right-0 h-24 bg-background z-50">
-                <div id="navbar" className="w-full h-16 bg-card absolute bottom-0 shadow-t-md">
+            <div ref={navbarRef} id="navbarContainer" className="fixed bottom-0 left-0 right-0 h-24 bg-transparent z-50 pointer-events-none">
+                <div id="navbar" className="w-full h-16 bg-card absolute bottom-0 shadow-t-md pointer-events-auto">
                     <div id="bubbleWrapper" className="absolute flex justify-around w-full bottom-6">
                         {navItems.map(item => (
                             <div key={item.id} id={`bubble${item.id}`} className="bubble">
@@ -106,7 +111,6 @@ const BubbleTabBar = () => {
                 }
                 .icon {
                     opacity: 0;
-                    transform: translateY(120%);
                 }
                 #bgWrapper {
                     filter: url(#goo);
@@ -114,6 +118,7 @@ const BubbleTabBar = () => {
                     height: 100px;
                     position: absolute;
                     bottom: 64px;
+                    pointer-events: none;
                 }
                 #bg {
                     width: 120%;

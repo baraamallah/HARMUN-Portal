@@ -22,7 +22,7 @@ export function AppFooter({ siteConfig }: { siteConfig: SiteConfig }) {
     : [];
 
   return (
-    <footer className="border-t border-border hidden md:block">
+    <footer className="border-t border-border">
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col items-center gap-6">
           <Link href="/" className="flex items-center gap-2 font-bold text-xl text-foreground font-headline">
