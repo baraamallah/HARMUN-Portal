@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, Upload, Settings, Trash2, Library, Globe, GalleryHorizontal, Link as LinkIcon, MenuSquare, Navigation } from "lucide-react";
+import { Download, Upload, Settings, Trash2, Library, Globe, GalleryHorizontal, Link as LinkIcon, Navigation } from "lucide-react";
 import * as firebaseService from "@/lib/firebase-service";
 import type * as T from "@/lib/types";
 import { Switch } from "@/components/ui/switch";
@@ -28,6 +28,7 @@ const navLinksForAdmin = [
 
 const generalSettingsSchema = z.object({
   conferenceDate: z.string().min(1),
+  sgAvatarUrl: z.string().url(),
   mapEmbedUrl: z.string().url(),
   footerText: z.string().min(5),
 });
@@ -56,8 +57,9 @@ const SectionCard: React.FC<{
   description: string;
   icon: React.ElementType;
   children: React.ReactNode;
-}> = ({ title, description, icon: Icon, children }) => (
-    <Card>
+  delay?: number;
+}> = ({ title, description, icon: Icon, children, delay = 0 }) => (
+    <Card className="animate-fade-in-up" style={{ animationDelay: `${delay}ms` }}>
         <CardHeader>
             <div className="flex items-start gap-4">
                  <Icon className="h-8 w-8 text-muted-foreground" />
@@ -264,6 +266,7 @@ export default function SettingsTab() {
                 <Form {...generalSettingsForm}>
                     <form onSubmit={generalSettingsForm.handleSubmit(d => handleAction(firebaseService.updateSiteConfig(d), "General settings updated."))} className="space-y-4">
                         <FormField control={generalSettingsForm.control} name="conferenceDate" render={({ field }) => (<FormItem><FormLabel>Countdown Date</FormLabel><FormControl><Input {...field} /></FormControl><p className="text-xs text-muted-foreground">Format: YYYY-MM-DDTHH:mm:ss</p></FormItem>)} />
+                        <FormField control={generalSettingsForm.control} name="sgAvatarUrl" render={({ field }) => (<FormItem><FormLabel>Secretary-General Avatar URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
                         <FormField control={generalSettingsForm.control} name="mapEmbedUrl" render={({ field }) => (<FormItem><FormLabel>Google Maps Embed URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
                         <FormField control={generalSettingsForm.control} name="footerText" render={({ field }) => (<FormItem><FormLabel>Footer Text</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>)} />
                         <Button type="submit">Save General Settings</Button>
@@ -272,7 +275,7 @@ export default function SettingsTab() {
             </SectionCard>
 
             <div className="grid md:grid-cols-2 gap-6">
-                 <SectionCard title="Social Media" description="Manage links to your social media profiles." icon={LinkIcon}>
+                 <SectionCard title="Social Media" description="Manage links to your social media profiles." icon={LinkIcon} delay={150}>
                      <Form {...socialLinksForm}>
                         <form onSubmit={socialLinksForm.handleSubmit(d => handleAction(firebaseService.updateSiteConfig(d), "Social links updated."))} className="space-y-4">
                             <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
@@ -296,7 +299,7 @@ export default function SettingsTab() {
                         existingPlatforms={socialLinkFields.map(f => f.platform)}
                     />
                  </SectionCard>
-                 <SectionCard title="Navigation" description="Toggle visibility for pages in the main site navigation." icon={Navigation}>
+                 <SectionCard title="Navigation" description="Toggle visibility for pages in the main site navigation." icon={Navigation} delay={300}>
                       <Form {...navVisibilityForm}>
                         <form onSubmit={navVisibilityForm.handleSubmit(d => handleAction(firebaseService.updateSiteConfig(d), "Navigation visibility updated."))} className="space-y-2 max-h-96 overflow-y-auto pr-2">
                             {navLinksForAdmin.map((link) => (
@@ -313,7 +316,7 @@ export default function SettingsTab() {
                  </SectionCard>
             </div>
             
-             <SectionCard title="Import / Export Data" description="Backup or bulk-edit your conference data using CSV files." icon={Download}>
+             <SectionCard title="Import / Export Data" description="Backup or bulk-edit your conference data using CSV files." icon={Download} delay={450}>
                  <div className="grid md:grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="space-y-2 p-4 border rounded-lg">
                         <h3 className="font-semibold flex items-center gap-2"><Library/> Committees</h3>

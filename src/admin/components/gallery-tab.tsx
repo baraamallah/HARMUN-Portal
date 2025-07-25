@@ -15,12 +15,13 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PlusCircle, Trash2, GripVertical, GalleryHorizontal } from "lucide-react";
 import * as firebaseService from "@/lib/firebase-service";
 import type * as T from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 
 // Schemas
 const galleryPageContentSchema = z.object({
@@ -45,9 +46,11 @@ function GalleryItemForm({ item, onSave, onDelete }: { item: T.GalleryItem; onSa
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit((data: z.infer<typeof galleryItemSchema>) => onSave(item.id, data))} className="p-4 border rounded-md space-y-4 flex-grow">
-                <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                 <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Provide a direct image link.</FormDescription><FormMessage /></FormItem>} />
                 <FormField control={form.control} name="description" render={({ field }) => <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>} />
+                
+                <Separator />
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
                     <FormField control={form.control} name="mediaType" render={({ field }) => (
@@ -102,13 +105,15 @@ function AddGalleryItemForm({ onAdd }: { onAdd: (data: any, form: any) => Promis
     });
 
     return (
-        <Card><CardHeader><CardTitle>Add New Gallery Item</CardTitle></CardHeader>
+        <Card className="animate-fade-in-up" style={{ animationDelay: '300ms' }}><CardHeader><CardTitle>Add New Gallery Item</CardTitle></CardHeader>
         <CardContent>
             <Form {...form}><form onSubmit={form.handleSubmit((d) => onAdd(d, form))} className="space-y-4">
                  <FormField control={form.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
                  <FormField control={form.control} name="imageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Provide a direct image link.</FormDescription><FormMessage /></FormItem>} />
                  <FormField control={form.control} name="description" render={({ field }) => <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl><FormMessage /></FormItem>} />
                  
+                <Separator />
+                
                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
                     <FormField control={form.control} name="mediaType" render={({ field }) => (
                         <FormItem><FormLabel>Media Type</FormLabel>
@@ -153,7 +158,6 @@ export default function GalleryTab() {
     
     const sensors = [useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })];
 
-
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
@@ -174,11 +178,11 @@ export default function GalleryTab() {
 
     useEffect(() => { loadData(); }, [loadData]);
     
-    const handleAction = async (action: Promise<any>, successMessage: string, formToReset?: any) => {
+    const handleAction = useCallback(async (action: Promise<any>, successMessage: string, formToReset?: any) => {
         try {
             await action;
             toast({ title: "Success!", description: successMessage });
-            await loadData();
+            await loadData(); // Always reload data from the source of truth
             if (formToReset) {
                 formToReset.reset();
             }
@@ -186,24 +190,24 @@ export default function GalleryTab() {
             const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
             toast({ title: "Error", description: `Action failed: ${errorMessage}`, variant: "destructive" });
         }
-    };
+    }, [toast, loadData]);
 
-    const handlePageContentSave = async (formData: z.infer<typeof galleryPageContentSchema>) => {
-        await handleAction(firebaseService.updateGalleryPageContent(formData), "Gallery page content updated.");
-    };
+    const handlePageContentSave = useCallback((formData: z.infer<typeof galleryPageContentSchema>) => {
+        handleAction(firebaseService.updateGalleryPageContent(formData), "Gallery page content updated.");
+    }, [handleAction]);
 
-    const handleUpdateItem = async (id: string, itemData: z.infer<typeof galleryItemSchema>) => {
-        await handleAction(firebaseService.updateGalleryItem(id, itemData), "Gallery item updated.");
-    };
+    const handleUpdateItem = useCallback((id: string, itemData: z.infer<typeof galleryItemSchema>) => {
+        handleAction(firebaseService.updateGalleryItem(id, itemData), "Gallery item updated.");
+    }, [handleAction]);
 
-    const handleDeleteItem = async (id: string) => {
+    const handleDeleteItem = useCallback((id: string) => {
         if (!confirm('Are you sure you want to delete this item?')) return;
-        await handleAction(firebaseService.deleteGalleryItem(id), "Gallery item deleted.");
-    };
+        handleAction(firebaseService.deleteGalleryItem(id), "Gallery item deleted.");
+    }, [handleAction]);
 
-    const handleAddItem = async (addData: any, form: any) => {
-        await handleAction(firebaseService.addGalleryItem(addData), "Gallery item added!", form);
-    };
+    const handleAddItem = useCallback((addData: any, form: any) => {
+        handleAction(firebaseService.addGalleryItem(addData), "Gallery item added!", form);
+    }, [handleAction]);
     
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
@@ -213,6 +217,7 @@ export default function GalleryTab() {
             const newIndex = oldItems.findIndex((item) => item.id === over.id);
             const newItems = arrayMove(oldItems, oldIndex, newIndex);
             
+            // Optimistically update UI
             setData(prev => ({...prev, items: newItems}));
 
             try {
@@ -229,9 +234,16 @@ export default function GalleryTab() {
 
     return (
         <div className="space-y-6">
-            <h2 className="text-2xl font-bold flex items-center gap-2"><GalleryHorizontal /> Gallery Page Management</h2>
-            <Card>
-                <CardHeader><CardTitle>Gallery Page Content</CardTitle></CardHeader>
+            <Card className="animate-fade-in-up">
+                <CardHeader>
+                     <div className="flex items-start gap-4">
+                        <GalleryHorizontal className="h-8 w-8 text-muted-foreground" />
+                        <div>
+                            <CardTitle>Gallery Page Management</CardTitle>
+                            <CardDescription>Manage the main title and gallery items for your public gallery page.</CardDescription>
+                        </div>
+                    </div>
+                </CardHeader>
                 <CardContent>
                     <Form {...pageContentForm}>
                         <form onSubmit={pageContentForm.handleSubmit(handlePageContentSave)} className="space-y-4">
@@ -243,22 +255,25 @@ export default function GalleryTab() {
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader><CardTitle>Manage Gallery Items</CardTitle></CardHeader>
-                <CardContent>
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                        <SortableContext items={data.items.map(i => i.id)} strategy={verticalListSortingStrategy}>
-                            {data.items.map((item) => (
-                                <SortableGalleryItem key={item.id} item={item} onSave={handleUpdateItem} onDelete={handleDeleteItem} />
-                            ))}
-                        </SortableContext>
-                    </DndContext>
-                </CardContent>
-            </Card>
-            
-            <AddGalleryItemForm onAdd={handleAddItem} />
+            <div className="grid md:grid-cols-5 gap-8">
+                <div className="md:col-span-2">
+                     <AddGalleryItemForm onAdd={handleAddItem} />
+                </div>
+                 <div className="md:col-span-3">
+                    <Card className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+                        <CardHeader><CardTitle>Manage Gallery Items</CardTitle><CardDescription>Drag to reorder items.</CardDescription></CardHeader>
+                        <CardContent className="max-h-[40rem] overflow-y-auto pr-2">
+                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                                <SortableContext items={data.items.map(i => i.id)} strategy={verticalListSortingStrategy}>
+                                    {data.items.map((item) => (
+                                        <SortableGalleryItem key={item.id} item={item} onSave={handleUpdateItem} onDelete={handleDeleteItem} />
+                                    ))}
+                                </SortableContext>
+                            </DndContext>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
         </div>
     );
 }
-
-    

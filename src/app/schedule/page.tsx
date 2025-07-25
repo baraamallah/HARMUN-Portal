@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, MapPin } from 'lucide-react';
 import { getSchedule } from '@/lib/firebase-service';
@@ -24,10 +25,10 @@ export default async function SchedulePage() {
               <p className="text-md text-muted-foreground mb-6">{day.date}</p>
               <div className="relative border-l-2 border-primary/50 pl-8 space-y-8">
                 {day.events.length > 0 ? (
-                    day.events.map((event) => (
-                    <div key={event.id} className="relative">
+                    day.events.map((event, eventIndex) => (
+                    <div key={event.id} className="relative animate-fade-in-up" style={{ animationDelay: `${eventIndex * 100}ms` }}>
                       <div className="absolute -left-[39px] top-1 h-4 w-4 rounded-full bg-primary border-4 border-background" />
-                      <Card className="animate-fade-in-up transition-all duration-300 hover:border-primary hover:-translate-y-1">
+                      <Card className="transition-all duration-300 hover:border-primary hover:-translate-y-1">
                         <CardHeader>
                           <CardTitle>{event.title}</CardTitle>
                         </CardHeader>

@@ -23,7 +23,7 @@ export default async function NewsPage() {
       {newsPosts.length > 0 ? (
         <div className="space-y-8 max-w-4xl mx-auto">
           {newsPosts.map((post: Post, index) => (
-            <Card key={post.id} className="animate-fade-in-up transition-all duration-300 hover:shadow-lg hover:border-primary/50 flex flex-col" style={{ animationDelay: `${index * 150}ms` }}>
+            <Card key={post.id} className="animate-fade-in-up transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:-translate-y-1 flex flex-col" style={{ animationDelay: `${index * 150}ms` }}>
               <CardHeader>
                 <CardTitle className="text-2xl font-headline">{post.title}</CardTitle>
                 <CardDescription className="flex items-center gap-2 pt-2">

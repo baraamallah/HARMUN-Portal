@@ -37,7 +37,7 @@ export default async function GalleryPage() {
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {items.map((item, index) => (
                         <Card key={item.id} className={cn(
-                            "group animate-fade-in-up overflow-hidden",
+                            "group animate-fade-in-up overflow-hidden transition-all duration-300 hover:border-primary/50 hover:-translate-y-1",
                             colSpans[item.width]
                             )} style={{ animationDelay: `${index * 100}ms` }}>
                             <div className={cn("relative w-full overflow-hidden", aspectRatios[item.aspectRatio])}>

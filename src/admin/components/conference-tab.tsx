@@ -101,7 +101,7 @@ const SectionCard: React.FC<{
   icon: React.ElementType;
   children: React.ReactNode;
 }> = ({ title, description, icon: Icon, children }) => (
-    <Card>
+    <Card className="animate-fade-in-up">
         <CardHeader>
             <div className="flex items-start gap-4">
                  <Icon className="h-8 w-8 text-muted-foreground" />

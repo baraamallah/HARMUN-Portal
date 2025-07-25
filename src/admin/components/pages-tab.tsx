@@ -22,9 +22,12 @@ const homePageContentSchema = z.object({
     heroTitle: z.string().min(5),
     heroSubtitle: z.string().min(10),
     heroImageUrl: z.string().url(),
+    highlightsTitle: z.string().min(5),
+    highlightsSubtitle: z.string().min(10),
 });
 const aboutPageContentSchema = z.object({
     title: z.string().min(5), subtitle: z.string().min(10), imageUrl: z.string().url(),
+    storyImageUrl: z.string().url(),
     whatIsTitle: z.string().min(5), whatIsPara1: z.string().min(20), whatIsPara2: z.string().min(20),
     storyTitle: z.string().min(5), storyPara1: z.string().min(20), storyPara2: z.string().min(20),
 });
@@ -118,7 +121,7 @@ const SectionCard: React.FC<{
   icon: React.ElementType;
   children: React.ReactNode;
 }> = ({ title, description, icon: Icon, children }) => (
-    <Card>
+    <Card className="animate-fade-in-up">
         <CardHeader>
             <div className="flex items-start gap-4">
                  <Icon className="h-8 w-8 text-muted-foreground" />
@@ -162,10 +165,10 @@ export default function PagesTab() {
     
     useEffect(() => { loadData(); }, [loadData]);
     
-    const homeForm = useForm<z.infer<typeof homePageContentSchema>>({ resolver: zodResolver(homePageContentSchema), defaultValues: data.homeContent || {} });
-    const aboutForm = useForm<z.infer<typeof aboutPageContentSchema>>({ resolver: zodResolver(aboutPageContentSchema), defaultValues: data.aboutContent || {} });
-    const registrationForm = useForm<z.infer<typeof registrationPageContentSchema>>({ resolver: zodResolver(registrationPageContentSchema), defaultValues: data.registrationContent || {} });
-    const documentsForm = useForm<z.infer<typeof documentsPageContentSchema>>({ resolver: zodResolver(documentsPageContentSchema), defaultValues: data.documentsContent || {} });
+    const homeForm = useForm<z.infer<typeof homePageContentSchema>>({ resolver: zodResolver(homePageContentSchema), defaultValues: { heroTitle: "", heroSubtitle: "", heroImageUrl: "", highlightsTitle: "", highlightsSubtitle: "" } });
+    const aboutForm = useForm<z.infer<typeof aboutPageContentSchema>>({ resolver: zodResolver(aboutPageContentSchema), defaultValues: { title: "", subtitle: "", imageUrl: "", whatIsTitle: "", whatIsPara1: "", whatIsPara2: "", storyTitle: "", storyPara1: "", storyPara2: "", storyImageUrl: "" } });
+    const registrationForm = useForm<z.infer<typeof registrationPageContentSchema>>({ resolver: zodResolver(registrationPageContentSchema), defaultValues: { title: "", subtitle: "" } });
+    const documentsForm = useForm<z.infer<typeof documentsPageContentSchema>>({ resolver: zodResolver(documentsPageContentSchema), defaultValues: { title: "", subtitle: "" } });
 
     useEffect(() => { if(data.homeContent) homeForm.reset(data.homeContent); }, [data.homeContent, homeForm]);
     useEffect(() => { if(data.aboutContent) aboutForm.reset(data.aboutContent); }, [data.aboutContent, aboutForm]);
@@ -199,30 +202,38 @@ export default function PagesTab() {
     return (
         <div className="space-y-6">
             <SectionCard title="Home Page" description="Manage the content for your site's landing page." icon={Home}>
-                <div className="grid md:grid-cols-2 gap-8">
-                     <div>
-                        <h3 className="font-semibold mb-4 text-center">Hero Section</h3>
-                        <Form {...homeForm}><form onSubmit={homeForm.handleSubmit((d) => handleAction(firebaseService.updateHomePageContent(d), "Home page content updated."))} className="space-y-4">
-                            <FormField control={homeForm.control} name="heroTitle" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-                            <FormField control={homeForm.control} name="heroSubtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
-                            <FormField control={homeForm.control} name="heroImageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Provide a direct image link.</FormDescription><FormMessage /></FormItem>} />
-                            <Button type="submit" className="w-full">Save Hero</Button>
-                        </form></Form>
-                     </div>
-                      <div>
-                        <h3 className="font-semibold mb-4 text-center">Highlights Section</h3>
-                        <div className="max-h-72 overflow-y-auto pr-2 space-y-2">
-                        {data.highlights?.map((item: T.ConferenceHighlight) => (
-                            <HighlightItemForm
-                                key={item.id} item={item}
-                                onSave={(id, saveData) => handleAction(firebaseService.updateHighlight(id, saveData), "Highlight updated.")}
-                                onDelete={(id) => handleDeleteItem(firebaseService.deleteHighlight, id, "highlight")}
-                            />
-                        ))}
+                <Form {...homeForm}><form onSubmit={homeForm.handleSubmit((d) => handleAction(firebaseService.updateHomePageContent(d), "Home page content updated."))} className="space-y-6">
+                    <div className="grid md:grid-cols-5 gap-8">
+                        <div className="md:col-span-2 space-y-4">
+                            <div>
+                                <h3 className="font-semibold mb-4 text-center border-b pb-2">Hero Section</h3>
+                                <FormField control={homeForm.control} name="heroTitle" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                                <FormField control={homeForm.control} name="heroSubtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
+                                <FormField control={homeForm.control} name="heroImageUrl" render={({ field }) => <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>Provide a direct image link.</FormDescription><FormMessage /></FormItem>} />
+                            </div>
+                             <Separator />
+                            <div>
+                                <h3 className="font-semibold mb-4 text-center border-b pb-2">Highlights Section</h3>
+                                <FormField control={homeForm.control} name="highlightsTitle" render={({ field }) => <FormItem><FormLabel>Section Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                                <FormField control={homeForm.control} name="highlightsSubtitle" render={({ field }) => <FormItem><FormLabel>Section Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
+                            </div>
                         </div>
-                        <AddHighlightForm onAdd={(addData, form) => handleAction(firebaseService.addHighlight(addData), "Highlight added!", form)} />
-                      </div>
-                </div>
+                        <div className="md:col-span-3">
+                            <h3 className="font-semibold mb-4 text-center border-b pb-2">Highlights Items</h3>
+                            <div className="max-h-72 overflow-y-auto pr-2 space-y-2">
+                            {data.highlights?.map((item: T.ConferenceHighlight) => (
+                                <HighlightItemForm
+                                    key={item.id} item={item}
+                                    onSave={(id, saveData) => handleAction(firebaseService.updateHighlight(id, saveData), "Highlight updated.")}
+                                    onDelete={(id) => handleDeleteItem(firebaseService.deleteHighlight, id, "highlight")}
+                                />
+                            ))}
+                            </div>
+                            <AddHighlightForm onAdd={(addData, form) => handleAction(firebaseService.addHighlight(addData), "Highlight added!", form)} />
+                        </div>
+                    </div>
+                    <Button type="submit" className="w-full">Save Home Page</Button>
+                </form></Form>
             </SectionCard>
             
              <SectionCard title="About Page" description="Edit the content for the about page." icon={FileBadge}>
@@ -231,7 +242,7 @@ export default function PagesTab() {
                         <h4 className="font-semibold">Main Content</h4>
                         <div className="grid md:grid-cols-2 gap-4">
                             <FormField control={aboutForm.control} name="title" render={({ field }) => (<FormItem><FormLabel>Page Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={aboutForm.control} name="imageUrl" render={({ field }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={aboutForm.control} name="imageUrl" render={({ field }) => (<FormItem><FormLabel>Top Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                         </div>
                          <FormField control={aboutForm.control} name="subtitle" render={({ field }) => (<FormItem><FormLabel>Page Subtitle</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>)} />
                     </div>
@@ -247,7 +258,10 @@ export default function PagesTab() {
                       <Separator />
                      <div className="space-y-4">
                          <h4 className="font-semibold">Story of HARMUN Section</h4>
-                         <FormField control={aboutForm.control} name="storyTitle" render={({ field }) => (<FormItem><FormLabel>Section Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <FormField control={aboutForm.control} name="storyTitle" render={({ field }) => (<FormItem><FormLabel>Section Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={aboutForm.control} name="storyImageUrl" render={({ field }) => (<FormItem><FormLabel>Story Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                         </div>
                          <div className="grid md:grid-cols-2 gap-4">
                              <FormField control={aboutForm.control} name="storyPara1" render={({ field }) => (<FormItem><FormLabel>Paragraph 1</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
                              <FormField control={aboutForm.control} name="storyPara2" render={({ field }) => (<FormItem><FormLabel>Paragraph 2</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />

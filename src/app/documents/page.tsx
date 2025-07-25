@@ -24,7 +24,7 @@ export default async function DocumentsPage() {
       <div className="max-w-4xl mx-auto space-y-6">
         {documents.length > 0 ? (
           documents.map((doc, index) => (
-            <Card key={doc.id} className="animate-fade-in-up transition-all duration-300 hover:border-primary hover:-translate-y-1" style={{ animationDelay: `${index * 150}ms` }}>
+            <Card key={doc.id} className="animate-fade-in-up transition-all duration-300 hover:border-primary/50 hover:-translate-y-1" style={{ animationDelay: `${index * 150}ms` }}>
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6">
                 <div className="flex items-center gap-4">
                   <BookOpen className="w-8 h-8 text-primary flex-shrink-0" />
