@@ -44,7 +44,7 @@ const BubbleTabBar = () => {
         setActiveId(id);
 
         const tl = gsap.timeline();
-        tl.to("#bgBubble", { duration: 0.15, bottom: "-30px", ease: "ease-out" }, 0)
+        tl.to("#bgBubble", {duration: 0.15, bottom: "-30px", ease: "ease-out"}, 0)
           .to(".bubble", { duration: 0.1, y: "120%", boxShadow: 'none', ease: "ease-out" }, 0)
           .to(".icon", { duration: 0.05, opacity: 0, ease: "ease-out" }, 0)
           .to("#bgBubble", { duration: 0.2, left: position, ease: "ease-in-out" }, 0.1)
@@ -58,8 +58,8 @@ const BubbleTabBar = () => {
     };
 
     return (
-        <>
-            <div ref={navbarRef} id="navbarContainer" className="fixed bottom-0 left-0 right-0 h-24 bg-background z-50 md:hidden">
+        <div className="md:hidden">
+            <div ref={navbarRef} id="navbarContainer" className="fixed bottom-0 left-0 right-0 h-24 bg-background z-50">
                 <div id="navbar" className="w-full h-16 bg-card absolute bottom-0 shadow-t-md">
                     <div id="bubbleWrapper" className="absolute flex justify-around w-full bottom-6">
                         {navItems.map(item => (
@@ -159,7 +159,7 @@ const BubbleTabBar = () => {
                     </filter>
                 </defs>
             </svg>
-        </>
+        </div>
     );
 };
 
