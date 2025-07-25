@@ -8,7 +8,6 @@ import { getSiteConfig } from '@/lib/firebase-service';
 import type { SiteConfig } from '@/lib/types';
 import { AuthProvider } from '@/context/auth-context';
 import { Analytics } from '@vercel/analytics/react';
-import BubbleTabBar from '@/components/bubble-tab-bar';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,11 +48,8 @@ export default async function RootLayout({
         <AuthProvider>
           <div className="flex min-h-screen flex-col">
             <AppHeader siteConfig={siteConfig} />
-            <main className="flex-grow pb-24 md:pb-0">{children}</main>
-            <div className="hidden md:block">
-                <AppFooter siteConfig={siteConfig} />
-            </div>
-            <BubbleTabBar />
+            <main className="flex-grow">{children}</main>
+            <AppFooter siteConfig={siteConfig} />
           </div>
           <Toaster />
         </AuthProvider>

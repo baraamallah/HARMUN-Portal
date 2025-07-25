@@ -4,7 +4,6 @@ import { Globe, Twitter, Instagram, Facebook, Linkedin, Youtube, type LucideIcon
 import Link from 'next/link';
 import { Button } from './ui/button';
 import type { SiteConfig } from '@/lib/types';
-import { TiktokIcon } from './icons/tiktok-icon';
 
 const platformIcons: Record<string, React.ElementType> = {
   Twitter,
@@ -12,7 +11,6 @@ const platformIcons: Record<string, React.ElementType> = {
   Facebook,
   Linkedin,
   Youtube,
-  Tiktok: TiktokIcon,
 };
 
 export function AppFooter({ siteConfig }: { siteConfig: SiteConfig }) {
