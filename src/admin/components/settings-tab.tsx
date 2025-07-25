@@ -57,9 +57,8 @@ const SectionCard: React.FC<{
   description: string;
   icon: React.ElementType;
   children: React.ReactNode;
-  delay?: number;
-}> = ({ title, description, icon: Icon, children, delay = 0 }) => (
-    <Card className="animate-fade-in-up" style={{ animationDelay: `${delay}ms` }}>
+}> = ({ title, description, icon: Icon, children }) => (
+    <Card>
         <CardHeader>
             <div className="flex items-start gap-4">
                  <Icon className="h-8 w-8 text-muted-foreground" />
@@ -275,7 +274,7 @@ export default function SettingsTab() {
             </SectionCard>
 
             <div className="grid md:grid-cols-2 gap-6">
-                 <SectionCard title="Social Media" description="Manage links to your social media profiles." icon={LinkIcon} delay={150}>
+                 <SectionCard title="Social Media" description="Manage links to your social media profiles." icon={LinkIcon}>
                      <Form {...socialLinksForm}>
                         <form onSubmit={socialLinksForm.handleSubmit(d => handleAction(firebaseService.updateSiteConfig(d), "Social links updated."))} className="space-y-4">
                             <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
@@ -299,7 +298,7 @@ export default function SettingsTab() {
                         existingPlatforms={socialLinkFields.map(f => f.platform)}
                     />
                  </SectionCard>
-                 <SectionCard title="Navigation" description="Toggle visibility for pages in the main site navigation." icon={Navigation} delay={300}>
+                 <SectionCard title="Navigation" description="Toggle visibility for pages in the main site navigation." icon={Navigation}>
                       <Form {...navVisibilityForm}>
                         <form onSubmit={navVisibilityForm.handleSubmit(d => handleAction(firebaseService.updateSiteConfig(d), "Navigation visibility updated."))} className="space-y-2 max-h-96 overflow-y-auto pr-2">
                             {navLinksForAdmin.map((link) => (
@@ -316,7 +315,7 @@ export default function SettingsTab() {
                  </SectionCard>
             </div>
             
-             <SectionCard title="Import / Export Data" description="Backup or bulk-edit your conference data using CSV files." icon={Download} delay={450}>
+             <SectionCard title="Import / Export Data" description="Backup or bulk-edit your conference data using CSV files." icon={Download}>
                  <div className="grid md:grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="space-y-2 p-4 border rounded-lg">
                         <h3 className="font-semibold flex items-center gap-2"><Library/> Committees</h3>
