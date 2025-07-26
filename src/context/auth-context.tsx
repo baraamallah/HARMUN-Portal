@@ -21,12 +21,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
+    const minDisplayTime = new Promise(resolve => setTimeout(resolve, 3000));
+    
+    const authReady = new Promise<User | null>(resolve => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            setUser(user);
+            resolve(user);
+            unsubscribe(); // Unsubscribe after the first auth state change
+        });
     });
 
-    return () => unsubscribe();
+    Promise.all([minDisplayTime, authReady]).then(() => {
+        setLoading(false);
+    });
+
   }, []);
 
   return (
