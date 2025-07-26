@@ -8,6 +8,7 @@ import { getSiteConfig } from '@/lib/firebase-service';
 import type { SiteConfig } from '@/lib/types';
 import { AuthProvider } from '@/context/auth-context';
 import { Analytics } from '@vercel/analytics/react';
+import { AppLoader } from '@/components/app-loader';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,12 +47,14 @@ export default async function RootLayout({
       </head>
       <body>
         <AuthProvider>
-          <div className="flex min-h-screen flex-col">
-            <AppHeader siteConfig={siteConfig} />
-            <main className="flex-grow">{children}</main>
-            <AppFooter siteConfig={siteConfig} />
-          </div>
-          <Toaster />
+            <AppLoader>
+              <div className="flex min-h-screen flex-col">
+                <AppHeader siteConfig={siteConfig} />
+                <main className="flex-grow">{children}</main>
+                <AppFooter siteConfig={siteConfig} />
+              </div>
+              <Toaster />
+            </AppLoader>
         </AuthProvider>
         <Analytics />
       </body>

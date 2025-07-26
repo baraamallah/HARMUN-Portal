@@ -4,7 +4,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import LoadingScreen from '@/components/LoadingScreen';
 
 interface AuthContextType {
   user: User | null;
@@ -21,20 +20,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const minDisplayTime = new Promise(resolve => setTimeout(resolve, 3000));
-    
-    const authReady = new Promise<User | null>(resolve => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            setUser(user);
-            resolve(user);
-            unsubscribe(); // Unsubscribe after the first auth state change
-        });
-    });
-
-    Promise.all([minDisplayTime, authReady]).then(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+        setUser(user);
         setLoading(false);
     });
 
+    return () => unsubscribe();
   }, []);
 
   return (
@@ -51,13 +42,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-export const AuthLoader = ({ children }: { children: React.ReactNode }) => {
-    const { loading } = useAuth();
-
-    if (loading) {
-        return <LoadingScreen />;
-    }
-
-    return <>{children}</>;
-}
