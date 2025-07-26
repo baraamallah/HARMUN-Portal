@@ -72,7 +72,7 @@ async function initializeDefaultData() {
                     { platform: 'Facebook', url: '#' },
                 ],
                 footerText: "This is a fictional event created for demonstration purposes.",
-                mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2948.560548173455!2d-71.1194179234839!3d42.37361573426569!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89e377427d73825b%3A0x5e567c1d7756919a!2sHarvard%20University!5e0!3m2!1sen!2sus!4v1716335399552!5m2!1sen!2sus",
+                mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3325.910125816049!2d35.37299697569549!3d33.52902997335756!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x151e18d103306911%3A0x68422485078516d!2sRafic%20Hariri%20High%20School!5e0!3m2!1sen!2slb!4v1718890786523!5m2!1sen!2slb",
                 navVisibility: { '/about': true, '/committees': true, '/news': true, '/sg-notes': true, '/registration': true, '/schedule': true, '/documents': true, '/gallery': true },
             },
             [REGISTRATION_PAGE_CONTENT_DOC_ID]: {
