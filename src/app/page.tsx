@@ -23,6 +23,7 @@ export default async function Home() {
   ]);
   
   const targetDate = new Date(siteConfig.conferenceDate);
+  const mapEmbedUrl = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d13295.529855975035!2d35.40147005!3d33.582400850000006!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x151efaac9c5cdf6f%3A0x73a55ec5ecdc2fc2!2sRafic%20Hariri%20High%20School!5e0!3m2!1sen!2slb!4v1753507506398!5m2!1sen!2slb";
 
   return (
     <div className="flex flex-col">
@@ -74,11 +75,11 @@ export default async function Home() {
             </div>
 
             {/* Venue Map */}
-            {siteConfig.mapEmbedUrl && (
+            {mapEmbedUrl && (
               <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
                 <div className="aspect-video w-full rounded-lg overflow-hidden border shadow-lg">
                   <iframe
-                    src={siteConfig.mapEmbedUrl}
+                    src={mapEmbedUrl}
                     width="100%"
                     height="100%"
                     style={{ border: 0 }}

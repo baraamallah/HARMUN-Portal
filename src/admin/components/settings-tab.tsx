@@ -29,7 +29,6 @@ const navLinksForAdmin = [
 const generalSettingsSchema = z.object({
   conferenceDate: z.string().min(1),
   sgAvatarUrl: z.string().url(),
-  mapEmbedUrl: z.string().url(),
   footerText: z.string().min(5),
 });
 
@@ -142,13 +141,7 @@ export default function SettingsTab() {
     const [galleryImportFile, setGalleryImportFile] = useState<File | null>(null);
     const [isImporting, setIsImporting] = useState(false);
 
-    const generalSettingsForm = useForm<z.infer<typeof generalSettingsSchema>>({ 
-        resolver: zodResolver(generalSettingsSchema), 
-        defaultValues: {
-            ...data.siteConfig,
-            mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d13295.529855975035!2d35.40147005!3d33.582400850000006!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x151efaac9c5cdf6f%3A0x73a55ec5ecdc2fc2!2sRafic%20Hariri%20High%20School!5e0!3m2!1sen!2slb!4v1753507506398!5m2!1sen!2slb"
-        } 
-    });
+    const generalSettingsForm = useForm<z.infer<typeof generalSettingsSchema>>({ resolver: zodResolver(generalSettingsSchema), defaultValues: data.siteConfig });
     const socialLinksForm = useForm<z.infer<typeof socialLinksSchema>>({ resolver: zodResolver(socialLinksSchema), defaultValues: { socialLinks: data.siteConfig.socialLinks || [] } });
     const navVisibilityForm = useForm<z.infer<typeof navVisibilitySchema>>({ resolver: zodResolver(navVisibilitySchema), defaultValues: { navVisibility: data.siteConfig.navVisibility || {} } });
     
@@ -272,7 +265,6 @@ export default function SettingsTab() {
                     <form onSubmit={generalSettingsForm.handleSubmit(d => handleAction(firebaseService.updateSiteConfig(d), "General settings updated."))} className="space-y-4">
                         <FormField control={generalSettingsForm.control} name="conferenceDate" render={({ field }) => (<FormItem><FormLabel>Countdown Date</FormLabel><FormControl><Input {...field} /></FormControl><p className="text-xs text-muted-foreground">Format: YYYY-MM-DDTHH:mm:ss</p></FormItem>)} />
                         <FormField control={generalSettingsForm.control} name="sgAvatarUrl" render={({ field }) => (<FormItem><FormLabel>Secretary-General Avatar URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
-                        <FormField control={generalSettingsForm.control} name="mapEmbedUrl" render={({ field }) => (<FormItem><FormLabel>Google Maps Embed URL</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
                         <FormField control={generalSettingsForm.control} name="footerText" render={({ field }) => (<FormItem><FormLabel>Footer Text</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>)} />
                         <Button type="submit">Save General Settings</Button>
                     </form>

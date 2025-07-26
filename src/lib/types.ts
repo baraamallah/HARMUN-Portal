@@ -49,7 +49,6 @@ export type SiteConfig = {
   conferenceDate: string;
   socialLinks: SocialLink[];
   footerText: string;
-  mapEmbedUrl: string;
   sgAvatarUrl: string;
   navVisibility?: Record<string, boolean>;
 };
