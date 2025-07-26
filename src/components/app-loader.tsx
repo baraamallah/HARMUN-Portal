@@ -10,11 +10,19 @@ export const AppLoader = ({ children }: { children: React.ReactNode }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Only run the loader logic on the client side for the public-facing pages
-        if (typeof window !== 'undefined' && !pathname.startsWith('/admin') && !pathname.startsWith('/login')) {
+        const hasLoaded = sessionStorage.getItem('hasLoadedBefore');
+
+        if (hasLoaded || pathname.startsWith('/admin') || pathname.startsWith('/login')) {
+            setLoading(false);
+            return;
+        }
+
+        // If it's the first load in the session for a public page
+        if (typeof window !== 'undefined') {
             setLoading(true);
             const timer = setTimeout(() => {
                 setLoading(false);
+                sessionStorage.setItem('hasLoadedBefore', 'true');
             }, 3000); 
 
             return () => clearTimeout(timer);
