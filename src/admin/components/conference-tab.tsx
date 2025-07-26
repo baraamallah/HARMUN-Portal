@@ -82,7 +82,7 @@ function AddCountryForm({ committees, onAdd }: { committees: T.Committee[]; onAd
 function AddCommitteeForm({ onAdd }: { onAdd: (data: any, form: any) => Promise<void> }) {
     const form = useForm({ defaultValues: { name: '', chairName: '', chairBio: '', chairImageUrl: '', topics: '', backgroundGuideUrl: '' } });
     
-    return <Form {...form}><form onSubmit={form.handleSubmit(async (d, e) => { e?.preventDefault(); await onAdd(d, form); })} className="space-y-4">
+    return <Form {...form}><form onSubmit={form.handleSubmit((d) => onAdd(d, form))} className="space-y-4">
         <div className="grid md:grid-cols-2 gap-4">
             <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Committee Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
             <FormField control={form.control} name="chairName" render={({ field }) => ( <FormItem><FormLabel>Chair Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
