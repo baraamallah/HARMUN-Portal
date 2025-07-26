@@ -223,10 +223,12 @@ export default function ConferenceTab() {
                         {data.schedule?.map((day: T.ScheduleDay) => (
                             <Card key={day.id} className="w-full">
                                 <CardHeader>
-                                    <CardTitle>{day.title} - {day.date}</CardTitle>
-                                    <CardDescription>
-                                        <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => handleDeleteItem(firebaseService.deleteScheduleDay, day.id, 'day')}>Delete Day</Button>
-                                    </CardDescription>
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <CardTitle>{day.title} - {day.date}</CardTitle>
+                                        </div>
+                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(firebaseService.deleteScheduleDay, day.id, 'day')}><Trash2 className="text-destructive h-4 w-4"/></Button>
+                                    </div>
                                 </CardHeader>
                                 <CardContent>
                                     {day.events.length > 0 ? day.events.map((event: T.ScheduleEvent) => (

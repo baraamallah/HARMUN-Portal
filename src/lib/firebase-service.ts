@@ -345,12 +345,14 @@ export async function getPostById(id: string): Promise<Post | null> {
     return null;
 }
 export async function getPosts(type: 'sg-note' | 'news'): Promise<Post[]> {
-    const allPosts = await getAllPosts();
-    return allPosts.filter(post => post.type === type);
+    const q = query(collection(db, POSTS_COLLECTION), where('type', '==', type), orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
 }
 export async function getRecentNewsPosts(count: number): Promise<Post[]> {
-    const allNews = await getPosts('news');
-    return allNews.slice(0, count);
+    const q = query(collection(db, POSTS_COLLECTION), where('type', '==', 'news'), orderBy('createdAt', 'desc'), limit(count));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
 }
 
 

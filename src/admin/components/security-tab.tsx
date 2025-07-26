@@ -22,6 +22,25 @@ const changePasswordSchema = z.object({
     path: ["confirmPassword"],
 });
 
+const SectionCard: React.FC<{
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  children: React.ReactNode;
+}> = ({ title, description, icon: Icon, children }) => (
+    <Card className="animate-fade-in-up">
+        <CardHeader>
+            <div className="flex items-start gap-4">
+                 <Icon className="h-8 w-8 text-muted-foreground" />
+                 <div>
+                    <CardTitle>{title}</CardTitle>
+                    <CardDescription>{description}</CardDescription>
+                 </div>
+            </div>
+        </CardHeader>
+        <CardContent>{children}</CardContent>
+    </Card>
+);
 
 export default function SecurityTab({ toast }: any) {
     const { user } = useAuth();
@@ -46,65 +65,48 @@ export default function SecurityTab({ toast }: any) {
 
     return (
         <div className="space-y-6">
-            <Card className="animate-fade-in-up">
-                <CardHeader>
-                    <div className="flex items-start gap-4">
-                        <ShieldCheck className="h-8 w-8 text-muted-foreground" />
-                        <div>
-                            <CardTitle>Security</CardTitle>
-                            <CardDescription>Manage your account security settings.</CardDescription>
-                        </div>
-                    </div>
-                </CardHeader>
-            </Card>
-            <Card className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><KeyRound /> Change Password</CardTitle>
-                    <CardDescription>Update the password for your admin account.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Form {...changePasswordForm}>
-                        <form onSubmit={changePasswordForm.handleSubmit(handleChangePassword)} className="space-y-4 max-w-sm">
-                            <FormField
-                                control={changePasswordForm.control}
-                                name="currentPassword"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Current Password</FormLabel>
-                                        <FormControl><Input type="password" {...field} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={changePasswordForm.control}
-                                name="newPassword"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>New Password</FormLabel>
-                                        <FormControl><Input type="password" {...field} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={changePasswordForm.control}
-                                name="confirmPassword"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Confirm New Password</FormLabel>
-                                        <FormControl><Input type="password" {...field} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <Button type="submit" disabled={changePasswordForm.formState.isSubmitting}>
-                                {changePasswordForm.formState.isSubmitting ? "Updating..." : "Update Password"}
-                            </Button>
-                        </form>
-                    </Form>
-                </CardContent>
-            </Card>
+            <SectionCard title="Change Password" description="Update the password for your admin account." icon={KeyRound}>
+                <Form {...changePasswordForm}>
+                    <form onSubmit={changePasswordForm.handleSubmit(handleChangePassword)} className="space-y-4 max-w-sm">
+                        <FormField
+                            control={changePasswordForm.control}
+                            name="currentPassword"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Current Password</FormLabel>
+                                    <FormControl><Input type="password" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={changePasswordForm.control}
+                            name="newPassword"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>New Password</FormLabel>
+                                    <FormControl><Input type="password" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={changePasswordForm.control}
+                            name="confirmPassword"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Confirm New Password</FormLabel>
+                                    <FormControl><Input type="password" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <Button type="submit" disabled={changePasswordForm.formState.isSubmitting}>
+                            {changePasswordForm.formState.isSubmitting ? "Updating..." : "Update Password"}
+                        </Button>
+                    </form>
+                </Form>
+            </SectionCard>
         </div>
     );
 }

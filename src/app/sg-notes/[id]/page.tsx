@@ -53,5 +53,3 @@ export default async function SGNotePage({ params }: SGNotePageProps) {
     </div>
   );
 }
-
-    

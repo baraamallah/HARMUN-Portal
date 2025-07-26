@@ -40,5 +40,3 @@ export default async function NewsPostPage({ params }: NewsPostPageProps) {
     </div>
   );
 }
-
-    

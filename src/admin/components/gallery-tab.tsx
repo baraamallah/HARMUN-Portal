@@ -142,12 +142,31 @@ function AddGalleryItemForm({ onAdd }: { onAdd: (data: any, form: any) => Promis
                         </Select><FormMessage /></FormItem>
                     )} />
                 </div>
-                <Button type="submit"><PlusCircle className="mr-2" />Add Item</Button>
+                <Button type="submit" className="w-full"><PlusCircle className="mr-2" />Add Item</Button>
             </form></Form>
         </CardContent></Card>
     );
 }
 
+const SectionCard: React.FC<{
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  children: React.ReactNode;
+}> = ({ title, description, icon: Icon, children }) => (
+    <Card className="animate-fade-in-up">
+        <CardHeader>
+            <div className="flex items-start gap-4">
+                 <Icon className="h-8 w-8 text-muted-foreground" />
+                 <div>
+                    <CardTitle>{title}</CardTitle>
+                    <CardDescription>{description}</CardDescription>
+                 </div>
+            </div>
+        </CardHeader>
+        <CardContent>{children}</CardContent>
+    </Card>
+);
 
 export default function GalleryTab() {
     const { toast } = useToast();
@@ -234,26 +253,15 @@ export default function GalleryTab() {
 
     return (
         <div className="space-y-6">
-            <Card className="animate-fade-in-up">
-                <CardHeader>
-                     <div className="flex items-start gap-4">
-                        <GalleryHorizontal className="h-8 w-8 text-muted-foreground" />
-                        <div>
-                            <CardTitle>Gallery Page Management</CardTitle>
-                            <CardDescription>Manage the main title and gallery items for your public gallery page.</CardDescription>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <Form {...pageContentForm}>
-                        <form onSubmit={pageContentForm.handleSubmit(handlePageContentSave)} className="space-y-4">
-                            <FormField control={pageContentForm.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-                            <FormField control={pageContentForm.control} name="subtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
-                            <Button type="submit">Save Content</Button>
-                        </form>
-                    </Form>
-                </CardContent>
-            </Card>
+            <SectionCard title="Gallery Page Management" description="Manage the main title and gallery items for your public gallery page." icon={GalleryHorizontal}>
+                <Form {...pageContentForm}>
+                    <form onSubmit={pageContentForm.handleSubmit(handlePageContentSave)} className="space-y-4">
+                        <FormField control={pageContentForm.control} name="title" render={({ field }) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+                        <FormField control={pageContentForm.control} name="subtitle" render={({ field }) => <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
+                        <Button type="submit">Save Content</Button>
+                    </form>
+                </Form>
+            </SectionCard>
 
             <div className="grid md:grid-cols-5 gap-8">
                 <div className="md:col-span-2">
