@@ -146,7 +146,7 @@ export default function SettingsTab() {
         resolver: zodResolver(generalSettingsSchema), 
         defaultValues: {
             ...data.siteConfig,
-            mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3325.910125816049!2d35.37299697569549!3d33.52902997335756!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x151e18d103306911%3A0x68422485078516d!2sRafic%20Hariri%20High%20School!5e0!3m2!1sen!2slb!4v1718890786523!5m2!1sen!2slb"
+            mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d13295.529855975035!2d35.40147005!3d33.582400850000006!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x151efaac9c5cdf6f%3A0x73a55ec5ecdc2fc2!2sRafic%20Hariri%20High%20School!5e0!3m2!1sen!2slb!4v1753507506398!5m2!1sen!2slb"
         } 
     });
     const socialLinksForm = useForm<z.infer<typeof socialLinksSchema>>({ resolver: zodResolver(socialLinksSchema), defaultValues: { socialLinks: data.siteConfig.socialLinks || [] } });
