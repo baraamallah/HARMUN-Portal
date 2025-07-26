@@ -1,4 +1,5 @@
 
+
 import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc, writeBatch, documentId, runTransaction, limit } from 'firebase/firestore';
 import { db } from './firebase';
 import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, DownloadableDocument, ConferenceHighlight, GalleryPageContent, GalleryItem } from './types';
@@ -71,7 +72,7 @@ async function initializeDefaultData() {
                     { platform: 'Facebook', url: '#' },
                 ],
                 footerText: "This is a fictional event created for demonstration purposes.",
-                mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2925.733553224765!2d-71.1194179234839!3d42.37361573426569!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89e377427d73825b%3A0x5e567c1d7756919a!2sHarvard%20University!5e0!3m2!1sen!2sus!4v1709876543210!5m2!1sen!2sus",
+                mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2948.560548173455!2d-71.1194179234839!3d42.37361573426569!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89e377427d73825b%3A0x5e567c1d7756919a!2sHarvard%20University!5e0!3m2!1sen!2sus!4v1716335399552!5m2!1sen!2sus",
                 navVisibility: { '/about': true, '/committees': true, '/news': true, '/sg-notes': true, '/registration': true, '/schedule': true, '/documents': true, '/gallery': true },
             },
             [REGISTRATION_PAGE_CONTENT_DOC_ID]: {
