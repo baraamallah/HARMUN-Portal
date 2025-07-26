@@ -1,9 +1,10 @@
+
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { Skeleton } from '@/components/ui/skeleton';
+import LoadingScreen from '@/components/LoadingScreen';
 
 interface AuthContextType {
   user: User | null;
@@ -47,12 +48,7 @@ export const AuthLoader = ({ children }: { children: React.ReactNode }) => {
     const { loading } = useAuth();
 
     if (loading) {
-        return (
-             <div className="space-y-8 p-8">
-                <Skeleton className="h-12 w-full" />
-                {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-64 w-full" />)}
-            </div>
-        )
+        return <LoadingScreen />;
     }
 
     return <>{children}</>;
