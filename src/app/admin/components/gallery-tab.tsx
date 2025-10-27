@@ -17,11 +17,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PlusCircle, Trash2, GripVertical, GalleryHorizontal } from "lucide-react";
+import { PlusCircle, Trash2, GripVertical, GalleryHorizontal, Search, X } from "lucide-react";
 import * as firebaseService from "@/lib/firebase-service";
 import type * as T from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 
 // Schemas
 const galleryPageContentSchema = z.object({
