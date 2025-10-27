@@ -68,7 +68,7 @@ export function AppHeader({ siteConfig }: { siteConfig: SiteConfig }) {
             </SheetTrigger>
             <SheetContent side="right" className="bg-background">
                 <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-                <div className="flex flex-col gap-6 p-6">
+                <div className="flex flex-col gap-8 p-8">
                     <Link href="/" className="flex items-center gap-2 font-bold text-xl text-foreground font-headline mb-4" onClick={() => setSheetOpen(false)}>
                     <Globe className="h-7 w-7 text-primary" />
                     <span>HARMUN '25</span>

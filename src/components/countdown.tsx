@@ -48,7 +48,7 @@ export const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
   }, [targetDate]);
 
   return (
-    <div className="flex justify-center gap-2 md:gap-4 lg:gap-8">
+    <div className="flex justify-center gap-3 md:gap-4 lg:gap-8">
       <TimeUnit value={timeLeft.days} label="Days" />
       <TimeUnit value={timeLeft.hours} label="Hours" />
       <TimeUnit value={timeLeft.minutes} label="Minutes" />

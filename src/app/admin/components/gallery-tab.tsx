@@ -17,11 +17,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PlusCircle, Trash2, GripVertical, GalleryHorizontal } from "lucide-react";
+import { PlusCircle, Trash2, GripVertical, GalleryHorizontal, Search, X } from "lucide-react";
 import * as firebaseService from "@/lib/firebase-service";
 import type * as T from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 
 // Schemas
 const galleryPageContentSchema = z.object({
@@ -153,9 +154,12 @@ export default function GalleryTab() {
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<{ content: T.GalleryPageContent | null; items: T.GalleryItem[] }>({ content: null, items: [] });
-    
+    const [searchQuery, setSearchQuery] = useState('');
+    const [aspectRatioFilter, setAspectRatioFilter] = useState<string>('all');
+    const [widthFilter, setWidthFilter] = useState<string>('all');
+
     const pageContentForm = useForm<z.infer<typeof galleryPageContentSchema>>({ resolver: zodResolver(galleryPageContentSchema) });
-    
+
     const sensors = [useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })];
 
     const loadData = useCallback(async () => {
@@ -216,7 +220,7 @@ export default function GalleryTab() {
             const oldIndex = oldItems.findIndex((item) => item.id === active.id);
             const newIndex = oldItems.findIndex((item) => item.id === over.id);
             const newItems = arrayMove(oldItems, oldIndex, newIndex);
-            
+
             // Optimistically update UI
             setData(prev => ({...prev, items: newItems}));
 
@@ -229,7 +233,27 @@ export default function GalleryTab() {
             }
         }
     };
-    
+
+    // Filter gallery items based on search and filters
+    const filteredItems = React.useMemo(() => {
+        return data.items.filter(item => {
+            const matchesSearch = searchQuery === '' ||
+                item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+            const matchesAspectRatio = aspectRatioFilter === 'all' || item.aspectRatio === aspectRatioFilter;
+            const matchesWidth = widthFilter === 'all' || item.width === widthFilter;
+            return matchesSearch && matchesAspectRatio && matchesWidth;
+        });
+    }, [data.items, searchQuery, aspectRatioFilter, widthFilter]);
+
+    const clearFilters = () => {
+        setSearchQuery('');
+        setAspectRatioFilter('all');
+        setWidthFilter('all');
+    };
+
+    const hasActiveFilters = searchQuery !== '' || aspectRatioFilter !== 'all' || widthFilter !== 'all';
+
     if (loading) return <div className="space-y-4"><Skeleton className="h-48 w-full" /><Skeleton className="h-64 w-full" /></div>;
 
     return (
@@ -259,17 +283,91 @@ export default function GalleryTab() {
                 <div className="md:col-span-2">
                      <AddGalleryItemForm onAdd={handleAddItem} />
                 </div>
-                 <div className="md:col-span-3">
+                 <div className="md:col-span-3 space-y-4">
+                    {/* Filters Card */}
                     <Card>
-                        <CardHeader><CardTitle>Manage Gallery Items</CardTitle><CardDescription>Drag to reorder items.</CardDescription></CardHeader>
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <CardTitle>Filter & Search</CardTitle>
+                                    <CardDescription>Find specific gallery items</CardDescription>
+                                </div>
+                                {hasActiveFilters && (
+                                    <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-2">
+                                        <X className="h-4 w-4" />
+                                        Clear Filters
+                                    </Button>
+                                )}
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {/* Search */}
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Search by title..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="pl-9"
+                                    />
+                                </div>
+
+                                {/* Aspect Ratio Filter */}
+                                <Select value={aspectRatioFilter} onValueChange={setAspectRatioFilter}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Aspect Ratio" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Ratios</SelectItem>
+                                        <SelectItem value="1:1">Square (1:1)</SelectItem>
+                                        <SelectItem value="16:9">Landscape (16:9)</SelectItem>
+                                        <SelectItem value="4:3">Standard (4:3)</SelectItem>
+                                        <SelectItem value="3:4">Portrait (3:4)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+
+                                {/* Width Filter */}
+                                <Select value={widthFilter} onValueChange={setWidthFilter}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Width" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Widths</SelectItem>
+                                        <SelectItem value="single">Single</SelectItem>
+                                        <SelectItem value="double">Double</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {/* Results count */}
+                            <div className="mt-4 flex items-center gap-2">
+                                <Badge variant="secondary">
+                                    {filteredItems.length} of {data.items.length} items
+                                </Badge>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Gallery Items Card */}
+                    <Card>
+                        <CardHeader><CardTitle>Manage Gallery Items</CardTitle><CardDescription>Drag to reorder items. {filteredItems.length === 0 && "No items match your filters."}</CardDescription></CardHeader>
                         <CardContent className="max-h-[40rem] overflow-y-auto pr-2">
-                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                                <SortableContext items={data.items.map(i => i.id)} strategy={verticalListSortingStrategy}>
-                                    {data.items.map((item) => (
-                                        <SortableGalleryItem key={item.id} item={item} onSave={handleUpdateItem} onDelete={handleDeleteItem} />
-                                    ))}
-                                </SortableContext>
-                            </DndContext>
+                            {filteredItems.length === 0 && !hasActiveFilters && (
+                                <p className="text-muted-foreground text-center py-8">No gallery items yet. Add your first item above!</p>
+                            )}
+                            {filteredItems.length === 0 && hasActiveFilters && (
+                                <p className="text-muted-foreground text-center py-8">No items match your current filters.</p>
+                            )}
+                            {filteredItems.length > 0 && (
+                                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                                    <SortableContext items={filteredItems.map(i => i.id)} strategy={verticalListSortingStrategy}>
+                                        {filteredItems.map((item) => (
+                                            <SortableGalleryItem key={item.id} item={item} onSave={handleUpdateItem} onDelete={handleDeleteItem} />
+                                        ))}
+                                    </SortableContext>
+                                </DndContext>
+                            )}
                         </CardContent>
                     </Card>
                 </div>

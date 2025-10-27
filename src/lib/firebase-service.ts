@@ -1,7 +1,8 @@
 
 
 import { collection, doc, getDoc, getDocs, setDoc, addDoc, serverTimestamp, query, where, orderBy, deleteDoc, updateDoc, writeBatch, documentId, runTransaction, limit } from 'firebase/firestore';
-import { db } from './firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from './firebase';
 import type { HomePageContent, Post, Country, Committee, SiteConfig, AboutPageContent, ScheduleDay, ScheduleEvent, RegistrationPageContent, DocumentsPageContent, DownloadableDocument, ConferenceHighlight, GalleryPageContent, GalleryItem } from './types';
 import { format } from 'date-fns';
 import { convertGoogleDriveLink } from './utils';
@@ -464,4 +465,47 @@ async function clearCollection(collectionPath: string) {
     const batch = writeBatch(db);
     querySnapshot.docs.forEach(docSnapshot => batch.delete(docSnapshot.ref));
     await batch.commit();
+}
+
+// --- Image Upload to Firebase Storage ---
+/**
+ * Uploads an image file to Firebase Storage
+ * @param file The File object to upload
+ * @param category The category for organizing uploads (hero, gallery, profile, general)
+ * @returns Promise resolving to the public download URL
+ */
+export async function uploadImage(file: File, category: string = 'general'): Promise<string> {
+    try {
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+            throw new Error('Invalid file type. Only JPG, PNG, GIF, and WebP images are allowed.');
+        }
+
+        // Validate file size (5MB max)
+        const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+        if (file.size > maxSize) {
+            throw new Error('File too large. Maximum size is 5MB.');
+        }
+
+        // Create unique filename with timestamp
+        const timestamp = Date.now();
+        const sanitizedFilename = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const storagePath = `images/${category}/${timestamp}_${sanitizedFilename}`;
+
+        // Upload to Firebase Storage
+        const storageRef = ref(storage, storagePath);
+        const snapshot = await uploadBytes(storageRef, file);
+
+        // Get public download URL
+        const downloadURL = await getDownloadURL(snapshot.ref);
+
+        return downloadURL;
+    } catch (error) {
+        console.error('Error uploading image:', error);
+        if (error instanceof Error) {
+            throw error;
+        }
+        throw new Error('Failed to upload image. Please try again.');
+    }
 }
