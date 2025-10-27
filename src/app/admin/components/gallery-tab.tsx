@@ -220,7 +220,7 @@ export default function GalleryTab() {
             const oldIndex = oldItems.findIndex((item) => item.id === active.id);
             const newIndex = oldItems.findIndex((item) => item.id === over.id);
             const newItems = arrayMove(oldItems, oldIndex, newIndex);
-            
+
             // Optimistically update UI
             setData(prev => ({...prev, items: newItems}));
 
@@ -233,7 +233,27 @@ export default function GalleryTab() {
             }
         }
     };
-    
+
+    // Filter gallery items based on search and filters
+    const filteredItems = React.useMemo(() => {
+        return data.items.filter(item => {
+            const matchesSearch = searchQuery === '' ||
+                item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+            const matchesAspectRatio = aspectRatioFilter === 'all' || item.aspectRatio === aspectRatioFilter;
+            const matchesWidth = widthFilter === 'all' || item.width === widthFilter;
+            return matchesSearch && matchesAspectRatio && matchesWidth;
+        });
+    }, [data.items, searchQuery, aspectRatioFilter, widthFilter]);
+
+    const clearFilters = () => {
+        setSearchQuery('');
+        setAspectRatioFilter('all');
+        setWidthFilter('all');
+    };
+
+    const hasActiveFilters = searchQuery !== '' || aspectRatioFilter !== 'all' || widthFilter !== 'all';
+
     if (loading) return <div className="space-y-4"><Skeleton className="h-48 w-full" /><Skeleton className="h-64 w-full" /></div>;
 
     return (
