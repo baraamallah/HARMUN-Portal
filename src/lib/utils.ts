@@ -1,9 +1,31 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import DOMPurify from 'dompurify'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+/**
+ * Sanitizes HTML content to prevent XSS attacks
+ * @param html The HTML string to sanitize
+ * @returns Sanitized HTML safe for rendering
+ */
+export function sanitizeHtml(html: string): string {
+  if (typeof window === 'undefined') {
+    // Server-side: Return as is (will be sanitized on client)
+    return html
+  }
+
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      'p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4',
+      'ul', 'ol', 'li', 'blockquote', 'a', 'hr'
+    ],
+    ALLOWED_ATTR: ['href', 'target', 'rel'],
+    ALLOW_DATA_ATTR: false,
+  })
 }
 
 /**
