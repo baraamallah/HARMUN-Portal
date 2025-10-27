@@ -154,9 +154,12 @@ export default function GalleryTab() {
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<{ content: T.GalleryPageContent | null; items: T.GalleryItem[] }>({ content: null, items: [] });
-    
+    const [searchQuery, setSearchQuery] = useState('');
+    const [aspectRatioFilter, setAspectRatioFilter] = useState<string>('all');
+    const [widthFilter, setWidthFilter] = useState<string>('all');
+
     const pageContentForm = useForm<z.infer<typeof galleryPageContentSchema>>({ resolver: zodResolver(galleryPageContentSchema) });
-    
+
     const sensors = [useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })];
 
     const loadData = useCallback(async () => {
